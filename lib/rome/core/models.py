@@ -120,7 +120,7 @@ class Entity(utils.ReloadableRelationMixin):
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 
-    def soft_delete(self, session):
+    def soft_delete(self, session=None):
         database_driver.get_driver().remove_key(self.__tablename__, self.id)
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True):
