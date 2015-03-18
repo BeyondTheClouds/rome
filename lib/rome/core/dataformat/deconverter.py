@@ -73,7 +73,7 @@ class JsonDeconverter(object):
             self.cache[key] = lazy_reference.LazyReference(
                 tablename,
                 obj["id"],
-                desimplifier=self,
+                deconverter=self,
                 request_uuid=self.request_uuid
             )
         return self.cache[key]

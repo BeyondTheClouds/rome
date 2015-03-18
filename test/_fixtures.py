@@ -1,5 +1,6 @@
 import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.models import Entity as NovaBase
+from lib.rome.core.models import global_sope
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Index, Integer, BigInteger, Enum, String, schema
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
@@ -11,6 +12,7 @@ BASE = declarative_base()
 def MediumText():
     return Text()
 
+@global_sope
 class Service(BASE, NovaBase):
     """Represents a running service on a host."""
 
@@ -30,7 +32,7 @@ class Service(BASE, NovaBase):
     disabled = Column(Boolean, default=False)
     disabled_reason = Column(String(255))
 
-
+@global_sope
 class ComputeNode(BASE, NovaBase):
     """Represents a running compute service on a host."""
 
@@ -105,6 +107,10 @@ def erase_fixture_data():
 
 def initialise_fixture_data():
     print("initialise data stored in the database")
+
+    service = Service()
+    service.binary = "toto"
+    service.save()
     pass
 
 if __name__ == '__main__':

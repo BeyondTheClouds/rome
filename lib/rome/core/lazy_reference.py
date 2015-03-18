@@ -29,12 +29,12 @@ class LazyReference:
     populating relationships even when not required, we load them "only" when
     it is used!"""
 
-    def __init__(self, base, id, request_uuid, desimplifier):
+    def __init__(self, base, id, request_uuid, deconverter):
         """Constructor"""
 
-        from lib.rome.core.dataformat import deconverter
+        from lib.rome.core.dataformat import deconverter as deconverter_module
 
-        caches = deconverter.CACHES
+        caches = deconverter_module.CACHES
 
         self.base = base
         self.id = id
@@ -48,9 +48,9 @@ class LazyReference:
         if deconverter is None:
             from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
-            self.desimplifier = JsonDeconverter(request_uuid=request_uuid)
+            self.deconverter = JsonDeconverter(request_uuid=request_uuid)
         else:
-            self.desimplifier = deconverter
+            self.deconverter = deconverter
 
     def get_key(self):
         """Returns a unique key for the current LazyReference."""
@@ -94,13 +94,13 @@ class LazyReference:
 
         # For each value of obj, set the corresponding attributes.
         for key in obj:
-            simplified_value = self.desimplifier.desimplify(obj[key])
+            simplified_value = self.deconverter.desimplify(obj[key])
             try:
                 if simplified_value is not None:
                     setattr(
                         current_model,
                         key,
-                        self.desimplifier.desimplify(obj[key])
+                        self.deconverter.desimplify(obj[key])
                     )
                 else:
                     setattr(current_model, key, obj[key])
@@ -162,7 +162,7 @@ class LazyReference:
         referenced object: the object is thus loaded from database, and the
         requested attribute/method is then setted with the given value."""
 
-        if name in ["base", "id", "cache", "desimplifier", "request_uuid",
+        if name in ["base", "id", "cache", "deconverter", "request_uuid",
                     "uuid", "version"]:
             self.__dict__[name] = value
         else:

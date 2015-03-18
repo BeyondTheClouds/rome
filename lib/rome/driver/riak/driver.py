@@ -9,7 +9,7 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def add_key(self, tablename, key):
         """"""
         keys = self.keys(tablename)
-        if key in keys:
+        if not key in keys:
             keys.append(key)
             bucket = self.riak_client.bucket("key_index")
             fetched = bucket.get(tablename)
@@ -28,6 +28,14 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             fetched.store()
         return keys
 
+    def next_key(self, tablename):
+        """"""
+        keys = self.keys(tablename)
+        current_key = 1
+        while current_key in keys:
+            current_key += 1
+        return current_key
+
     def keys(self, tablename):
         """"""
         """Check if the current table contains keys."""
@@ -44,9 +52,11 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def put(self, tablename, key, value):
         """"""
         bucket = self.riak_client.bucket(tablename)
-        return bucket.new("%s" % (key), data=value)
+        fetched = bucket.new("%s" % (key), data=value)
+        fetched.store()
+        return fetched
 
     def get(self, tablename, key):
         """"""
         bucket = self.riak_client.bucket(tablename)
-        return bucket.get("%s" % (key))
+        return bucket.get("%s" % (key)).data

@@ -68,19 +68,19 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None):
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
     if isinstance(id, int):
-        object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
+        object_deconverter = JsonDeconverter(request_uuid=request_uuid)
 
         value = database_driver.get_driver().get(tablename, id)
 
         if desimplify:
             try:
-                model_object = object_desimplifier.desimplify(value.data)
+                model_object = object_deconverter.desimplify(value)
                 return model_object
             except Exception as e:
                 traceback.print_exc()
                 return None
         else:
-            return value.data
+            return value
     else:
         return None
 
@@ -265,7 +265,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
         except:
             pass
 
-        object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
+        object_deconverter = JsonDeconverter(request_uuid=request_uuid)
         for each in self.get_relationships():
             if each.local_fk_value is None and each.local_object_value is None:
                 continue
@@ -277,7 +277,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         each.remote_object_tablename,
                         each.local_fk_value,
                         request_uuid,
-                        object_desimplifier
+                        object_deconverter
                     )
                     setattr(self, each.local_object_field, remote_ref)
                 else:
@@ -299,7 +299,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                             cand["nova_classname"],
                             cand["id"],
                             request_uuid,
-                            object_desimplifier
+                            object_deconverter
                         )
                         lazy_candidates += [ref]
                     if not each.is_list:

@@ -8,7 +8,7 @@ models in the same way as SQLALCHEMY do.
 import uuid
 import sys
 import inspect
-import datetime as timeutils
+import datetime
 
 from lib.rome.core.dataformat import converter
 import lib.rome.driver.database_driver as database_driver
@@ -62,14 +62,15 @@ def get_model_classname_from_tablename(tablename):
         return None
 
 
-def get_model_tablename_from_classname(tablename):
-    global classname_to_tablename_mapping
-    if classname_to_tablename_mapping is None:
-        load_model_classnames_from_tablenames()
-    if classname_to_tablename_mapping.has_key(tablename):
-        return classname_to_tablename_mapping[tablename]
-    else:
-        return None
+def get_model_tablename_from_classname(classname):
+    return get_model_class_from_name(classname).__tablename__
+    # global classname_to_tablename_mapping
+    # if classname_to_tablename_mapping is None:
+    #     load_model_classnames_from_tablenames()
+    # if classname_to_tablename_mapping.has_key(classname):
+    #     return classname_to_tablename_mapping[classname]
+    # else:
+    #     return None
 
 
 def get_model_class_from_name(name):
@@ -77,7 +78,8 @@ def get_model_class_from_name(name):
         model = eval(name)
     except:
         corrected_name = convert_to_model_name(name)
-        model = eval(corrected_name)
+        model = sys.modules[corrected_name]
+        # model = eval(corrected_name)
     return model
 
 
@@ -108,6 +110,9 @@ def merge_dict(a, b):
             result[key] = value
     return result
 
+def global_sope(cls):
+    sys.modules[cls.__name__] = cls
+    return cls
 
 class Entity(utils.ReloadableRelationMixin):
     metadata = None
@@ -167,26 +172,26 @@ class Entity(utils.ReloadableRelationMixin):
         field. If this is not the case, following code will generate an unique
         value, and store it in the "id" field."""
         if not self.already_in_database():
-            self.id = self.next_key(table_name)
+            self.id = database_driver.get_driver().next_key(table_name)
             print("\n\n>> Giving an ID to %s@%s\n\n" % (self.id, self.__tablename__))
 
         """Before keeping the object in database, we simplify it: the object is
         converted into "JSON like" representation, and nested objects are
         extracted. It results in a list of object that will be stored in the
         database."""
-        object_simplifier = converter.JsonConverter(request_uuid)
-        simplified_object = object_simplifier.simplify(target)
+        object_converter = converter.JsonConverter(request_uuid)
+        simplified_object = object_converter.simplify(target)
 
         table_next_key_offset = {}
 
-        for key in [key for key in object_simplifier.complex_cache if "x" in key]:
+        for key in [key for key in object_converter.complex_cache if "x" in key]:
 
             classname = "_".join(key.split("_")[0:-1])
             table_name = get_model_tablename_from_classname(classname)
 
-            simplified_object = object_simplifier.simple_cache[key]
-            complex_object = object_simplifier.complex_cache[key]
-            target_object = object_simplifier.target_cache[key]
+            simplified_object = object_converter.simple_cache[key]
+            complex_object = object_converter.complex_cache[key]
+            target_object = object_converter.target_cache[key]
 
             if simplified_object["id"] is not None:
                 continue
@@ -206,12 +211,12 @@ class Entity(utils.ReloadableRelationMixin):
 
             pass
 
-        for key in object_simplifier.complex_cache:
+        for key in object_converter.complex_cache:
 
             classname = "_".join(key.split("_")[0:-1])
             table_name = get_model_tablename_from_classname(classname)
 
-            current_object = object_simplifier.complex_cache[key]
+            current_object = object_converter.complex_cache[key]
 
             current_object["nova_classname"] = table_name
 
@@ -229,19 +234,19 @@ class Entity(utils.ReloadableRelationMixin):
                 print(">>>>>>>>>>>>>> I skip %s: {%s}" % (table_name, current_object["id"]))
                 continue
 
-            object_simplifier_datetime = converter.JsonConverter(request_uuid)
+            object_converter_datetime = converter.JsonConverter(request_uuid)
 
             if (current_object.has_key("created_at") and current_object[
                 "created_at"] is None) or not current_object.has_key("created_at"):
-                current_object["created_at"] = object_simplifier_datetime.simplify(timeutils.utcnow())
-            current_object["updated_at"] = object_simplifier_datetime.simplify(timeutils.utcnow())
+                current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
+            current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
 
             print(">>>>>>>>>>>>>> storing in %s: {%s}" % (table_name, current_object["id"]))
             print(current_object)
 
             try:
-                local_object_simplifier = converter.JsonConverter(request_uuid)
-                corrected_object = local_object_simplifier.simplify(current_object)
+                local_object_converter = converter.JsonConverter(request_uuid)
+                corrected_object = local_object_converter.simplify(current_object)
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object)
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
