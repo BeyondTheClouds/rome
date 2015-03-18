@@ -8,7 +8,7 @@ discovery database backend.
 import traceback
 import uuid
 import datetime as timeutils
-
+import logging
 from sqlalchemy import Column, Integer
 from sqlalchemy import DateTime
 
@@ -104,7 +104,7 @@ def get_objects(tablename, desimplify=True, request_uuid=None):
 
                 result += [model_object]
             except Exception as ex:
-                print("problem with key: %s" % (key))
+                logging.error("cannot get object with key: %s, because %s" % (key, ex))
                 traceback.print_exc()
                 pass
 
@@ -304,12 +304,12 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         lazy_candidates += [ref]
                     if not each.is_list:
                         if len(lazy_candidates) is 0:
-                            print(("could not find an accurate candidate"
-                                   " for (%s, %s) in %s") % (
-                                      each.remote_object_tablename,
-                                      each.remote_object_field,
-                                      each.local_fk_value
-                                  ))
+                            logging.error(("could not find an accurate candidate"
+                               " for (%s, %s) in %s") % (
+                                  each.remote_object_tablename,
+                                  each.remote_object_field,
+                                  each.local_fk_value
+                              ))
                         else:
                             setattr(
                                 self,

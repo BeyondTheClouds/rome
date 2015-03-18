@@ -9,6 +9,7 @@ import uuid
 import sys
 import inspect
 import datetime
+import logging
 
 from lib.rome.core.dataformat import converter
 import lib.rome.driver.database_driver as database_driver
@@ -34,7 +35,6 @@ def convert_to_model_name(name):
 
 tablename_to_classname_mapping = None
 classname_to_tablename_mapping = None
-
 
 def load_model_classnames_from_tablenames():
     global tablename_to_classname_mapping
@@ -147,11 +147,10 @@ class Entity(utils.ReloadableRelationMixin):
 
         for key in values:
             value = values[key]
-            print(">> %s[%s] <- %s" % (self.__tablename__, key, value))
             try:
                 setattr(self, key, value)
             except Exception as e:
-                print(e)
+                logging.error(e)
                 pass
 
         self.update_foreign_keys()
@@ -173,7 +172,7 @@ class Entity(utils.ReloadableRelationMixin):
         value, and store it in the "id" field."""
         if not self.already_in_database():
             self.id = database_driver.get_driver().next_key(table_name)
-            print("\n\n>> Giving an ID to %s@%s\n\n" % (self.id, self.__tablename__))
+            logging.debug("booking the id %s in table %s" % (self.id, self.__tablename__))
 
         """Before keeping the object in database, we simplify it: the object is
         converted into "JSON like" representation, and nested objects are
@@ -231,7 +230,7 @@ class Entity(utils.ReloadableRelationMixin):
                     continue
 
             if current_object["id"] == -1:
-                print(">>>>>>>>>>>>>> I skip %s: {%s}" % (table_name, current_object["id"]))
+                logging.debug("skipping the storage of object %s" % (current_object["id"]))
                 continue
 
             object_converter_datetime = converter.JsonConverter(request_uuid)
@@ -241,8 +240,7 @@ class Entity(utils.ReloadableRelationMixin):
                 current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
             current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
 
-            print(">>>>>>>>>>>>>> storing in %s: {%s}" % (table_name, current_object["id"]))
-            print(current_object)
+            logging.debug("starting the storage of %s" % (current_object))
 
             try:
                 local_object_converter = converter.JsonConverter(request_uuid)
@@ -250,9 +248,9 @@ class Entity(utils.ReloadableRelationMixin):
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object)
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
-                print("Failed to store following object: %s because of %s, becoming %s" % (
+                logging.error("Failed to store following object: %s because of %s, becoming %s" % (
                 current_object, e, corrected_object))
                 pass
-            print("<<<<<<<<<<<<<< done (storing in %s: {%s})" % (table_name, self.id))
+            logging.debug("finished the storage of %s" % (current_object))
 
         return self

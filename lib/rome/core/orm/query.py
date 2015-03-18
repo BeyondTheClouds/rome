@@ -9,6 +9,7 @@ import itertools
 import traceback
 import inspect
 import re
+import logging
 
 from sqlalchemy.util._collections import KeyedTuple
 from sqlalchemy.sql.expression import BinaryExpression
@@ -16,7 +17,6 @@ import pytz
 
 import lib.rome.core.utils as utils
 import lib.rome.driver.database_driver as database_driver
-
 
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
@@ -577,7 +577,7 @@ class Query:
             tablename = self.find_table_name(row)
             id = row.id
 
-            print("[DEBUG-UPDATE] I shall update %s@%s with %s" % (str(id), tablename, values))
+            logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
 
             data = database_driver.get_driver().get(tablename, id)
 
@@ -592,7 +592,7 @@ class Query:
                 desimplified_object.save()
             except Exception as e:
                 traceback.print_exc()
-                print("[DEBUG-UPDATE] could not save %s@%s" % (str(id), tablename))
+                logging.error("could not save %s@%s" % (str(id), tablename))
                 return None
 
         return len(rows)
