@@ -33,54 +33,22 @@ def convert_to_model_name(name):
     return result
 
 
-tablename_to_classname_mapping = None
-classname_to_tablename_mapping = None
-
-def load_model_classnames_from_tablenames():
-    global tablename_to_classname_mapping
-    global classname_to_tablename_mapping
-
-    tablename_to_classname_mapping = {}
-    classname_to_tablename_mapping = {}
-
-    clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
-    for each in clsmembers:
-        if hasattr(each[1], "__tablename__"):
-            tablename = each[1].__tablename__
-            classname = each[1].__name__
-            tablename_to_classname_mapping[tablename] = classname
-            classname_to_tablename_mapping[classname] = tablename
-
-
 def get_model_classname_from_tablename(tablename):
-    global tablename_to_classname_mapping
-    if tablename_to_classname_mapping is None:
-        load_model_classnames_from_tablenames()
-    if tablename_to_classname_mapping.has_key(tablename):
-        return tablename_to_classname_mapping[tablename]
-    else:
-        return None
-
+    for klass in sys.rome_global_scope:
+        if klass.__tablename__ == tablename:
+            return klass.__name__
+    return None
 
 def get_model_tablename_from_classname(classname):
     return get_model_class_from_name(classname).__tablename__
-    # global classname_to_tablename_mapping
-    # if classname_to_tablename_mapping is None:
-    #     load_model_classnames_from_tablenames()
-    # if classname_to_tablename_mapping.has_key(classname):
-    #     return classname_to_tablename_mapping[classname]
-    # else:
-    #     return None
 
 
 def get_model_class_from_name(name):
-    try:
-        model = eval(name)
-    except:
-        corrected_name = convert_to_model_name(name)
-        model = sys.modules[corrected_name]
-        # model = eval(corrected_name)
-    return model
+    corrected_name = convert_to_model_name(name)
+    for klass in sys.rome_global_scope:
+        if klass.__name__ == corrected_name:
+            return klass
+    return None
 
 
 def get_tablename_from_name(name):
@@ -110,8 +78,10 @@ def merge_dict(a, b):
             result[key] = value
     return result
 
-def global_sope(cls):
-    sys.modules[cls.__name__] = cls
+def global_scope(cls):
+    if not hasattr(sys, "rome_global_scope"):
+        setattr(sys, "rome_global_scope", [])
+    sys.rome_global_scope += [cls]
     return cls
 
 class Entity(utils.ReloadableRelationMixin):

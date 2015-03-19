@@ -279,8 +279,14 @@ class Function:
         if rows is None:
             rows = []
         if "." in field:
-            field = field.split(".")[1]
-        result = [getattr(row, field) for row in rows]
+            fieldtable = field.split(".")[-2]
+            fieldname = field.split(".")[-1]
+        filtered_rows = []
+        for row in rows:
+            for subrow in row:
+                if subrow.__tablename__ == fieldtable:
+                    filtered_rows += [subrow]
+        result = [getattr(row, fieldname) for row in filtered_rows]
         return result
 
     def count(self, rows):
@@ -643,7 +649,9 @@ class Query:
                 is_class = inspect.isclass(item)
                 is_expression = (
                     "BinaryExpression" in "%s" % (item) or
-                    "BooleanExpression" in "%s" % (item)
+                    "BooleanExpression" in "%s" % (item) or
+                    "BinaryExpression" in "%s" % (type(item)) or
+                    "BooleanExpression" in "%s" % (type(item))
                 )
                 if is_class:
                     _models = _models + [Selection(item, "*")]
