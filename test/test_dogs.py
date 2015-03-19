@@ -56,15 +56,13 @@ class TestDogs(unittest.TestCase):
 
     def test_join(self):
         # First way to make a join
-        items = Query(Dog).join(Specy, Specy.name==Dog.specy).all()
+        items = Query(Dog, func.sum(Dog.id)).join(Specy, Specy.name==Dog.specy).all()
         for item in items:
             print("%s" % (item))
-
         # Second way to make a join
         items = Query(Dog, Specy).filter(Specy.name==Dog.specy).all()
         for item in items:
             print("%s" % (item))
-        self.assertEqual(True, True)
 
 
 if __name__ == '__main__':

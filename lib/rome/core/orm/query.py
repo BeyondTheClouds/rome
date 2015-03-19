@@ -283,6 +283,10 @@ class Function:
             fieldname = field.split(".")[-1]
         filtered_rows = []
         for row in rows:
+            try:
+                iter(row)
+            except:
+                row = [row]
             for subrow in row:
                 if subrow.__tablename__ == fieldtable:
                     filtered_rows += [subrow]
