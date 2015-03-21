@@ -47,7 +47,7 @@ def get_model_tablename_from_classname(classname):
 def get_model_class_from_name(name):
     corrected_name = convert_to_model_name(name)
     for klass in sys.rome_global_scope:
-        if klass.__name__ == corrected_name:
+        if klass.__name__ == corrected_name or klass.__name__ == name:
             return klass
     return None
 

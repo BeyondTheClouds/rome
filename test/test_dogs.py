@@ -14,7 +14,7 @@ from sqlalchemy import orm
 from sqlalchemy.sql import func
 from sqlalchemy import ForeignKey, DateTime, Boolean, Text, Float
 import logging
-
+from lib.rome.core.models import get_model_class_from_name
 BASE = declarative_base()
 
 @global_scope
@@ -43,14 +43,12 @@ class TestDogs(unittest.TestCase):
         bobby = Dog()
         bobby.name = "Bobby"
         bobby.specy = "Griffon"
-
         bobby.save()
         self.assertEqual(True, True)
 
     def test_selection(self):
         query = Query(Dog)
         bobby = query.first()
-        name = bobby.name
         print("My dog's name is %s" % (bobby.name))
         self.assertEqual(True, True)
 
