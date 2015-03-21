@@ -13,6 +13,7 @@ import logging
 
 from lib.rome.core.dataformat import converter
 import lib.rome.driver.database_driver as database_driver
+from oslo.db.sqlalchemy import models
 import utils
 
 def starts_with_uppercase(name):
@@ -84,7 +85,7 @@ def global_scope(cls):
     sys.rome_global_scope += [cls]
     return cls
 
-class Entity(utils.ReloadableRelationMixin):
+class Entity(utils.ReloadableRelationMixin, models.ModelBase):
     metadata = None
 
     def already_in_database(self):
