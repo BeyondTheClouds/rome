@@ -85,7 +85,24 @@ def global_scope(cls):
     sys.rome_global_scope += [cls]
     return cls
 
-class Entity(utils.ReloadableRelationMixin, models.ModelBase):
+class IterableModel(object):
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __contains__(self, key):
+        return hasattr(self, key)
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
+    def __iter__(self):
+        for field in self._sa_class_manager:
+            yield field
+
+class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     metadata = None
 
     def already_in_database(self):
