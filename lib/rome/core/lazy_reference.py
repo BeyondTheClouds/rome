@@ -30,10 +30,21 @@ class LazyAttribute(dict):
         """This method 'intercepts' call to attribute/method."""
         if item in ["append"]:
             return self.append
+        if item in ["pop"]:
+            return self.pop
+        if item in ["delete"]:
+            return self.delete
         return self
 
     def append(self, *args, **kwargs):
         pass
+
+    def pop(self, *args, **kwargs):
+        pass
+
+    def delete(self, *args, **kwargs):
+        pass
+
 
 
 
