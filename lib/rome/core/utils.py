@@ -69,44 +69,33 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None):
 
     if isinstance(id, int):
         object_deconverter = JsonDeconverter(request_uuid=request_uuid)
-
-        value = database_driver.get_driver().get(tablename, id)
-
+        data = database_driver.get_driver().get(tablename, id)
         if desimplify:
             try:
-                model_object = object_deconverter.desimplify(value)
+                model_object = object_deconverter.desimplify(data)
+                model_object.load(data=data)
                 return model_object
             except Exception as e:
                 traceback.print_exc()
                 return None
         else:
-            return value
+            return data
     else:
         return None
 
 
 def get_objects(tablename, desimplify=True, request_uuid=None):
+    from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
-    keys = database_driver.get_driver().keys(tablename)
+    object_deconverter = JsonDeconverter(request_uuid=request_uuid)
 
-    result = []
-    if keys != None:
-        for key in keys:
-            try:
-                key_as_string = "%d" % (key)
+    def transform(data):
+        model_object = object_deconverter.desimplify(data)
+        model_object.load(data=data)
+        return model_object
 
-                model_object = get_single_object(
-                    tablename,
-                    key,
-                    desimplify,
-                    request_uuid
-                )
-
-                result += [model_object]
-            except Exception as ex:
-                logging.error("cannot get object with key: %s, because %s" % (key, ex))
-                traceback.print_exc()
-                pass
+    data = database_driver.get_driver().getall(tablename)
+    result = map(lambda x: transform(x), data)
 
     return result
 

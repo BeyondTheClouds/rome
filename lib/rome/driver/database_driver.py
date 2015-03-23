@@ -19,6 +19,9 @@ class DatabaseDriverInterface(object):
     def get(self, tablename, key):
         raise NotImplementedError
 
+    def getall(self, tablename):
+        raise NotImplementedError
+
 
 driver = None
 

@@ -11,8 +11,7 @@ import time
 
 import models
 import lib.rome.driver.database_driver as database_driver
-
-# RIAK_CLIENT = riak.RiakClient(pb_port=8087, protocol='pbc')
+import traceback
 
 
 def now_in_ms():
@@ -21,6 +20,36 @@ def now_in_ms():
 
 class EmptyObject:
     pass
+
+class LazyAttribute(dict):
+    """This class is used to intercept calls to emit_backref. This enables to have efficient lazy loading."""
+    def __getitem__(self, item):
+        return self
+
+    def __getattr__(self, item):
+        """This method 'intercepts' call to attribute/method."""
+        if item in ["append"]:
+            return self.append
+        return self
+
+    def append(self, *args, **kwargs):
+        pass
+
+
+
+class LazyBackrefBuffer(object):
+    """This class intercepts calls to emit_backref. This enables to have efficient lazy loading."""
+    def __init__(self):
+        self.attributes = []
+
+    def __getattr__(self, item):
+        """This method 'intercepts' call to attribute/method."""
+        if item in ["manager", "parents"]:
+            attribute = LazyAttribute()
+            self.attributes += [attribute]
+            return LazyAttribute()
+        return getattr(self, item)
+
 
 
 class LazyReference:
@@ -39,6 +68,7 @@ class LazyReference:
         self.base = base
         self.id = id
         self.version = -1
+        self.lazy_backref_buffer = LazyBackrefBuffer()
 
         self.request_uuid = request_uuid if request_uuid is not None else uuid.uuid1()
         if not caches.has_key(self.request_uuid):
@@ -97,17 +127,15 @@ class LazyReference:
             simplified_value = self.deconverter.desimplify(obj[key])
             try:
                 if simplified_value is not None:
-                    setattr(
-                        current_model,
-                        key,
-                        self.deconverter.desimplify(obj[key])
-                    )
+                    value = self.deconverter.desimplify(obj[key])
+                    current_model[key] = value
                 else:
-                    setattr(current_model, key, obj[key])
+                    current_model[key] = obj[key]
             except Exception as e:
                 if "None is not list-like" in str(e):
                     setattr(current_model, key, [])
                 else:
+                    traceback.print_exc()
                     pass
 
         if hasattr(current_model, "user_id") and obj.has_key("user_id"):
@@ -116,12 +144,9 @@ class LazyReference:
         if hasattr(current_model, "project_id") and obj.has_key("project_id"):
             current_model.project_id = obj["project_id"]
 
-        # Update foreign keys
-        current_model.update_foreign_keys(self.request_uuid)
-
         return current_model
 
-    def load(self):
+    def load(self, data=None):
         """Load the referenced object from the database. The result will be
         cached, so that next call will not create any database request."""
 
@@ -129,10 +154,11 @@ class LazyReference:
 
         key = self.get_key()
 
-        obj = database_driver.get_driver().get(self.base, self.id)
+        if data is None:
+            data = database_driver.get_driver().get(self.base, self.id)
 
-        self.spawn_empty_model(obj)
-        self.update_nova_model(obj)
+        self.spawn_empty_model(data)
+        self.update_nova_model(data)
 
         return self.cache[key]
 
@@ -154,7 +180,10 @@ class LazyReference:
         """This method 'intercepts' call to attribute/method on the referenced
         object: the object is thus loaded from database, and the requested
         attribute/method is then returned."""
-
+        if item == "_sa_instance_state":
+            key = self.get_key()
+            if not self.cache.has_key(key):
+                return self.lazy_backref_buffer
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
@@ -163,7 +192,7 @@ class LazyReference:
         requested attribute/method is then setted with the given value."""
 
         if name in ["base", "id", "cache", "deconverter", "request_uuid",
-                    "uuid", "version"]:
+                    "uuid", "version", "lazy_backref_buffer", "toto"]:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)
@@ -182,6 +211,12 @@ class LazyReference:
         LazyReference is printed."""
 
         return "Lazy(%s:%s:%d)" % (self.get_key(), self.base, self.version)
+
+    def __hash__(self):
+        """This method prevents the loading of the remote object when a
+        LazyReference is stored in a dict."""
+
+        return self.__str__().__hash__()
 
     def __nonzero__(self):
         """This method is required by some services of OpenStack."""

@@ -60,3 +60,10 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         bucket = self.riak_client.bucket(tablename)
         return bucket.get("%s" % (key)).data
+
+    def getall(self, tablename):
+        """"""
+        bucket = self.riak_client.bucket(tablename)
+        keys = map(lambda x:str(x), self.keys(tablename))
+        result = map(lambda x:x.data, bucket.multiget(keys))
+        return result

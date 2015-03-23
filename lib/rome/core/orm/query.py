@@ -454,6 +454,11 @@ class Query:
                 model_name = self.find_table_name(selectables[0]._model).capitalize()
                 return getattr(row, model_name)
 
+        import time
+
+        current_milli_time = lambda: int(round(time.time() * 1000))
+
+        part1_starttime = current_milli_time()
 
         request_uuid = uuid.uuid1()
 
@@ -486,6 +491,7 @@ class Query:
 
                 if attribute is not None:
                     columns.add(attribute)
+        part2_starttime = current_milli_time()
 
         # construct the cartesian product
         list_results = []
@@ -493,11 +499,16 @@ class Query:
             tablename = self.find_table_name(selectable._model)
             objects = utils.get_objects(tablename, request_uuid=request_uuid)
             list_results += [objects]
-
+        part3_starttime = current_milli_time()
         # construct the cartesian product
         cartesian_product = []
         for element in itertools.product(*list_results):
             cartesian_product += [element]
+        part4_starttime = current_milli_time()
+
+        def f(ref):
+            ref.get_complex_ref()
+            return 1
 
         # filter elements of the cartesian product
         for product in cartesian_product:
@@ -510,10 +521,10 @@ class Query:
                         all_criterions_satisfied = False
                 if all_criterions_satisfied and not row in rows:
                     rows += [extract_sub_row(row, model_set)]
-
+        part5_starttime = current_milli_time()
         final_rows = []
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
-
+        part6_starttime = current_milli_time()
         if self.all_selectable_are_functions():
             final_row = []
             for selection in showable_selection:
@@ -544,6 +555,16 @@ class Query:
                     final_rows += final_row
                 else:
                     final_rows += [final_row]
+        part7_starttime = current_milli_time()
+
+        print("time taken by the different parts:\n * %s\n * %s\n * %s\n * %s\n * %s\n * %s\n" % (
+            part2_starttime - part1_starttime,
+            part3_starttime - part2_starttime,
+            part4_starttime - part3_starttime,
+            part5_starttime - part4_starttime,
+            part6_starttime - part5_starttime,
+            part7_starttime - part6_starttime,
+                                                                              ))
 
         return final_rows
 
