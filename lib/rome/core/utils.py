@@ -64,7 +64,7 @@ def is_novabase(obj):
     return False
 
 
-def get_single_object(tablename, id, desimplify=True, request_uuid=None):
+def get_single_object(tablename, id, desimplify=True, request_uuid=None, skip_loading=False):
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
     if isinstance(id, int):
@@ -73,7 +73,8 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None):
         if desimplify:
             try:
                 model_object = object_deconverter.desimplify(data)
-                model_object.load(data=data)
+                if not skip_loading:
+                    model_object.load(data=data)
                 return model_object
             except Exception as e:
                 traceback.print_exc()
@@ -84,14 +85,15 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None):
         return None
 
 
-def get_objects(tablename, desimplify=True, request_uuid=None):
+def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False):
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
     object_deconverter = JsonDeconverter(request_uuid=request_uuid)
 
     def transform(data):
         model_object = object_deconverter.desimplify(data)
-        model_object.load(data=data)
+        if not skip_loading:
+            model_object.load(data=data)
         return model_object
 
     data = database_driver.get_driver().getall(tablename)

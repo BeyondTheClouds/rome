@@ -1,5 +1,6 @@
 import lib.rome.driver.database_driver
 import riak
+import sys
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -8,46 +9,27 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def add_key(self, tablename, key):
         """"""
-        keys = self.keys(tablename)
-        if not key in keys:
-            keys.append(key)
-            bucket = self.riak_client.bucket("key_index")
-            fetched = bucket.get(tablename)
-            fetched.data = keys
-            fetched.store()
-        return keys
+        pass
 
     def remove_key(self, tablename, key):
         """"""
-        keys = self.keys(tablename)
-        if key in keys:
-            keys.remove(key)
-            bucket = self.riak_client.bucket("key_index")
-            fetched = bucket.get(tablename)
-            fetched.data = keys
-            fetched.store()
-        return keys
+        bucket = self.riak_client.bucket(tablename)
+        return bucket.delete("%s" % (key))
 
     def next_key(self, tablename):
         """"""
-        keys = self.keys(tablename)
-        current_key = 1
-        while current_key in keys:
-            current_key += 1
-        return current_key
+        bucket = self.riak_client.bucket(tablename)
+        fetched = bucket.new()
+        fetched.store()
+        new_key = fetched.key.__hash__() % ((sys.maxsize + 1) * 2)
+        bucket.delete(fetched.key)
+        return new_key
 
     def keys(self, tablename):
         """"""
         """Check if the current table contains keys."""
-        bucket = self.riak_client.bucket("key_index")
-        fetched = bucket.get(tablename)
-        """If no keys: initialize an empty list of keys."""
-        if fetched.data == None:
-            empty_keys = bucket.new(tablename, data=[])
-            empty_keys.store()
-        fetched = bucket.get(tablename)
-        keys = fetched.data if fetched.data != None else []
-        return keys
+        bucket = self.riak_client.bucket(tablename)
+        return bucket.get_keys()
 
     def put(self, tablename, key, value):
         """"""
