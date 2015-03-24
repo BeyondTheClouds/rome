@@ -169,8 +169,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         object_converter = converter.JsonConverter(request_uuid)
         simplified_object = object_converter.simplify(target)
 
-        table_next_key_offset = {}
-
         for key in [key for key in object_converter.complex_cache if "x" in key]:
 
             classname = "_".join(key.split("_")[0:-1])
@@ -184,12 +182,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 continue
 
             """Find a new_id for this object"""
-            table_next_key = database_driver.get_driver().next_key(table_name)
-            if not table_name in table_next_key_offset:
-                table_next_key_offset[table_name] = 0
-            new_id = table_next_key + table_next_key_offset[table_name]
-
-            table_next_key_offset[table_name] += 1
+            new_id = database_driver.get_driver().next_key(table_name)
 
             """Assign this id to the object"""
             simplified_object["id"] = new_id
