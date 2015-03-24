@@ -1,6 +1,6 @@
 import lib.rome.driver.database_driver
 import riak
-import sys
+from riak.datatypes import Counter
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -18,12 +18,12 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def next_key(self, tablename):
         """"""
-        bucket = self.riak_client.bucket(tablename)
-        fetched = bucket.new()
-        fetched.store()
-        new_key = fetched.key.__hash__() % ((sys.maxsize + 1) * 2)
-        bucket.delete(fetched.key)
-        return new_key
+        bucket = self.riak_client.bucket_type('counters').bucket(tablename)
+        counter = Counter(bucket, "next_key")
+        counter.increment()
+        counter.store()
+        counter.reload()
+        return counter.value
 
     def keys(self, tablename):
         """"""
