@@ -471,8 +471,9 @@ class Query:
                 # reordering tuples
                 results = []
                 for t in tuples:
-                    ordered_t = [t[i] for i in labels]
-                    results += [tuple(ordered_t)]
+                    if len(t) == len(labels):
+                        ordered_t = [t[i] for i in labels]
+                        results += [tuple(ordered_t)]
 
                 return results
 
