@@ -633,14 +633,15 @@ class Query:
                     final_rows += [final_row]
         part7_starttime = current_milli_time()
 
-        print("time taken by the different parts:\n * %s\n * %s\n * %s\n * %s\n * %s\n * %s\n" % (
+        logging.info("""{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s"}""" % (
             part2_starttime - part1_starttime,
             part3_starttime - part2_starttime,
             part4_starttime - part3_starttime,
             part5_starttime - part4_starttime,
             part6_starttime - part5_starttime,
             part7_starttime - part6_starttime,
-                                                                              ))
+            str(self)
+        ))
 
         return final_rows
 
@@ -796,3 +797,6 @@ class Query:
 
     def __iter__(self):
         return iter(self.all())
+
+    def __str__(self):
+        return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (self._models, self._criterions)
