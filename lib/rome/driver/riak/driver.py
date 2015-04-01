@@ -47,6 +47,12 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         bucket = self.riak_client.bucket(tablename)
         keys = map(lambda x:str(x), self.keys(tablename))
-        self.riak_client._multiget_pool_size = min(int(len(keys) / 10), 64)
+        save_multiget_pool_size = self.riak_client._multiget_pool_size
+        self.riak_client._multiget_pool_size = int(len(keys) / 10)
+        if self.riak_client._multiget_pool_size < save_multiget_pool_size:
+            self.riak_client._multiget_pool_size = save_multiget_pool_size
+        elif self.riak_client._multiget_pool_size > 32:
+            self.riak_client._multiget_pool_size = 32
         result = map(lambda x:x.data, bucket.multiget(keys))
+        self.riak_client._multiget_pool_size = save_multiget_pool_size
         return result
