@@ -1,7 +1,6 @@
 import lib.rome.driver.database_driver
 import riak
 from riak.datatypes import Counter
-import math
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -48,6 +47,6 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         bucket = self.riak_client.bucket(tablename)
         keys = map(lambda x:str(x), self.keys(tablename))
-        self.riak_client._multiget_pool_size = math.min(int(len(keys) / 10), 64)
+        self.riak_client._multiget_pool_size = min(int(len(keys) / 10), 64)
         result = map(lambda x:x.data, bucket.multiget(keys))
         return result
