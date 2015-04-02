@@ -5,7 +5,7 @@ from riak.datatypes import Counter
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
-        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
+        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc', multiget_pool_size=16)
 
     def add_key(self, tablename, key):
         """"""
@@ -47,12 +47,5 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         bucket = self.riak_client.bucket(tablename)
         keys = map(lambda x:str(x), self.keys(tablename))
-        save_multiget_pool_size = self.riak_client._multiget_pool_size
-        self.riak_client._multiget_pool_size = int(len(keys) / 10)
-        if self.riak_client._multiget_pool_size < save_multiget_pool_size:
-            self.riak_client._multiget_pool_size = save_multiget_pool_size
-        elif self.riak_client._multiget_pool_size > 32:
-            self.riak_client._multiget_pool_size = 32
         result = map(lambda x:x.data, bucket.multiget(keys))
-        self.riak_client._multiget_pool_size = save_multiget_pool_size
         return result
