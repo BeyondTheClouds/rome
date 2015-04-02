@@ -1,11 +1,13 @@
 import lib.rome.driver.database_driver
 import riak
 from riak.datatypes import Counter
+import multiprocessing
+from functools import partial
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
-        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc', multiget_pool_size=16)
+        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
 
     def add_key(self, tablename, key):
         """"""
@@ -45,7 +47,19 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def getall(self, tablename):
         """"""
-        bucket = self.riak_client.bucket(tablename)
         keys = map(lambda x:str(x), self.keys(tablename))
-        result = map(lambda x:x.data, bucket.multiget(keys))
+        multiget_request_size = 10
+        partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
+        pool_size = len(partitioned_keys)
+        p_results = list(multiprocessing.Pool(processes=pool_size).map(create_multiget(tablename), partitioned_keys))
+        result = [item for sublist in p_results for item in sublist]
+        # result = map(lambda x:x.data, bucket.multiget(keys))
         return result
+
+def multiget(keys, tablename=None):
+    riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
+    bucket = riak_client.bucket(tablename)
+    return [x.data for x in bucket.multiget(keys)]
+
+def create_multiget(tablename):
+    return partial(multiget, tablename=tablename)
