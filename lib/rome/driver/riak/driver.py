@@ -1,8 +1,8 @@
 import lib.rome.driver.database_driver
 import riak
 from riak.datatypes import Counter
-import multiprocessing
 from functools import partial
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -52,7 +52,7 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             multiget_request_size = 10
             partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
             pool_size = len(partitioned_keys)
-            p_results = list(multiprocessing.Pool(processes=pool_size).map(create_multiget(tablename), partitioned_keys))
+            p_results = list(ProcessPoolExecutor(max_workers=pool_size).map(create_multiget(tablename), partitioned_keys))
             result = [item for sublist in p_results for item in sublist]
         else:
             result = []
