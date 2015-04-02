@@ -56,8 +56,8 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             result = [item for sublist in p_results for item in sublist]
         else:
             result = []
-        bucket = self.riak_client.bucket(tablename)
-        result = map(lambda x:x.data, bucket.multiget(keys))
+        # bucket = self.riak_client.bucket(tablename)
+        # result = map(lambda x:x.data, bucket.multiget(keys))
         return result
 
 def multiget(keys, tablename=None):
