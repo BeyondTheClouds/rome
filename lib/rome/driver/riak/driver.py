@@ -2,7 +2,8 @@ import lib.rome.driver.database_driver
 import riak
 from riak.datatypes import Counter
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor, as_completed
+# from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import Pool
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -48,18 +49,19 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def getall(self, tablename):
         """"""
         keys = map(lambda x:str(x), self.keys(tablename))
-        if len(keys) > 0:
-            multiget_request_size = 10
-            partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
-            pool_size = len(partitioned_keys)
-            process_pool = ProcessPoolExecutor(max_workers=pool_size)
-            p_results = list(process_pool.map(create_multiget(tablename), partitioned_keys))
-            result = [item for sublist in p_results for item in sublist]
-            process_pool.shutdown(wait=False)
-        else:
-            result = []
-        # bucket = self.riak_client.bucket(tablename)
-        # result = map(lambda x:x.data, bucket.multiget(keys))
+        # if len(keys) > 0:
+        #     multiget_request_size = 10
+        #     partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
+        #     pool_size = len(partitioned_keys)
+        #     # process_pool = ProcessPoolExecutor(max_workers=pool_size)
+        #     process_pool = Pool(pool_size)
+        #     p_results = list(process_pool.map(create_multiget(tablename), partitioned_keys))
+        #     result = [item for sublist in p_results for item in sublist]
+        #     process_pool.shutdown(wait=False)
+        # else:
+        #     result = []
+        bucket = self.riak_client.bucket(tablename)
+        result = map(lambda x:x.data, bucket.multiget(keys))
         return result
 
 def multiget(keys, tablename=None):
