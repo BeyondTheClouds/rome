@@ -52,8 +52,10 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             multiget_request_size = 10
             partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
             pool_size = len(partitioned_keys)
-            p_results = list(ProcessPoolExecutor(max_workers=pool_size).map(create_multiget(tablename), partitioned_keys))
+            process_pool = ProcessPoolExecutor(max_workers=pool_size)
+            p_results = list(process_pool.map(create_multiget(tablename), partitioned_keys))
             result = [item for sublist in p_results for item in sublist]
+            process_pool.shutdown()
         else:
             result = []
         # bucket = self.riak_client.bucket(tablename)
