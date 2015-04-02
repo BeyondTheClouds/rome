@@ -465,8 +465,11 @@ class Query:
                         if not tuple_size in tuple_groupby_size:
                             tuple_groupby_size[tuple_size] = []
                         tuple_groupby_size[tuple_size] += [t]
-                    max_size = max(tuple_groupby_size.keys())
-                    tuples = tuple_groupby_size[max_size]
+                    if len(tuple_groupby_size.keys()) > 0:
+                        max_size = max(tuple_groupby_size.keys())
+                        tuples = tuple_groupby_size[max_size]
+                    else:
+                        tuples = []
 
                 # reordering tuples
                 results = []
