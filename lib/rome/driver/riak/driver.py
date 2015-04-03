@@ -104,7 +104,6 @@ class ParallelMultigetdRiakDriver(lib.rome.driver.database_driver.DatabaseDriver
             process_pool = Pool(pool_size)
             p_results = list(process_pool.map(create_multiget(tablename), partitioned_keys))
             result = [item for sublist in p_results for item in sublist]
-            process_pool.shutdown(wait=False)
         else:
             bucket = self.riak_client.bucket(tablename)
             result = map(lambda x:x.data, bucket.multiget(keys))

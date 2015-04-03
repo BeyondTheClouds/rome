@@ -30,5 +30,6 @@ def get_driver():
     if driver is None:
         import lib.rome.driver.riak.driver
         # driver = lib.rome.driver.riak.driver.RiakDriver()
-        driver = lib.rome.driver.riak.driver.ParallelMultigetdProcessPoolExecutorRiakDriver()
+        driver = lib.rome.driver.riak.driver.ParallelMultigetdRiakDriver()
+        # driver = lib.rome.driver.riak.driver.ParallelMultigetdProcessPoolExecutorRiakDriver()
     return driver
