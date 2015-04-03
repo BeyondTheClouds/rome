@@ -106,7 +106,8 @@ class ParallelMultigetdRiakDriver(lib.rome.driver.database_driver.DatabaseDriver
             result = [item for sublist in p_results for item in sublist]
             process_pool.shutdown(wait=False)
         else:
-            result = RiakDriver.getall(self, tablename)
+            bucket = self.riak_client.bucket(tablename)
+            result = map(lambda x:x.data, bucket.multiget(keys))
         return result
 
 class ParallelMultigetdProcessPoolExecutorRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
@@ -152,7 +153,7 @@ class ParallelMultigetdProcessPoolExecutorRiakDriver(lib.rome.driver.database_dr
 
     def getall(self, tablename):
         """"""
-        keys = map(lambda x:str(x), RiakDriver.keys(self, tablename))
+        keys = map(lambda x:str(x), self.keys(tablename))
         if len(keys) > 100:
             from concurrent.futures import ProcessPoolExecutor
 
@@ -164,7 +165,8 @@ class ParallelMultigetdProcessPoolExecutorRiakDriver(lib.rome.driver.database_dr
             result = [item for sublist in p_results for item in sublist]
             process_pool.shutdown(wait=False)
         else:
-            result = RiakDriver.getall(self, tablename)
+            bucket = self.riak_client.bucket(tablename)
+            result = map(lambda x:x.data, bucket.multiget(keys))
         return result
 
 
