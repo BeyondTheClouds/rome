@@ -595,7 +595,7 @@ class Query:
         for product in tuples:
             if len(product) > 0:
                 row = KeyedTuple(product, labels=labels)
-                row_index_key = "%s" % (row)
+                row_index_key = "%s" % (str(row))
 
                 if row_index_key in indexed_rows:
                     continue
