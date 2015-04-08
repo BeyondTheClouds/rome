@@ -96,8 +96,11 @@ class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterfac
     def getall(self, tablename):
         """"""
         keys = map(lambda x:str(x), self.keys(tablename))
-        mapReduce = riak.RiakMapReduce(self.riak_client)
-        mapReduce.add(tablename, keys)
-        mapReduce.map("function(v) {return [v.values[0].data]}")
-        result = map(lambda x: json.loads(x), mapReduce.run())
+        if len(keys) > 0:
+            mapReduce = riak.RiakMapReduce(self.riak_client)
+            mapReduce.add(tablename, keys)
+            mapReduce.map("function(v) {return [v.values[0].data]}")
+            result = map(lambda x: json.loads(x), mapReduce.run())
+        else:
+            result = []
         return result
