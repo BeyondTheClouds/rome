@@ -2,6 +2,7 @@ import lib.rome.driver.database_driver
 import riak
 from riak.datatypes import Counter
 from multiprocessing import Pool
+import json
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -51,7 +52,7 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         result = map(lambda x:x.data, bucket.multiget(keys))
         return result
 
-class SimpleParallelRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
+class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
         self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
@@ -95,22 +96,8 @@ class SimpleParallelRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInt
     def getall(self, tablename):
         """"""
         keys = map(lambda x:str(x), self.keys(tablename))
-        if len(keys) > 100:
-
-            multiget_request_size = 10
-            partitioned_keys = [keys[i: i+multiget_request_size] for i in xrange(0, len(keys), multiget_request_size)]
-            pool_size = len(partitioned_keys)
-            process_pool = Pool(pool_size)
-            p_results = list(process_pool.map(multiget, [[k, tablename] for k in partitioned_keys]))
-            result = [item for sublist in p_results for item in sublist]
-        else:
-            bucket = self.riak_client.bucket(tablename)
-            result = map(lambda x:x.data, bucket.multiget(keys))
+        mapReduce = riak.RiakMapReduce(self.riak_client)
+        mapReduce.add(tablename, keys)
+        mapReduce.map("function(v) {return [v.values[0].data]}")
+        result = map(lambda x: json.loads(x), mapReduce.run())
         return result
-
-def multiget(args):
-    keys = args[0]
-    tablename = args[1]
-    riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
-    bucket = riak_client.bucket(tablename)
-    return [x.data for x in bucket.multiget(keys)]

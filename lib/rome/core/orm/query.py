@@ -396,7 +396,7 @@ class Query:
         :return: a list of row, according to sqlalchemy expectation
         """
 
-        def construct_tuples(list_results, labels):
+        def building_tuples(list_results, labels):
             mode = "not_cartesian_product"
             if mode is "cartesian_product":
                 cartesian_product = []
@@ -578,18 +578,19 @@ class Query:
                     columns.add(attribute)
         part2_starttime = current_milli_time()
 
-        # construct the cartesian product
+        # loading objects (from database)
         list_results = []
         for selectable in model_set:
             tablename = self.find_table_name(selectable._model)
             objects = utils.get_objects(tablename, request_uuid=request_uuid)
             list_results += [objects]
         part3_starttime = current_milli_time()
+
         # construct the cartesian product
-        tuples = construct_tuples(list_results, labels)
+        tuples = building_tuples(list_results, labels)
         part4_starttime = current_milli_time()
 
-        # filter elements of the cartesian product
+        # filtering tuples (cartesian product)
         for product in tuples:
             if len(product) > 0:
                 row = KeyedTuple(product, labels=labels)
@@ -601,6 +602,8 @@ class Query:
                 if all_criterions_satisfied and not row in rows:
                     rows += [extract_sub_row(row, model_set)]
         part5_starttime = current_milli_time()
+
+        # reordering tuples (+ selecting attributes)
         final_rows = []
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
         part6_starttime = current_milli_time()

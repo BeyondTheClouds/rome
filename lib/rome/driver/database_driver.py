@@ -30,5 +30,5 @@ def get_driver():
     if driver is None:
         import lib.rome.driver.riak.driver
         # driver = lib.rome.driver.riak.driver.RiakDriver()
-        driver = lib.rome.driver.riak.driver.SimpleParallelRiakDriver()
+        driver = lib.rome.driver.riak.driver.MapReduceRiakDriver()
     return driver
