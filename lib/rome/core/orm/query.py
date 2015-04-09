@@ -11,6 +11,7 @@ import inspect
 import re
 import logging
 
+
 from sqlalchemy.util._collections import KeyedTuple
 from sqlalchemy.sql.expression import BinaryExpression
 import pytz
@@ -24,6 +25,19 @@ try:
 except:
     pass
 import uuid
+
+
+file_logger_enabled = False
+try:
+    file_logger = logging.getLogger('rome_file_logger')
+    hdlr = logging.FileHandler('/opt/logs/rome.log')
+    formatter = logging.Formatter('%(message)s')
+    hdlr.setFormatter(formatter)
+    file_logger.addHandler(hdlr)
+    file_logger.setLevel(logging.INFO)
+    file_logger_enabled = True
+except:
+    pass
 
 class Selection:
     def __init__(self, model, attributes, is_function=False, function=None, is_hidden=False):
@@ -646,7 +660,7 @@ class Query:
                     final_rows += [final_row]
         part7_starttime = current_milli_time()
 
-        logging.info("""{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s", "timestamp": %i}""" % (
+        query_information = """{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s", "timestamp": %i}""" % (
             part2_starttime - part1_starttime,
             part3_starttime - part2_starttime,
             part4_starttime - part3_starttime,
@@ -655,7 +669,11 @@ class Query:
             part7_starttime - part6_starttime,
             str(self),
             current_milli_time()
-        ))
+        )
+
+        logging.info(query_information)
+        if file_logger_enabled:
+            file_logger.info(query_information)
 
         return final_rows
 
