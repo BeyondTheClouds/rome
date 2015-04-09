@@ -646,14 +646,15 @@ class Query:
                     final_rows += [final_row]
         part7_starttime = current_milli_time()
 
-        logging.info("""{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s"}""" % (
+        logging.info("""{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s", "timestamp": %i}""" % (
             part2_starttime - part1_starttime,
             part3_starttime - part2_starttime,
             part4_starttime - part3_starttime,
             part5_starttime - part4_starttime,
             part6_starttime - part5_starttime,
             part7_starttime - part6_starttime,
-            str(self)
+            str(self),
+            current_milli_time()
         ))
 
         return final_rows
