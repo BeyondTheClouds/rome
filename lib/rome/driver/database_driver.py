@@ -28,7 +28,10 @@ driver = None
 def get_driver():
     global driver
     if driver is None:
-        import lib.rome.driver.riak.driver
+        # import lib.rome.driver.riak.driver
         # driver = lib.rome.driver.riak.driver.RiakDriver()
-        driver = lib.rome.driver.riak.driver.MapReduceRiakDriver()
+        # driver = lib.rome.driver.riak.driver.MapReduceRiakDriver()
+
+        import lib.rome.driver.redis.driver
+        driver = lib.rome.driver.redis.driver.RedisDriver()
     return driver
