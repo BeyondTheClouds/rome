@@ -79,10 +79,11 @@ class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterfac
         """"""
         """Check if the current table contains keys."""
         mapReduce = riak.RiakMapReduce(self.riak_client)
+        mapReduce.add(tablename)
         mapReduce.add_key_filter("starts_with", "%s-" % (tablename))
         mapReduce.map("function (v, keydata) { return [v.key]; }")
         results = mapReduce.run()
-        return results
+        return results if results is not None else []
 
     def put(self, tablename, key, value):
         """"""
