@@ -64,7 +64,7 @@ class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterfac
     def remove_key(self, tablename, key):
         """"""
         bucket = self.riak_client.bucket(tablename)
-        return bucket.delete("%s" % (key))
+        return bucket.delete("%s-%s" % (tablename, key))
 
     def next_key(self, tablename):
         """"""
@@ -78,20 +78,23 @@ class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterfac
     def keys(self, tablename):
         """"""
         """Check if the current table contains keys."""
-        bucket = self.riak_client.bucket(tablename)
-        return bucket.get_keys()
+        mapReduce = riak.RiakMapReduce(self.riak_client)
+        mapReduce.add_key_filter("starts_with", "%s-" % (tablename))
+        mapReduce.map("function (v, keydata) { return [v.key]; }")
+        results = mapReduce.run()
+        return results
 
     def put(self, tablename, key, value):
         """"""
         bucket = self.riak_client.bucket(tablename)
-        fetched = bucket.new("%s" % (key), data=value)
+        fetched = bucket.new("%s-%s" % (tablename, key), data=value)
         fetched.store()
         return fetched
 
     def get(self, tablename, key):
         """"""
         bucket = self.riak_client.bucket(tablename)
-        return bucket.get("%s" % (key)).data
+        return bucket.get("%s-%s" % (tablename, key)).data
 
     def getall(self, tablename):
         """"""
