@@ -11,8 +11,9 @@ import uuid
 import pytz
 import lib.rome.core.models as models
 import lib.rome.core.lazy_reference as lazy_reference
+from lib.rome.utils.LimitedSizeDictionnary import LimitedSizeDictionnary
 
-CACHES = {}
+CACHES = LimitedSizeDictionnary(size_limit=20)
 
 def convert_to_camelcase(word):
     """Convert the given word into camelcase naming convention."""

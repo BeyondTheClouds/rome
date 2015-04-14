@@ -7,10 +7,11 @@ simplification of objects, before storing them into the discovery database.
 
 import lib.rome.core.utils as utils
 import uuid
+from lib.rome.utils.LimitedSizeDictionnary import LimitedSizeDictionnary
 
-SIMPLE_CACHES = {}
-COMPLEX_CACHES = {}
-TARGET_CACHES = {}
+SIMPLE_CACHES = LimitedSizeDictionnary(size_limit=20)
+COMPLEX_CACHES = LimitedSizeDictionnary(size_limit=20)
+TARGET_CACHES = LimitedSizeDictionnary(size_limit=20)
 
 
 def extract_adress(obj):
