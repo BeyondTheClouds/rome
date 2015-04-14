@@ -24,19 +24,22 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def keys(self, tablename):
         """"""
         """Check if the current table contains keys."""
-        keys = self.redis_client.keys("%s-*" % (tablename))
+        keys = self.redis_client.hkeys(tablename)
+        # keys = self.redis_client.keys("%s-*" % (tablename))
         return keys
 
     def put(self, tablename, key, value):
         """"""
         json_value = json.dumps(value)
-        fetched = self.redis_client.set("%s-%s" % (tablename, key), json_value)
+        fetched = self.redis_client.hset(tablename, "%s" % (key), json_value)
+        # fetched = self.redis_client.set("%s-%s" % (tablename, key), json_value)
         result = value if fetched else None
         return result
 
     def get(self, tablename, key):
         """"""
-        fetched = self.redis_client.get("%s-%s" % (tablename, key))
+        fetched = self.redis_client.hget(tablename, "%s" % (key))
+        # fetched = self.redis_client.get("%s-%s" % (tablename, key))
         result = json.loads(fetched) if fetched is not None else None
         return result
 
@@ -44,7 +47,8 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         keys = self.keys(tablename)
         if len(keys) > 0:
-            str_result = self.redis_client.mget(keys)
+            str_result = self.redis_client.hmget(tablename, keys)
+            # str_result = self.redis_client.mget(keys)
             result = map(lambda x: json.loads(x), str_result)
             return result
         return []
