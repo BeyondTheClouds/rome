@@ -229,6 +229,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object)
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 logging.error("Failed to store following object: %s because of %s, becoming %s" % (
                 current_object, e, corrected_object))
                 pass

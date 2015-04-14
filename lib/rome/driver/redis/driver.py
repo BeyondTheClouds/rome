@@ -31,7 +31,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         json_value = json.dumps(value)
         fetched = self.redis_client.set("%s-%s" % (tablename, key), json_value)
-        result = json.loads(fetched)
+        result = value if fetched else None
         return result
 
     def get(self, tablename, key):
