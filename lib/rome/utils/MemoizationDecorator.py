@@ -13,9 +13,9 @@ class MemoizationDecorator(object):
 
     def __getattr__(self, attribute_name):
         decorated_attribute = getattr(self.decorated, attribute_name)
-        if hasattr(decorated_attribute, "__call__"):
-            callable_object = self.FunctionWrapper(decorated_attribute, method_name=attribute_name, memory=self.memory, insertion_lock=self.insertion_lock)
-            return callable_object
+        # if hasattr(decorated_attribute, "__call__"):
+        #     callable_object = self.FunctionWrapper(decorated_attribute, method_name=attribute_name, memory=self.memory, insertion_lock=self.insertion_lock)
+        #     return callable_object
         return decorated_attribute
 
     class FunctionWrapper:
