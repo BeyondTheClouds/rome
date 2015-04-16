@@ -5,11 +5,12 @@ import Queue
 
 class MemoizationDecorator(object):
 
+    conditions_objects_dict = {}
+    memory = {}
+    insertion_lock = threading.Lock()
+
     def __init__(self, decorated):
         self.decorated = decorated
-        self.conditions_objects_dict = {}
-        self.memory = {}
-        self.insertion_lock = threading.Lock()
 
     def __getattr__(self, attribute_name):
         decorated_attribute = getattr(self.decorated, attribute_name)
@@ -29,26 +30,12 @@ class MemoizationDecorator(object):
             self.insertion_lock = insertion_lock
 
         def compute_hash(self, method_name, *args, **kwargs):
-            import random
-            # hashv = random.getrandbits(128)
             hashv = hash("%s_%s_%s" % (method_name, args, kwargs))
-            print("compute_hash: %s => %s" % ("%s_%s_%s" % (method_name, args, kwargs), hashv))
             return hashv
 
         def __call__(self, *args, **kwargs):
 
             call_hash = self.compute_hash(self.method_name, args, kwargs)
-            # self.memory[call_hash] = {
-            #     "modification_lock": threading.Lock(),
-            #     "result_queue": Queue.Queue(),
-            #     "result": None,
-            #     "waiting_threads_count": 0,
-            #     "closed": False
-            # }
-            #
-            # result = self.callable_object(*args, **kwargs)
-            # self.memory[call_hash]["result"] = result
-            # self.memory[call_hash]["result_queue"].put(result)
 
             if call_hash in self.memory:
                 # Increment safely the number of threads waiting for expected value
