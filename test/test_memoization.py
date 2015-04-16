@@ -2,7 +2,7 @@ __author__ = 'jonathan'
 
 import unittest
 import threading
-import lib.rome.utils.MemoizationDecorator as MemoizationDecorator
+from lib.rome.utils.MemoizationDecorator import MemoizationDecorator
 
 
 class TestMemoization(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestMemoization(unittest.TestCase):
         class Foo(object):
             def get_magical_value(self, cpt):
                 print("starting")
-                time.sleep(7)
+                time.sleep(3)
                 print("ending")
                 return cpt
 

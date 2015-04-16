@@ -1,6 +1,7 @@
 __author__ = 'jonathan'
 
 import threading
+import Queue
 
 class MemoizationDecorator(object):
 
@@ -47,11 +48,12 @@ class MemoizationDecorator(object):
                     return self.__call__(*args, **kwargs)
 
                 # Wait for the expected value
-                item["event"].wait()
+                # item["event"].wait()
+                result = item["result_queue"].get()
 
                 # Once the expected value has been collected, decrement safely the number of remaining slave calls.
                 item["modification_lock"].acquire()
-                result = self.memory[call_hash]["result"]
+                # result = self.memory[call_hash]["result"]
                 self.memory[call_hash]["waiting_threads_count"] -= 1
                 item["modification_lock"].release()
             else:
@@ -61,7 +63,7 @@ class MemoizationDecorator(object):
                 if not call_hash in self.memory:
                     self.memory[call_hash] = {
                         "modification_lock": threading.Lock(),
-                        "event": threading.Event(),
+                        "result_queue": Queue.Queue(),
                         "result": None,
                         "waiting_threads_count": 0,
                         "closed": False
@@ -74,7 +76,8 @@ class MemoizationDecorator(object):
                     return self.__call__(*args, **kwargs)
 
                 # compute the exepcted value and store it in a shared memory.
-                self.memory[call_hash]["result"] = self.callable_object(*args, **kwargs)
+                result = self.callable_object(*args, **kwargs)
+                self.memory[call_hash]["result"] = result
 
                 # close safely the memory item
                 self.memory[call_hash]["modification_lock"].acquire()
@@ -82,14 +85,15 @@ class MemoizationDecorator(object):
                 self.memory[call_hash]["modification_lock"].release()
 
                 # notify paused concurrent calls that the expected value is ready to be used.
-                self.memory[call_hash]["event"].set()
+                # self.memory[call_hash]["event"].set()
 
                 # delete the memory item
                 item = self.memory[call_hash]
 
-                # wait until all concurrent slave call have got the value
+                # send to concurrent slave call the results until they are all satisfied.
                 while item["waiting_threads_count"] > 0:
                     # reload safely the item
+                    item["result_queue"].put(result)
                     item["modification_lock"].acquire()
                     item = self.memory[call_hash]
                     item["modification_lock"].release()
@@ -100,7 +104,7 @@ class MemoizationDecorator(object):
                 del self.memory[call_hash]
                 item["modification_lock"].release()
                 self.insertion_lock.release()
-                result = item["result"]
+                # result = item["result"]
             return result
 
 
