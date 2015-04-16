@@ -1,3 +1,4 @@
+from lib.rome.utils.MemoizationDecorator import memoization_decorator
 
 class DatabaseDriverInterface(object):
 
@@ -25,13 +26,13 @@ class DatabaseDriverInterface(object):
 
 driver = None
 
+@memoization_decorator
+def build_driver():
+    import lib.rome.driver.redis.driver
+    return lib.rome.driver.redis.driver.RedisDriver()
+
 def get_driver():
     global driver
     if driver is None:
-        # import lib.rome.driver.riak.driver
-        # driver = lib.rome.driver.riak.driver.RiakDriver()
-        # driver = lib.rome.driver.riak.driver.MapReduceRiakDriver()
-
-        import lib.rome.driver.redis.driver
-        driver = lib.rome.driver.redis.driver.RedisDriver()
+        driver = build_driver()
     return driver
