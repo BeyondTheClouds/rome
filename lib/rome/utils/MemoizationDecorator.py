@@ -37,6 +37,18 @@ class MemoizationDecorator(object):
         def __call__(self, *args, **kwargs):
 
             call_hash = self.compute_hash(self.method_name, args, kwargs)
+            self.memory[call_hash] = {
+                "modification_lock": threading.Lock(),
+                "result_queue": Queue.Queue(),
+                "result": None,
+                "waiting_threads_count": 0,
+                "closed": False
+            }
+
+            result = self.callable_object(*args, **kwargs)
+            self.memory[call_hash]["result"] = result
+            self.memory[call_hash]["result_queue"].put(result)
+
             if call_hash in self.memory:
                 # Increment safely the number of threads waiting for expected value
                 item = self.memory[call_hash]
@@ -72,7 +84,7 @@ class MemoizationDecorator(object):
                     # memory has been initialised by a quicker concurrent call, simply abort it and become a slave.
                     return self.__call__(*args, **kwargs)
 
-                # compute the exepcted value and store it in a shared memory.
+                # compute the expected value and store it in a shared memory.
                 result = self.callable_object(*args, **kwargs)
                 self.memory[call_hash]["result"] = result
 
