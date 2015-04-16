@@ -13,9 +13,9 @@ class MemoizationDecorator(object):
 
     def __getattr__(self, attribute_name):
         decorated_attribute = getattr(self.decorated, attribute_name)
-        # if hasattr(decorated_attribute, "__call__"):
-        #     callable_object = self.FunctionWrapper(decorated_attribute, method_name=attribute_name, memory=self.memory, insertion_lock=self.insertion_lock)
-        #     return callable_object
+        if hasattr(decorated_attribute, "__call__"):
+            callable_object = self.FunctionWrapper(decorated_attribute, method_name=attribute_name, memory=self.memory, insertion_lock=self.insertion_lock)
+            return callable_object
         return decorated_attribute
 
     class FunctionWrapper:
@@ -32,6 +32,9 @@ class MemoizationDecorator(object):
             return hash("%s_%s_%s" % (method_name, args, kwargs))
 
         def __call__(self, *args, **kwargs):
+
+            return self.callable_object(*args, **kwargs)
+            
             call_hash = self.compute_hash(self.method_name, args, kwargs)
             if call_hash in self.memory:
                 # Increment safely the number of threads waiting for expected value
