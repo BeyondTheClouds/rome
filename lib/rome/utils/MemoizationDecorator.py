@@ -29,14 +29,12 @@ class MemoizationDecorator(object):
             self.insertion_lock = insertion_lock
 
         def compute_hash(self, method_name, *args, **kwargs):
-            return hash("%s_%s_%s" % (method_name, args, kwargs))
+            import random
+            hash = random.getrandbits(128)
+            # hash = hash("%s_%s_%s" % (method_name, args, kwargs))
+            return hash
 
         def __call__(self, *args, **kwargs):
-
-            import time
-            time.sleep(0.1)
-
-            return self.callable_object(*args, **kwargs)
 
             call_hash = self.compute_hash(self.method_name, args, kwargs)
             if call_hash in self.memory:
@@ -53,15 +51,8 @@ class MemoizationDecorator(object):
                     # memory has been destroyed by a master call, simply abort it and repeat the method.
                     return self.__call__(*args, **kwargs)
 
-                # Wait for the expected value
-                # item["event"].wait()
+                # Wait for the expected value.
                 result = item["result_queue"].get()
-
-                # Once the expected value has been collected, decrement safely the number of remaining slave calls.
-                item["modification_lock"].acquire()
-                # result = self.memory[call_hash]["result"]
-                self.memory[call_hash]["waiting_threads_count"] -= 1
-                item["modification_lock"].release()
             else:
                 # try insertion
                 should_retry = True
@@ -96,13 +87,9 @@ class MemoizationDecorator(object):
                 # delete the memory item
                 item = self.memory[call_hash]
 
-                # send to concurrent slave call the results until they are all satisfied.
-                while item["waiting_threads_count"] > 0:
-                    # reload safely the item
+                # send to concurrent slave calls.
+                for i in range(item["waiting_threads_count"]):
                     item["result_queue"].put(result)
-                    item["modification_lock"].acquire()
-                    item = self.memory[call_hash]
-                    item["modification_lock"].release()
 
                 # Once there are no more slave calls, the item can be destroyed
                 item["modification_lock"].acquire()
@@ -110,7 +97,6 @@ class MemoizationDecorator(object):
                 del self.memory[call_hash]
                 item["modification_lock"].release()
                 self.insertion_lock.release()
-                # result = item["result"]
             return result
 
 
