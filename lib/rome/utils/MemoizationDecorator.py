@@ -2,9 +2,6 @@ __author__ = 'jonathan'
 
 import threading
 import Queue
-import time
-
-current_milli_time = lambda: int(round(time.time() * 1000))
 
 class MemoizationDecorator(object):
 
@@ -44,23 +41,12 @@ class MemoizationDecorator(object):
                 # Increment safely the number of threads waiting for expected value
                 item = self.memory[call_hash]
                 should_retry = True
-                should_return = False
                 item["modification_lock"].acquire()
                 if not item["closed"]:
                     item["waiting_threads_count"] += 1
                     should_retry = False
-                else:
-                    time_difference = (current_milli_time() - item["timestamp_closed"])
-                    # print(time_difference)
-                    if time_difference < 1:
-                        should_return = True
-                    else:
-                        # print("should delete")
-                        del self.memory[call_hash]
                 item["modification_lock"].release()
 
-                if should_return:
-                    return item["result"]
                 if should_retry:
                     # memory has been destroyed by a master call, simply abort it and repeat the method.
                     return self.__call__(*args, **kwargs)
@@ -77,9 +63,7 @@ class MemoizationDecorator(object):
                         "result_queue": Queue.Queue(),
                         "result": None,
                         "waiting_threads_count": 0,
-                        "closed": False,
-                        "timestamp_created": current_milli_time(),
-                        "timestamp_closed": None
+                        "closed": False
                     }
                     should_retry = False
                 self.insertion_lock.release()
@@ -95,7 +79,6 @@ class MemoizationDecorator(object):
                 # close safely the memory item
                 self.memory[call_hash]["modification_lock"].acquire()
                 self.memory[call_hash]["closed"] = True
-                self.memory[call_hash]["timestamp_closed"] = current_milli_time()
                 self.memory[call_hash]["modification_lock"].release()
 
                 # notify paused concurrent calls that the expected value is ready to be used.
@@ -109,11 +92,11 @@ class MemoizationDecorator(object):
                     item["result_queue"].put(result)
 
                 # Once there are no more slave calls, the item can be destroyed
-                # item["modification_lock"].acquire()
-                # self.insertion_lock.acquire()
-                # del self.memory[call_hash]
-                # item["modification_lock"].release()
-                # self.insertion_lock.release()
+                item["modification_lock"].acquire()
+                self.insertion_lock.acquire()
+                del self.memory[call_hash]
+                item["modification_lock"].release()
+                self.insertion_lock.release()
             return result
 
 
@@ -121,3 +104,31 @@ def memoization_decorator(func):
     def wrapper(*args, **kwargs):
         return MemoizationDecorator(func(*args, **kwargs))
     return wrapper
+
+if __name__ == '__main__':
+
+    import time
+
+    class Foo(object):
+        def get_magical_value(self, cpt):
+            print("starting")
+            time.sleep(7)
+            print("ending")
+            return cpt
+
+    # obj1 = Foo()
+    obj1 = MemoizationDecorator(Foo())
+
+    def do_request():
+        value = obj1.get_magical_value(42)
+        print(value)
+
+    for n in range(2):
+        thread = threading.Thread(target=do_request)
+        thread.start()
+        time.sleep(1)
+    time.sleep(3)
+    for n in range(3):
+        thread = threading.Thread(target=do_request)
+        thread.start()
+        time.sleep(1)

@@ -12,7 +12,7 @@ class TestMemoization(unittest.TestCase):
         class Foo(object):
             def get_magical_value(self, cpt):
                 print("starting")
-                # time.sleep(3)
+                time.sleep(7)
                 print("ending")
                 return cpt
 
@@ -26,12 +26,12 @@ class TestMemoization(unittest.TestCase):
         for n in range(2):
             thread = threading.Thread(target=do_request)
             thread.start()
-            # time.sleep(0.01)
-        # time.sleep(3)
+            time.sleep(1)
+        time.sleep(3)
         for n in range(3):
             thread = threading.Thread(target=do_request)
             thread.start()
-            # time.sleep(1)
+            time.sleep(1)
 
 
 if __name__ == '__main__':
