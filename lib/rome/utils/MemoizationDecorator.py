@@ -50,7 +50,7 @@ class MemoizationDecorator(object):
                     item["waiting_threads_count"] += 1
                     should_retry = False
                 else:
-                    if (current_milli_time() - item["timestamp_closed"]) < 10:
+                    if (current_milli_time() - item["timestamp_closed"]) < -1:
                         should_return = True
                     else:
                         del self.memory[call_hash]
