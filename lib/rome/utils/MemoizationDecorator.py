@@ -37,7 +37,9 @@ class MemoizationDecorator(object):
 
             call_hash = self.compute_hash(self.method_name, args, kwargs)
 
+
             if call_hash in self.memory:
+                print("starting call to %s (master)" % (call_hash))
                 # Increment safely the number of threads waiting for expected value
                 item = self.memory[call_hash]
                 should_retry = True
@@ -50,7 +52,7 @@ class MemoizationDecorator(object):
                 if should_retry:
                     # memory has been destroyed by a master call, simply abort it and repeat the method.
                     return self.__call__(*args, **kwargs)
-                print("waiting for value -> %s" % (call_hash))
+                # print("waiting for value -> %s" % (call_hash))
                 # Wait for the expected value.
                 result = item["result_queue"].get()
             else:
@@ -72,6 +74,7 @@ class MemoizationDecorator(object):
                     # memory has been initialised by a quicker concurrent call, simply abort it and become a slave.
                     return self.__call__(*args, **kwargs)
 
+                print("starting call to %s (slave)" % (call_hash))
                 # compute the expected value and store it in a shared memory.
                 result = self.callable_object(*args, **kwargs)
                 self.memory[call_hash]["result"] = result
@@ -97,6 +100,7 @@ class MemoizationDecorator(object):
                 del self.memory[call_hash]
                 item["modification_lock"].release()
                 self.insertion_lock.release()
+            print("finishing call to %s" % (call_hash))
             return result
 
 
