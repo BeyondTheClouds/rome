@@ -50,7 +50,7 @@ class MemoizationDecorator(object):
                 if should_retry:
                     # memory has been destroyed by a master call, simply abort it and repeat the method.
                     return self.__call__(*args, **kwargs)
-
+                print("waiting for value -> %s" % (call_hash))
                 # Wait for the expected value.
                 result = item["result_queue"].get()
             else:
