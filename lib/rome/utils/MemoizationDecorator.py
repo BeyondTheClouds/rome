@@ -50,11 +50,13 @@ class MemoizationDecorator(object):
                     item["waiting_threads_count"] += 1
                     should_retry = False
                 else:
-                    if (current_milli_time() - item["timestamp_closed"]) < 5:
+                    time_difference = (current_milli_time() - item["timestamp_closed"])
+                    # print(time_difference)
+                    if time_difference < 1:
                         should_return = True
                     else:
+                        # print("should delete")
                         del self.memory[call_hash]
-
                 item["modification_lock"].release()
 
                 if should_return:
