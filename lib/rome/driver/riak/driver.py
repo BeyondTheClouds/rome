@@ -3,11 +3,13 @@ import riak
 from riak.datatypes import Counter
 from multiprocessing import Pool
 import json
+from lib.rome.conf.Configuration import get_config
 
 class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
-        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
+        config = get_config()
+        self.riak_client = riak.RiakClient(pb_port=config.port(), protocol='pbc')
 
     def add_key(self, tablename, key):
         """"""
@@ -55,7 +57,8 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
-        self.riak_client = riak.RiakClient(pb_port=8087, protocol='pbc')
+        config = get_config()
+        self.riak_client = riak.RiakClient(pb_port=config.port(), protocol='pbc')
 
     def add_key(self, tablename, key):
         """"""

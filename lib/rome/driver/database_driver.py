@@ -1,4 +1,5 @@
 from lib.rome.utils.MemoizationDecorator import memoization_decorator
+from lib.rome.conf.Configuration import get_config
 
 class DatabaseDriverInterface(object):
 
@@ -28,8 +29,17 @@ driver = None
 
 @memoization_decorator
 def build_driver():
-    import lib.rome.driver.redis.driver
-    return lib.rome.driver.redis.driver.RedisDriver()
+    config = get_config()
+
+    if config.backend() is "redis":
+        import lib.rome.driver.redis.driver
+        if config.redis_cluster_enabled():
+            return lib.rome.driver.redis.driver.RedisClusterDriver()
+        else:
+            return lib.rome.driver.redis.driver.RedisDriver()
+    else:
+        import lib.rome.driver.riak.driver
+        return lib.rome.driver.riak.driver.MapReduceRiakDriver()
 
 def get_driver():
     global driver
