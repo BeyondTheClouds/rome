@@ -47,14 +47,8 @@ class Selection:
         self._is_function = is_function
         self.is_hidden = is_hidden
 
-    def __str__(self):
-        return "Selection(%s.%s)" % (self._model, self._attributes)
-
-    def __unicode__(self):
-        return self.__str__()
-
     def __repr__(self):
-        return self.__str__()
+        return "Selection(%s.%s)" % (self._model, self._attributes)
 
 
 def and_(*exps):
@@ -105,7 +99,7 @@ class BooleanExpression(object):
             except AttributeError:
                 return otherwise
 
-        criterion_str = criterion.__str__()
+        criterion_str = criterion.__repr__()
 
         if "=" in criterion_str:
             def comparator(a, b):
@@ -326,7 +320,7 @@ class Hint():
         self.attribute = attribute
         self.value = value
 
-    def __str__(self):
+    def __repr__(self):
         return "%s.%s = %s" % (self.table_name, self.attribute, str(self.value))
 
 def extract_models(l):
@@ -868,5 +862,5 @@ class Query:
     def __iter__(self):
         return iter(self.all())
 
-    def __str__(self):
+    def __repr__(self):
         return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\", \\"hints\\": \\"%s\\"}""" % (self._models, self._criterions, self._hints)

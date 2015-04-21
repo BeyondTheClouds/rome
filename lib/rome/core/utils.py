@@ -128,7 +128,7 @@ class RelationshipModel(object):
         self.remote_object_tablename = remote_object_tablename
         self.is_list = is_list
 
-    def __unicode__(self):
+    def __repr__(self):
         return "{local_fk_field: %s, local_fk_value: %s} <--> {local_object_field:%s, remote_object_field:%s, local_object_value:%s, remote_object_tablename:%s, is_list:%s}" % (
             self.local_fk_field,
             self.local_fk_value,
@@ -138,9 +138,6 @@ class RelationshipModel(object):
             self.remote_object_tablename,
             self.is_list
         )
-
-    def __str__(self):
-        return self.__unicode__()
 
     def soft_delete(self, session):
         """Mark this object as deleted."""
