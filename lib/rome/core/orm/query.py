@@ -757,12 +757,14 @@ class Query:
     ####################################################################################################################
 
     def _extract_hint(self, criterion):
-        if hasattr(criterion.expression.right, "value"):
-            table_name = str(criterion.expression.left.table)
-            attribute_name = str(criterion.expression.left.key)
-            value = criterion.expression.right.value
-            self._hints += [Hint(table_name, attribute_name, value)]
-        pass
+        try:
+            if hasattr(criterion.expression.right, "value"):
+                table_name = str(criterion.expression.left.table)
+                attribute_name = str(criterion.expression.left.key)
+                value = criterion.expression.right.value
+                self._hints += [Hint(table_name, attribute_name, value)]
+        except:
+            pass
 
 
     def filter_by(self, **kwargs):
