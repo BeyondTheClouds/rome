@@ -91,19 +91,29 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
         json_value = json.dumps(value)
-        fetched = self.redis_client.hset(tablename, "%s" % (key), json_value)
+        fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
+        for secondary_index in secondary_indexes:
+            secondary_value = value[secondary_index]
+            fetched = self.redis_client.hset("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
         return result
 
     def get(self, tablename, key, hint=None):
         """"""
-        fetched = self.redis_client.hget(tablename, "%s" % (key))
+        redis_key = "%s:id:%s" % (tablename, key)
+        if hint is not None:
+            redis_key = self.redis_client.hget("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, hint[0], hint[1]))
+        fetched = self.redis_client.hget(tablename, redis_key)
         result = json.loads(fetched) if fetched is not None else None
         return result
 
     def getall(self, tablename, hints=[]):
         """"""
-        keys = self.keys(tablename)
+        if len(hints) == 0:
+            keys = self.keys(tablename)
+        else:
+            sec_keys = map(lambda h: "%s:%s:%s" % (tablename, h[0], h[1]), hints)
+            keys = self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys)
         if len(keys) > 0:
             str_result = self.redis_client.hmget(tablename, keys)
             result = map(lambda x: json.loads(x), str_result)
