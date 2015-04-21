@@ -99,7 +99,7 @@ class BooleanExpression(object):
             except AttributeError:
                 return otherwise
 
-        criterion_str = criterion.__repr__()
+        criterion_str = criterion.__str__()
 
         if "=" in criterion_str:
             def comparator(a, b):
@@ -758,7 +758,7 @@ class Query:
             if hasattr(criterion.expression.right, "value"):
                 table_name = str(criterion.expression.left.table)
                 attribute_name = str(criterion.expression.left.key)
-                value = criterion.expression.right.value
+                value = "%s" % (criterion.expression.right.value)
                 self._hints += [Hint(table_name, attribute_name, value)]
         except:
             pass
