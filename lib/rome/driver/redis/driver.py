@@ -117,9 +117,13 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         if len(hints) == 0:
             keys = self.keys(tablename)
         else:
-            sec_keys = map(lambda h: "%s:%s:%s" % (tablename, h[0], h[1]), hints)
-            keys = self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys)
-            keys = filter(None, keys)
+            id_hints = filter(lambda x:x[0] == "id", hints)
+            non_id_hints = filter(lambda x:x[0] != "id", hints)
+            sec_keys = map(lambda h: "%s:%s:%s" % (tablename, h[0], h[1]), non_id_hints)
+            keys = map(lambda x: "%s:id:%s" % (tablename, x[1]), id_hints)
+            if len(sec_keys) > 0:
+                keys += filter(None, self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys))
+            # keys = filter(None, keys) + id_hints
         if len(keys) > 0:
             str_result = self.redis_client.hmget(tablename, keys)
             result = map(lambda x: json.loads(x), str_result)
