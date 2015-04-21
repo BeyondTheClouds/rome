@@ -326,6 +326,9 @@ class Hint():
         self.attribute = attribute
         self.value = value
 
+    def __str__(self):
+        return "%s.%s = %s" % (self.table_name, self.attribute, str(self.value))
+
 def extract_models(l):
     already_processed = set()
     result = []
