@@ -15,13 +15,13 @@ class DatabaseDriverInterface(object):
     def keys(self, tablename):
         raise NotImplementedError
 
-    def put(self, tablename, key, value):
+    def put(self, tablename, key, value, secondary_indexes=[]):
         raise NotImplementedError
 
-    def get(self, tablename, key):
+    def get(self, tablename, key, hint=None):
         raise NotImplementedError
 
-    def getall(self, tablename):
+    def getall(self, tablename, hints=[]):
         raise NotImplementedError
 
 

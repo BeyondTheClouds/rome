@@ -277,7 +277,6 @@ class BooleanExpression(object):
 
         return True
 
-
 class Function:
     def __init__(self, name, field):
         self._name = name
@@ -320,6 +319,13 @@ class Function:
             pass
         return result
 
+class Hint():
+
+    def __init__(self, table_name, attribute, value):
+        self.table_name = table_name
+        self.attribute = attribute
+        self.value = value
+
 def extract_models(l):
     already_processed = set()
     result = []
@@ -335,6 +341,7 @@ class Query:
     _initial_models = []
     _models = []
     _criterions = []
+    _hints = []
 
     def all_selectable_are_functions(self):
         return all(x._is_function for x in [y for y in self._models if not y.is_hidden])
@@ -343,6 +350,7 @@ class Query:
         self._models = []
         self._criterions = []
         self._funcs = []
+        self._hints = []
 
         base_model = None
         if kwargs.has_key("base_model"):
@@ -367,6 +375,8 @@ class Query:
                     pass
             elif isinstance(arg, Selection):
                 self._models += [arg]
+            elif isinstance(arg, Hint):
+                self._hints += [arg]
             elif isinstance(arg, Function):
                 self._models += [Selection(None, None, True, arg)]
                 self._funcs += [arg]
@@ -596,7 +606,12 @@ class Query:
         list_results = []
         for selectable in model_set:
             tablename = self.find_table_name(selectable._model)
-            objects = utils.get_objects(tablename, request_uuid=request_uuid)
+            # def filtering_function(n):
+            #     print(n.table_name == tablename)
+            #     return True
+            selected_hints = filter(lambda x: x.table_name == tablename, self._hints)
+            reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
+            objects = utils.get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
             list_results += [objects]
         part3_starttime = current_milli_time()
 
@@ -741,6 +756,15 @@ class Query:
     # Query construction
     ####################################################################################################################
 
+    def _extract_hint(self, criterion):
+        if hasattr(criterion.expression.right, "value"):
+            table_name = str(criterion.expression.left.table)
+            attribute_name = str(criterion.expression.left.key)
+            value = criterion.expression.right.value
+            self._hints += [Hint(table_name, attribute_name, value)]
+        pass
+
+
     def filter_by(self, **kwargs):
         _func = self._funcs[:]
         _criterions = self._criterions[:]
@@ -748,12 +772,15 @@ class Query:
             for selectable in self._models:
                 try:
                     column = getattr(selectable._model, a)
-                    _criterions += [column.__eq__(kwargs[a])]
+                    criterion = column.__eq__(kwargs[a])
+                    self._extract_hint(criterion)
+                    _criterions += [criterion]
                     break
                 except Exception as e:
                     # create a binary expression
                     traceback.print_exc()
-        args = self._models + _func + _criterions + self._initial_models
+        _hints = self._hints[:]
+        args = self._models + _func + _criterions + _hints + self._initial_models
         return Query(*args)
 
     def filter_dict(self, filters):
@@ -764,14 +791,17 @@ class Query:
         _func = self._funcs[:]
         _criterions = self._criterions[:]
         for criterion in criterions:
+            self._extract_hint(criterion)
             _criterions += [criterion]
-        args = self._models + _func + _criterions + self._initial_models
+        _hints = self._hints[:]
+        args = self._models + _func + _criterions + _hints + self._initial_models
         return Query(*args)
 
     def join(self, *args, **kwargs):
         _func = self._funcs[:]
         _models = self._models[:]
         _criterions = self._criterions[:]
+        _hints = self._hints[:]
         for arg in args:
 
             if not isinstance(arg, list) and not isinstance(arg, tuple):
@@ -793,7 +823,7 @@ class Query:
                     _criterions += [item]
                 else:
                     pass
-        args = _models + _func + _criterions + self._initial_models
+        args = _models + _func + _criterions + _hints + self._initial_models
         return Query(*args)
 
     def outerjoin(self, *args, **kwargs):
@@ -804,7 +834,8 @@ class Query:
         _models = self._models[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
-        args = _models + _func + _criterions + _initial_models
+        _hints = self._hints[:]
+        args = _models + _func + _criterions + _hints + _initial_models
         return Query(*args)
 
     def order_by(self, *criterion):
@@ -812,7 +843,8 @@ class Query:
         _models = self._models[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
-        args = _models + _func + _criterions + _initial_models
+        _hints = self._hints[:]
+        args = _models + _func + _criterions + _hints + _initial_models
         return Query(*args)
 
     def with_lockmode(self, mode):
@@ -824,11 +856,12 @@ class Query:
         _models = self._models[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
-        args = _models + _func + _criterions + _initial_models
+        _hints = self._hints[:]
+        args = _models + _func + _criterions + _hints + _initial_models
         return Query(*args).all()
 
     def __iter__(self):
         return iter(self.all())
 
     def __str__(self):
-        return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (self._models, self._criterions)
+        return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\", \\"hints\\": \\"%s\\"}""" % (self._models, self._criterions, self._hints)

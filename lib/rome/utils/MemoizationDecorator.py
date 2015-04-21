@@ -21,7 +21,7 @@ class MemoizationDecorator(object):
 
     class FunctionWrapper:
 
-        """Class that is used to "simulate" to delay call to decorated's method."""
+        """Class that is used to "delay" call to decorated's method."""
 
         def __init__(self, callable_object, method_name, memory, insertion_lock):
             self.callable_object = callable_object
@@ -39,7 +39,6 @@ class MemoizationDecorator(object):
 
 
             if call_hash in self.memory:
-                print("starting call to %s (slave)" % (call_hash))
                 # Increment safely the number of threads waiting for expected value
                 item = self.memory[call_hash]
                 should_retry = True
@@ -48,11 +47,9 @@ class MemoizationDecorator(object):
                     item["waiting_threads_count"] += 1
                     should_retry = False
                 item["modification_lock"].release()
-
                 if should_retry:
                     # memory has been destroyed by a master call, simply abort it and repeat the method.
                     return self.__call__(*args, **kwargs)
-                # print("waiting for value -> %s" % (call_hash))
                 # Wait for the expected value.
                 result = item["result_queue"].get()
             else:
@@ -74,7 +71,6 @@ class MemoizationDecorator(object):
                     # memory has been initialised by a quicker concurrent call, simply abort it and become a slave.
                     return self.__call__(*args, **kwargs)
 
-                print("starting call to %s (master)" % (call_hash))
                 # compute the expected value and store it in a shared memory.
                 result = self.callable_object(*args, **kwargs)
                 self.memory[call_hash]["result"] = result
@@ -100,7 +96,6 @@ class MemoizationDecorator(object):
                 del self.memory[call_hash]
                 item["modification_lock"].release()
                 self.insertion_lock.release()
-            print("finishing call to %s" % (call_hash))
             return result
 
 

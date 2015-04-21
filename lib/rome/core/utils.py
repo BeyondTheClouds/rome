@@ -85,7 +85,7 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None, skip_lo
         return None
 
 
-def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False):
+def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
     object_deconverter = JsonDeconverter(request_uuid=request_uuid)
@@ -96,14 +96,14 @@ def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=Fals
             model_object.load(data=data)
         return model_object
 
-    data = database_driver.get_driver().getall(tablename)
+    data = database_driver.get_driver().getall(tablename, hints=hints)
     result = map(lambda x: transform(x), data)
 
     return result
 
 
-def get_models_satisfying(tablename, field, value, request_uuid=None):
-    candidates = get_objects(tablename, False, request_uuid=request_uuid)
+def get_models_satisfying(tablename, field, value, request_uuid=None, hints=[]):
+    candidates = get_objects(tablename, False, request_uuid=request_uuid, hints=hints)
     result = []
     for each in candidates:
         if each[field] == value:

@@ -17,13 +17,17 @@ import logging
 from lib.rome.core.models import get_model_class_from_name
 BASE = declarative_base()
 
+from lib.rome.utils.SecondaryIndexDecorator import secondary_index_decorator
+
 @global_scope
+@secondary_index_decorator("name")
 class Dog(BASE, Entity):
     """Represents a dog."""
 
     __tablename__ = 'dogs'
 
     id = Column(Integer, primary_key=True)
+
     name = Column(String(255))
     specy = Column(String(255))
 
@@ -47,7 +51,7 @@ class TestDogs(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_selection(self):
-        query = Query(Dog)
+        query = Query(Dog).filter(Dog.name=="Bobby")
         bobby = query.first()
         print("My dog's name is %s" % (bobby.name))
         self.assertEqual(True, True)

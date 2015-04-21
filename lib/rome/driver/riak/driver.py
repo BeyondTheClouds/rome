@@ -35,19 +35,19 @@ class RiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         bucket = self.riak_client.bucket(tablename)
         return bucket.get_keys()
 
-    def put(self, tablename, key, value):
+    def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
         bucket = self.riak_client.bucket(tablename)
         fetched = bucket.new("%s" % (key), data=value)
         fetched.store()
         return fetched
 
-    def get(self, tablename, key):
+    def get(self, tablename, key, hint=None):
         """"""
         bucket = self.riak_client.bucket(tablename)
         return bucket.get("%s" % (key)).data
 
-    def getall(self, tablename):
+    def getall(self, tablename, hints=[]):
         """"""
         keys = map(lambda x:str(x), self.keys(tablename))
         bucket = self.riak_client.bucket(tablename)
@@ -88,19 +88,19 @@ class MapReduceRiakDriver(lib.rome.driver.database_driver.DatabaseDriverInterfac
         results = mapReduce.run()
         return results if results is not None else []
 
-    def put(self, tablename, key, value):
+    def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
         bucket = self.riak_client.bucket(tablename)
         fetched = bucket.new("%s-%s" % (tablename, key), data=value)
         fetched.store()
         return fetched
 
-    def get(self, tablename, key):
+    def get(self, tablename, key, hint=None):
         """"""
         bucket = self.riak_client.bucket(tablename)
         return bucket.get("%s-%s" % (tablename, key)).data
 
-    def getall(self, tablename):
+    def getall(self, tablename, hints=[]):
         """"""
         keys = map(lambda x:str(x), self.keys(tablename))
         if len(keys) > 0:
