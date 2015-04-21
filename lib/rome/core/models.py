@@ -226,7 +226,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             try:
                 local_object_converter = converter.JsonConverter(request_uuid)
                 corrected_object = local_object_converter.simplify(current_object)
-                database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=model_class._secondary_indexes)
+                database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
                 import traceback
