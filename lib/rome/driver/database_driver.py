@@ -27,7 +27,6 @@ class DatabaseDriverInterface(object):
 
 driver = None
 
-@memoization_decorator
 def build_driver():
     config = get_config()
 

@@ -27,7 +27,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         """Check if the current table contains keys."""
         keys = self.redis_client.hkeys(tablename)
-        return keys
+        return sorted(keys)
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
@@ -60,11 +60,13 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             if len(sec_keys) > 0:
                 keys += filter(None, self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys))
             # keys = filter(None, keys) + id_hints
+        result = []
         if len(keys) > 0:
-            str_result = self.redis_client.hmget(tablename, keys)
+            import multiprocessing
+            
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
             result = map(lambda x: json.loads(x), str_result)
-            return result
-        return []
+        return result
 
 class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -91,7 +93,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         """"""
         """Check if the current table contains keys."""
         keys = self.redis_client.hkeys(tablename)
-        return keys
+        return sorted(keys)
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
@@ -124,8 +126,8 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             if len(sec_keys) > 0:
                 keys += filter(None, self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys))
             # keys = filter(None, keys) + id_hints
+        result = []
         if len(keys) > 0:
-            str_result = self.redis_client.hmget(tablename, keys)
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
             result = map(lambda x: json.loads(x), str_result)
-            return result
-        return []
+        return result

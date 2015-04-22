@@ -210,8 +210,6 @@ class Certificate(BASE, NovaBase):
 
 @global_scope
 @secondary_index_decorator("uuid")
-@secondary_index_decorator("host")
-@secondary_index_decorator("node")
 class Instance(BASE, NovaBase):
     """Represents a guest VM."""
     __tablename__ = 'instances'
@@ -238,7 +236,7 @@ class Instance(BASE, NovaBase):
     @property
     def name(self):
         try:
-            base_name = CONF.instance_name_template % self.id
+            base_name = self.id
         except TypeError:
             # Support templates like "uuid-%(uuid)s", etc.
             info = {}
