@@ -5,7 +5,7 @@ from lib.rome.core.orm.query import Query
 
 if __name__ == '__main__':
 
-    query = Query(models.Network).filter(models.Network.id==1)
+    query = Query(models.Network).filter_by(id=1)
     result = query.all()
     print(result)
     pass
