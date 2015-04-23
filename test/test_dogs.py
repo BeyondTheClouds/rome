@@ -21,6 +21,7 @@ from lib.rome.utils.SecondaryIndexDecorator import secondary_index_decorator
 
 @global_scope
 @secondary_index_decorator("name")
+@secondary_index_decorator("specy")
 class Dog(BASE, Entity):
     """Represents a dog."""
 
@@ -51,7 +52,8 @@ class TestDogs(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_selection(self):
-        query = Query(Dog).filter(Dog.name=="Bobby")
+        logging.getLogger().setLevel(logging.DEBUG)
+        query = Query(Dog).filter(Dog.name=="Bobby").filter(Dog.specy=="Griffon")
         bobby = query.first()
         print("My dog's name is %s" % (bobby.name))
         self.assertEqual(True, True)
