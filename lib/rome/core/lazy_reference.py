@@ -174,7 +174,7 @@ class LazyReference:
 
         if data is None:
             if hasattr(self, "data"):
-                data = self.data if not getattr(self, "is_json_data", False) else self.deconverter(self.data)
+                data = self.data if not getattr(self, "is_json_data", False) else self.deconverter.desimplify(self.data)
             else:
                 data = database_driver.get_driver().get(self.base, self.id)
 
