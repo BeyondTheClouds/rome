@@ -157,6 +157,13 @@ class LazyReference:
 
         return current_model
 
+    def preload(self, data, is_json_data=True):
+        """Preload some data before the lazy reference can be used. This enables to gain some time by preventing
+        loading data in database and processing this data only when the value of an attribute is required."""
+
+        self.data = data
+        self.is_json_data = is_json_data
+
     def load(self, data=None):
         """Load the referenced object from the database. The result will be
         cached, so that next call will not create any database request."""
@@ -166,7 +173,10 @@ class LazyReference:
         key = self.get_key()
 
         if data is None:
-            data = database_driver.get_driver().get(self.base, self.id)
+            if hasattr(self, "data"):
+                data = self.data if not getattr(self, "is_json_data", False) else self.deconverter(self.data)
+            else:
+                data = database_driver.get_driver().get(self.base, self.id)
 
         self.spawn_empty_model(data)
         self.update_nova_model(data)
@@ -203,7 +213,7 @@ class LazyReference:
         requested attribute/method is then setted with the given value."""
 
         if name in ["base", "id", "cache", "deconverter", "request_uuid",
-                    "uuid", "version", "lazy_backref_buffer", "toto"]:
+                    "uuid", "version", "lazy_backref_buffer", "toto", "data", "is_json_data"]:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)

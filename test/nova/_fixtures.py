@@ -841,6 +841,7 @@ class Migration(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("uuid")
 class Network(BASE, NovaBase):
     """Represents a network."""
     __tablename__ = 'networks'

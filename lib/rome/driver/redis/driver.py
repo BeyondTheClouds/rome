@@ -69,7 +69,11 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         result = []
         keys = list(set(keys))
         if len(keys) > 0:
-            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
+            # str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
+            pipe = self.redis_client.pipeline()
+            for key in keys:
+                pipe.hget(tablename, key)
+            str_result = pipe.execute()
             result = map(lambda x: json.loads(x), str_result)
         return result
 

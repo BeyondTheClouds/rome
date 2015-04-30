@@ -49,6 +49,9 @@ class TestDogs(unittest.TestCase):
         bobby.name = "Bobby"
         bobby.specy = "Griffon"
         bobby.save()
+        specy = Specy()
+        specy.name = "Griffon"
+        specy.save()
         self.assertEqual(True, True)
 
     def test_selection(self):
