@@ -82,13 +82,19 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
 
-    host = "econome-18"
-    # query = Query(models.Instance).filter(models.Instance.host==host)
-    query = Query(models.Instance).filter_by(host=host)
-    result = query.all()
-    _instances_fill_metadata(None, result)
-    print(map(lambda x: x.id, result))
-    # query = Query(models.Network).filter_by(id=1)
+    # host = "econome-18"
+    # # query = Query(models.Instance).filter(models.Instance.host==host)
+    # query = Query(models.Instance).filter_by(host=host)
     # result = query.all()
-    # print(result)
+    # _instances_fill_metadata(None, result)
+    # print(map(lambda x: x.id, result))
+    # # query = Query(models.Network).filter_by(id=1)
+    # # result = query.all()
+    # # print(result)
+
+    query = Query(models.Network).filter(models.Network.id==1)
+    result = query.first()
+    print(result.share_address)
+
+
     pass
