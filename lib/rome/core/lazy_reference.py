@@ -207,8 +207,6 @@ class LazyReference:
         if self.preload:
             if item in self.data:
                 return self.data[item]
-            else:
-                return None
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
