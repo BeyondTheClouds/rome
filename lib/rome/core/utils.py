@@ -90,8 +90,7 @@ def transform(data, deconverter, skip_loading):
     import uuid
     model_object = LazyReference(data["nova_classname"], data["id"], uuid.uuid4(), deconverter)
     if not skip_loading:
-        # model_object.load(data)
-        model_object.preload(data, True)
+        model_object.load(data)
     return model_object
 
 
