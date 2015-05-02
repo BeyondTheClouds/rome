@@ -157,7 +157,7 @@ class LazyReference:
 
         return current_model
 
-    def load(self, data=None):
+    def load(self, data=None, skip=False):
         """Load the referenced object from the database. The result will be
         cached, so that next call will not create any database request."""
 
@@ -166,10 +166,13 @@ class LazyReference:
         key = self.get_key()
 
         if data is None:
-            data = database_driver.get_driver().get(self.base, self.id)
+            self.data = data
+        else:
+            self.data = database_driver.get_driver().get(self.base, self.id)
 
-        self.spawn_empty_model(data)
-        self.update_nova_model(data)
+        self.spawn_empty_model(self.data)
+        if not skip:
+            self.update_nova_model(self.data)
 
         return self.cache[key]
 
@@ -203,7 +206,7 @@ class LazyReference:
         requested attribute/method is then setted with the given value."""
 
         if name in ["base", "id", "cache", "deconverter", "request_uuid",
-                    "uuid", "version", "lazy_backref_buffer", "toto"]:
+                    "uuid", "version", "lazy_backref_buffer", "data"]:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)
