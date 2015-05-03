@@ -80,7 +80,6 @@ class LazyReference:
         self.id = id
         self.version = -1
         self.lazy_backref_buffer = LazyBackrefBuffer()
-        self.data = None
 
         self.request_uuid = request_uuid if request_uuid is not None else uuid.uuid1()
         if not caches.has_key(self.request_uuid):
@@ -167,13 +166,10 @@ class LazyReference:
         key = self.get_key()
 
         if data is None:
-            self.data = database_driver.get_driver().get(self.base, self.id)
-        else:
-            self.data = data
+            data = database_driver.get_driver().get(self.base, self.id)
 
-        # if not key in self.cache:
-        self.spawn_empty_model(self.data)
-        self.update_nova_model(self.data)
+        self.spawn_empty_model(data)
+        # self.update_nova_model(data)
 
         return self.cache[key]
 
@@ -188,8 +184,6 @@ class LazyReference:
         if not self.cache.has_key(key):
             self.load()
 
-        # self.update_nova_model(self.data)
-        # print("ici???")
         return self.cache[key]
 
 
@@ -201,8 +195,6 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
-        if item in getattr(self, "data", []):
-            return self.data[item]
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
@@ -211,7 +203,7 @@ class LazyReference:
         requested attribute/method is then setted with the given value."""
 
         if name in ["base", "id", "cache", "deconverter", "request_uuid",
-                    "uuid", "version", "lazy_backref_buffer", "data"]:
+                    "uuid", "version", "lazy_backref_buffer", "toto"]:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)
