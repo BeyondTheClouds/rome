@@ -86,19 +86,13 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None, skip_lo
 
 
 def transform(data, deconverter, skip_loading):
-    from lazy_reference import LazyReference
-    import uuid
-    model_object = LazyReference(data["nova_classname"], data["id"], uuid.uuid4(), deconverter)
-    if not skip_loading:
-        model_object.load(data, skip=True)
-    return model_object
+    result = deconverter.desimplify(data)
+    return result
 
 
 def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
-
     object_deconverter = JsonDeconverter(request_uuid=request_uuid)
-
     data = database_driver.get_driver().getall(tablename, hints=hints)
     result = map(lambda x: transform(x, object_deconverter, skip_loading), data)
     return result

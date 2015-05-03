@@ -80,6 +80,7 @@ class LazyReference:
         self.id = id
         self.version = -1
         self.lazy_backref_buffer = LazyBackrefBuffer()
+        self.data = None
 
         self.request_uuid = request_uuid if request_uuid is not None else uuid.uuid1()
         if not caches.has_key(self.request_uuid):
@@ -157,7 +158,7 @@ class LazyReference:
 
         return current_model
 
-    def load(self, data=None, skip=False):
+    def load(self, data=None):
         """Load the referenced object from the database. The result will be
         cached, so that next call will not create any database request."""
 
@@ -166,13 +167,13 @@ class LazyReference:
         key = self.get_key()
 
         if data is None:
-            self.data = data
-        else:
             self.data = database_driver.get_driver().get(self.base, self.id)
+        else:
+            self.data = data
 
+        # if not key in self.cache:
         self.spawn_empty_model(self.data)
-        if not skip:
-            self.update_nova_model(self.data)
+        self.update_nova_model(self.data)
 
         return self.cache[key]
 
@@ -187,6 +188,8 @@ class LazyReference:
         if not self.cache.has_key(key):
             self.load()
 
+        # self.update_nova_model(self.data)
+        # print("ici???")
         return self.cache[key]
 
 
@@ -198,6 +201,8 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
+        if item in getattr(self, "data", []):
+            return self.data[item]
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
