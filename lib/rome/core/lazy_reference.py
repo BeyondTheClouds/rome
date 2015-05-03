@@ -169,7 +169,7 @@ class LazyReference:
             data = database_driver.get_driver().get(self.base, self.id)
 
         self.spawn_empty_model(data)
-        # self.update_nova_model(data)
+        self.update_nova_model(data)
 
         return self.cache[key]
 
