@@ -86,7 +86,8 @@ def get_single_object(tablename, id, desimplify=True, request_uuid=None, skip_lo
 
 
 def transform(data, deconverter, skip_loading):
-    result = deconverter.desimplify(data)
+    # result = deconverter.desimplify(data)
+    result = data
     return result
 
 

@@ -58,6 +58,17 @@ def and_(*exps):
 def or_(*exps):
     return BooleanExpression("OR", *exps)
 
+def has_attribute(obj, key):
+    if type(obj) is dict:
+        return key in obj
+    else:
+        return hasattr(obj, key)
+
+def get_attribute(obj, key):
+    if type(obj) is dict:
+        return obj[key]
+    else:
+        return getattr(obj, key)
 
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
@@ -82,18 +93,18 @@ class BooleanExpression(object):
             """
             try:
                 if not "." in attr:
-                    return getattr(obj, attr.replace("\"", ""))
+                    return get_attribute(obj, attr.replace("\"", ""))
                 else:
                     current_key = attr[:attr.index(".")]
                     next_key = attr[attr.index(".") + 1:]
-                    if hasattr(obj, current_key):
-                        current_object = getattr(obj, current_key)
-                    elif hasattr(obj, current_key.capitalize()):
-                        current_object = getattr(obj, current_key.capitalize())
-                    elif hasattr(obj, uncapitalize(current_key)):
-                        current_object = getattr(obj, uncapitalize(current_key))
+                    if has_attribute(obj, current_key):
+                        current_object = get_attribute(obj, current_key)
+                    elif has_attribute(obj, current_key.capitalize()):
+                        current_object = get_attribute(obj, current_key.capitalize())
+                    elif has_attribute(obj, uncapitalize(current_key)):
+                        current_object = get_attribute(obj, uncapitalize(current_key))
                     else:
-                        current_object = getattr(obj, current_key)
+                        current_object = get_attribute(obj, current_key)
 
                     return getattr_rec(current_object, next_key, otherwise)
             except AttributeError:
@@ -641,6 +652,7 @@ class Query:
         final_rows = []
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
         part6_starttime = current_milli_time()
+        deconverter = JsonDeconverter()
         if self.all_selectable_are_functions():
             final_row = []
             for selection in showable_selection:
@@ -653,20 +665,23 @@ class Query:
                 for selection in showable_selection:
                     if selection._is_function:
                         value = selection._function._function(rows)
-                        final_row += [value]
+                        final_value = value
+                        # final_row += [final_value]
                     else:
                         current_table_name = self.find_table_name(selection._model)
                         key = current_table_name.capitalize()
                         value = None
-                        if not utils.is_novabase(row) and hasattr(row, key):
-                            value = getattr(row, key)
+                        if not utils.is_novabase(row) and has_attribute(row, key):
+                            value = get_attribute(row, key)
                         else:
                             value = row
                         if value is not None:
                             if selection._attributes != "*":
-                                final_row += [getattr(value, selection._attributes)]
+                                final_value = get_attribute(value, selection._attributes)
                             else:
-                                final_row += [value]
+                                final_value = value
+
+                    final_row += [final_value]
                 if len(showable_selection) == 1:
                     final_rows += final_row
                 else:
@@ -688,19 +703,21 @@ class Query:
         if file_logger_enabled:
             file_logger.info(query_information)
 
-        return final_rows
+        from lib.rome.core.lazy_reference import LazyRows
+        return LazyRows(final_rows, request_uuid, deconverter)
+        # return  final_rows
 
     def all(self):
-
-        result_list = self.construct_rows()
-
-        result = []
-        for r in result_list:
-            ok = True
-
-            if ok:
-                result += [r]
-        return result
+        return self.construct_rows()
+        # result_list = self.construct_rows()
+        #
+        # result = []
+        # for r in result_list:
+        #     ok = True
+        #
+        #     if ok:
+        #         result += [r]
+        # return result
 
     def first(self):
         rows = self.all()

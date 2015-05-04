@@ -62,6 +62,24 @@ class LazyBackrefBuffer(object):
         return getattr(self, item)
 
 
+class LazyRows(list):
+    """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
+    when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
+    (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
+
+    def __init__(self, wrapped_list, request_uuid, deconverter):
+        self.wrapped_list = wrapped_list
+        if deconverter is None:
+            from lib.rome.core.dataformat.deconverter import JsonDeconverter
+
+            self.deconverter = JsonDeconverter(request_uuid=request_uuid)
+        else:
+            self.deconverter = deconverter
+
+    def __getitem__(self, y):
+        return self.deconverter.desimplify(self.wrapped_list[y])
+
+
 
 class LazyReference:
     """Class that references a remote object stored in database. This aims
