@@ -652,7 +652,7 @@ class Query:
         final_rows = []
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
         part6_starttime = current_milli_time()
-        deconverter = JsonDeconverter()
+
         if self.all_selectable_are_functions():
             final_row = []
             for selection in showable_selection:
@@ -704,7 +704,7 @@ class Query:
             file_logger.info(query_information)
 
         from lib.rome.core.lazy_reference import LazyRows
-        return LazyRows(final_rows, request_uuid, deconverter)
+        return LazyRows(final_rows)
         # return  final_rows
 
     def all(self):
