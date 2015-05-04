@@ -19,6 +19,8 @@ import pytz
 import lib.rome.core.utils as utils
 import lib.rome.driver.database_driver as database_driver
 
+from lib.rome.core.lazy_reference import LazyRows
+
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
     from lib.rome.core.dataformat.deconverter import find_table_name
@@ -649,7 +651,7 @@ class Query:
         part5_starttime = current_milli_time()
 
         # reordering tuples (+ selecting attributes)
-        final_rows = []
+        final_rows = LazyRows()
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
         part6_starttime = current_milli_time()
 
@@ -703,8 +705,8 @@ class Query:
         if file_logger_enabled:
             file_logger.info(query_information)
 
-        from lib.rome.core.lazy_reference import LazyRows
-        return LazyRows(final_rows)
+        # return LazyRows(final_rows)
+        return final_rows
         # return  final_rows
 
     def all(self):
