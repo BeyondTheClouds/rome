@@ -479,7 +479,8 @@ class Query:
                         keys = t.keys()
                         for e in keys:
                             import lib.rome.core.models as models
-                            klass = models.get_model_class_from_name(t[e]["nova_classname"])
+                            class_name = models.get_model_classname_from_tablename(t[e]["nova_classname"])
+                            klass = models.get_model_class_from_name(class_name)
                             fake_instance = klass()
                             relationships = fake_instance.get_relationships()
                             for r in relationships:
@@ -487,7 +488,7 @@ class Query:
                                     continue
                                 remote_label_name = r.remote_object_tablename.capitalize()
                                 if remote_label_name in indexed_results:
-                                    local_value = getattr(t[e], r.local_fk_field)
+                                    local_value = get_attribute(t[e], r.local_fk_field)
                                     if local_value is not None:
                                         try:
                                             remote_candidate = indexed_results[remote_label_name][r.remote_object_field][local_value]

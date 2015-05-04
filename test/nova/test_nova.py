@@ -77,6 +77,32 @@ def _instances_fill_metadata(context, instances,
 
     return filled_instances
 
+from lib.rome.core.orm.query import or_
+from lib.rome.core.orm.query import and_
+
+def _network_get_query():
+    return Query(models.Network)
+
+def network_get_all_by_host(context, host):
+    # session = get_session()
+    fixed_host_filter = or_(models.FixedIp.host == host,
+            and_(models.FixedIp.instance_uuid != None,
+                 models.Instance.host == host))
+    fixed_ip_query = Query(models.FixedIp.network_id,
+                                 base_model=models.FixedIp).\
+                     outerjoin((models.Instance,
+                                models.Instance.uuid ==
+                                models.FixedIp.instance_uuid)).\
+                     filter(fixed_host_filter)
+    # NOTE(vish): return networks that have host set
+    #             or that have a fixed ip with host set
+    #             or that have an instance with host set
+    host_filter = or_(models.Network.host == host,
+                      models.Network.id.in_(fixed_ip_query.subquery()))
+    return _network_get_query().\
+                       filter(host_filter).\
+                       all()
+
 if __name__ == '__main__':
 
 
@@ -92,9 +118,11 @@ if __name__ == '__main__':
     # # result = query.all()
     # # print(result)
 
-    query = Query(models.Network).filter(models.Network.id==1)
-    result = query.first()
-    print(result.share_address)
+    result = network_get_all_by_host(None, "granduc-4.luxembourg.grid5000.fr")
+
+    # query = Query(models.Network).filter(models.Network.id==1)
+    # result = query.first()
+    # print(result.share_address)
 
 
     pass
