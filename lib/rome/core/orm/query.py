@@ -478,7 +478,10 @@ class Query:
                         # iterate on existing elements of the current tuple
                         keys = t.keys()
                         for e in keys:
-                            relationships = t[e].get_relationships()
+                            import lib.rome.core.models as models
+                            klass = models.get_model_class_from_name(t[e]["nova_classname"])
+                            fake_instance = klass()
+                            relationships = fake_instance.get_relationships()
                             for r in relationships:
                                 if r.local_fk_field in ["id", "uuid"]:
                                     continue
