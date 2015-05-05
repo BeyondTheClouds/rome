@@ -13,7 +13,6 @@ import models
 import lib.rome.driver.database_driver as database_driver
 import traceback
 
-
 def now_in_ms():
     return int(round(time.time() * 1000))
 
@@ -61,7 +60,6 @@ class LazyBackrefBuffer(object):
             return LazyAttribute()
         return getattr(self, item)
 
-
 class LazyRows(list):
     """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
     when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
@@ -71,16 +69,32 @@ class LazyRows(list):
         from lib.rome.core.dataformat.deconverter import JsonDeconverter
         self.deconverter = JsonDeconverter()
 
+    def wrap(self, existing_list):
+        result = LazyRows()
+        for each in existing_list:
+            result += [each]
+        return result
+
+    def transform(self, x):
+        if type(x) is list:
+            return self.wrap(x)
+        if "KeyedTuple" in str(type(x)):
+            return x
+        else:
+            return self.deconverter.desimplify(x)
+
     def __getitem__(self, y):
-        return self.deconverter.desimplify(list.__getitem__(self, y))
+        return self.transform(list.__getitem__(self, y))
 
     def __iter__(self):
-        return map(lambda x: self.deconverter.desimplify(x), list.__iter__(self)).__iter__()
+        return map(lambda x: self.transform(x), list.__iter__(self)).__iter__()
 
     def __repr__(self):
+        values = []
+        for item in self.__iter__():
+            values += [self.transform(item)]
+        return str(values)
         return "Rows(...)"
-
-
 
 class LazyReference:
     """Class that references a remote object stored in database. This aims
