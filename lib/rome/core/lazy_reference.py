@@ -72,9 +72,11 @@ class LazyRows(list):
         self.deconverter = JsonDeconverter()
 
     def __getitem__(self, y):
-        # toto = super(list, self)
         return self.deconverter.desimplify(list.__getitem__(self, y))
-        # return self.deconverter.desimplify(self.wrapped_list[y])
+
+    def __iter__(self):
+        return map(lambda x: self.deconverter.desimplify(x), list.__iter__(self)).__iter__()
+
     def __repr__(self):
         return "Rows(...)"
 
