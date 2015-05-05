@@ -118,6 +118,9 @@ class BooleanExpression(object):
         criterion_str = criterion_str.replace(" = ", " == ")
         # remove prefix of arguments
         criterion_str = criterion_str.replace(":", "")
+        # remove quotes arround attributes
+        criterion_str = criterion_str.replace("\"", "")
+
 
         # construct a dict with the values involved in the expression
         values_dict = {}
