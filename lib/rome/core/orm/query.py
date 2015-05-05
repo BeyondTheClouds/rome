@@ -308,9 +308,9 @@ class Function:
             except:
                 row = [row]
             for subrow in row:
-                if subrow.__tablename__ == fieldtable:
+                if subrow["nova_classname"] == fieldtable:
                     filtered_rows += [subrow]
-        result = [getattr(row, fieldname) for row in filtered_rows]
+        result = [get_attribute(row, fieldname) for row in filtered_rows]
         return result
 
     def count(self, rows):
@@ -431,7 +431,7 @@ class Query:
         """
 
         def building_tuples(list_results, labels):
-            mode = "not_cartesian_product"
+            mode = "cartesian_product"
             if mode is "cartesian_product":
                 cartesian_product = []
                 for element in itertools.product(*list_results):
@@ -444,10 +444,10 @@ class Query:
                     (results, label) = i
                     dict_result = {"id": {}, "uuid": {}}
                     for j in results:
-                        if hasattr(j, "id"):
-                            dict_result["id"][j.id] = j
-                        if hasattr(j, "uuid"):
-                            dict_result["uuid"][j.uuid] = j
+                        if has_attribute(j, "id"):
+                            dict_result["id"][get_attribute(j, "id")] = j
+                        if has_attribute(j, "uuid"):
+                            dict_result["uuid"][get_attribute(j, "uuid")] = j
                     indexed_results[label] = dict_result
                 # find iteratively pairs that matches according to relationship modelisation
                 tuples = []
@@ -539,38 +539,38 @@ class Query:
                 for label in labels:
                     product = product + [getattr(row, label)]
 
-                # Updating Foreign Keys of objects that are in the row
-                for label in labels:
-                    current_object = getattr(row, label)
-                    metadata = current_object.metadata
-                    if metadata and hasattr(metadata, "_fk_memos"):
-                        for fk_name in metadata._fk_memos:
-                            fks = metadata._fk_memos[fk_name]
-                            for fk in fks:
-                                local_field_name = fk.column._label
-                                remote_table_name = fk._colspec.split(".")[-2].capitalize()
-                                remote_field_name = fk._colspec.split(".")[-1]
-
-                                try:
-                                    remote_object = getattr(row, remote_table_name)
-                                    remote_field_value = getattr(remote_object, remote_field_name)
-                                    setattr(current_object, local_field_name, remote_field_value)
-                                except:
-                                    pass
-
-                # Updating fields that are setted to None and that have default values
-                for label in labels:
-                    current_object = getattr(row, label)
-                    for field in current_object._sa_class_manager:
-                        instance_state = current_object._sa_instance_state
-                        field_value = getattr(current_object, field)
-                        if field_value is None:
-                            try:
-                                field_column = instance_state.mapper._props[field].columns[0]
-                                field_default_value = field_column.default.arg
-                                setattr(current_object, field, field_default_value)
-                            except:
-                                pass
+                # # Updating Foreign Keys of objects that are in the row
+                # for label in labels:
+                #     current_object = getattr(row, label)
+                #     metadata = get_attribute(current_object, "metadata")
+                #     if metadata and hasattr(metadata, "_fk_memos"):
+                #         for fk_name in metadata._fk_memos:
+                #             fks = metadata._fk_memos[fk_name]
+                #             for fk in fks:
+                #                 local_field_name = fk.column._label
+                #                 remote_table_name = fk._colspec.split(".")[-2].capitalize()
+                #                 remote_field_name = fk._colspec.split(".")[-1]
+                #
+                #                 try:
+                #                     remote_object = getattr(row, remote_table_name)
+                #                     remote_field_value = getattr(remote_object, remote_field_name)
+                #                     setattr(current_object, local_field_name, remote_field_value)
+                #                 except:
+                #                     pass
+                #
+                # # Updating fields that are setted to None and that have default values
+                # for label in labels:
+                #     current_object = getattr(row, label)
+                #     for field in current_object._sa_class_manager:
+                #         instance_state = current_object._sa_instance_state
+                #         field_value = getattr(current_object, field)
+                #         if field_value is None:
+                #             try:
+                #                 field_column = instance_state.mapper._props[field].columns[0]
+                #                 field_default_value = field_column.default.arg
+                #                 setattr(current_object, field, field_default_value)
+                #             except:
+                #                 pass
 
                 return KeyedTuple(product, labels=labels)
             else:
