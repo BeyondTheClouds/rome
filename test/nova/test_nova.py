@@ -141,7 +141,16 @@ if __name__ == '__main__':
     # # print(result)
 
     # result = network_get_all_by_host(None, "granduc-4.luxembourg.grid5000.fr")
-    fixed_ip_disassociate_all_by_timeout("granduc-9.luxembourg.grid5000.fr", timeutils.utcnow())
+    # fixed_ip_disassociate_all_by_timeout("granduc-9.luxembourg.grid5000.fr", timeutils.utcnow())
+
+    project_id = "448a3aeaab2c47259637a3a632748b8b"
+    group_names = ["default", "default2"]
+
+    query = Query(models.SecurityGroup).\
+            filter(models.SecurityGroup.name.in_(group_names))
+    result = query.all()
+    print(result)
+
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()

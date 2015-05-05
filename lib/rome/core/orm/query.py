@@ -120,6 +120,11 @@ class BooleanExpression(object):
         criterion_str = criterion_str.replace(":", "")
         # remove quotes arround attributes
         criterion_str = criterion_str.replace("\"", "")
+        # replace "IN" operator by "in" operator
+        criterion_str = criterion_str.replace(" IN ", " in ")
+        # Format correctly lists
+        criterion_str = criterion_str.replace("(", "[")
+        criterion_str = criterion_str.replace(")", "]")
 
 
         # construct a dict with the values involved in the expression
@@ -136,8 +141,14 @@ class BooleanExpression(object):
         # check if right value is a named argument
         if ":" in str(criterion.expression.right):
             # fix the prefix of the name argument
-            corrected_label = str(criterion.expression.right).replace(":", "")
-            values_dict[corrected_label] = criterion.expression.right.value
+            if " in " in criterion_str:
+                count = 1
+                for i in criterion.right.element:
+                    values_dict["%s_%i" % (i._orig_key, count)] = i.value
+                    count += 1
+            else:
+                corrected_label = str(criterion.expression.right).replace(":", "")
+                values_dict[corrected_label] = criterion.expression.right.value
         # evaluate the expression thanks to the 'eval' function
         result = eval(criterion_str, values_dict)
         return result
