@@ -103,6 +103,28 @@ def network_get_all_by_host(context, host):
                        filter(host_filter).\
                        all()
 
+from oslo.utils import timeutils
+
+def fixed_ip_disassociate_all_by_timeout(host, time):
+    #             host matches. Two queries necessary because
+    import time
+    host_filter = or_(and_(models.Instance.host == host,
+                           models.Network.multi_host == True),
+                      models.Network.host == host)
+    result = Query(models.FixedIp.id).\
+            filter(models.FixedIp.leased == True).\
+            filter(models.FixedIp.allocated == False).\
+            filter(models.FixedIp.updated_at < time).\
+            join((models.Network,
+                  models.Network.id == models.FixedIp.network_id)).\
+            join((models.Instance,
+                  models.Instance.uuid == models.FixedIp.instance_uuid)).\
+            filter(host_filter).\
+            update({'instance_uuid': None,
+                                 'leased': False,
+                                 'updated_at': timeutils.utcnow()},
+                                synchronize_session='fetch')
+
 if __name__ == '__main__':
 
 
@@ -118,7 +140,8 @@ if __name__ == '__main__':
     # # result = query.all()
     # # print(result)
 
-    result = network_get_all_by_host(None, "granduc-4.luxembourg.grid5000.fr")
+    # result = network_get_all_by_host(None, "granduc-4.luxembourg.grid5000.fr")
+    fixed_ip_disassociate_all_by_timeout("granduc-9.luxembourg.grid5000.fr", timeutils.utcnow())
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()

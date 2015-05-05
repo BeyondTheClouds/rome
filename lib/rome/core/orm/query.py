@@ -66,11 +66,11 @@ def has_attribute(obj, key):
     else:
         return hasattr(obj, key)
 
-def get_attribute(obj, key):
+def get_attribute(obj, key, default=None):
     if type(obj) is dict:
-        return obj[key]
+        return obj[key] if key in obj else default
     else:
-        return getattr(obj, key)
+        return getattr(obj, key, default)
 
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
@@ -244,7 +244,7 @@ class BooleanExpression(object):
 
             for right_term in right_terms:
                 try:
-                    right_value = getattr(right_term.value, "%s" % (right_term._orig_key))
+                    right_value = get_attribute(right_term.value, "%s" % (right_term._orig_key))
                 except AttributeError:
                     right_value = right_term.value
 
@@ -431,7 +431,7 @@ class Query:
         """
 
         def building_tuples(list_results, labels):
-            mode = "cartesian_product"
+            mode = "no_cartesian_product"
             if mode is "cartesian_product":
                 cartesian_product = []
                 for element in itertools.product(*list_results):
@@ -537,45 +537,45 @@ class Query:
 
                 product = []
                 for label in labels:
-                    product = product + [getattr(row, label)]
+                    product = product + [get_attribute(row, label)]
 
-                # # Updating Foreign Keys of objects that are in the row
-                # for label in labels:
-                #     current_object = getattr(row, label)
-                #     metadata = get_attribute(current_object, "metadata")
-                #     if metadata and hasattr(metadata, "_fk_memos"):
-                #         for fk_name in metadata._fk_memos:
-                #             fks = metadata._fk_memos[fk_name]
-                #             for fk in fks:
-                #                 local_field_name = fk.column._label
-                #                 remote_table_name = fk._colspec.split(".")[-2].capitalize()
-                #                 remote_field_name = fk._colspec.split(".")[-1]
-                #
-                #                 try:
-                #                     remote_object = getattr(row, remote_table_name)
-                #                     remote_field_value = getattr(remote_object, remote_field_name)
-                #                     setattr(current_object, local_field_name, remote_field_value)
-                #                 except:
-                #                     pass
-                #
-                # # Updating fields that are setted to None and that have default values
-                # for label in labels:
-                #     current_object = getattr(row, label)
-                #     for field in current_object._sa_class_manager:
-                #         instance_state = current_object._sa_instance_state
-                #         field_value = getattr(current_object, field)
-                #         if field_value is None:
-                #             try:
-                #                 field_column = instance_state.mapper._props[field].columns[0]
-                #                 field_default_value = field_column.default.arg
-                #                 setattr(current_object, field, field_default_value)
-                #             except:
-                #                 pass
+                # Updating Foreign Keys of objects that are in the row
+                for label in labels:
+                    current_object = get_attribute(row, label)
+                    metadata = get_attribute(current_object, "metadata")
+                    if metadata and hasattr(metadata, "_fk_memos"):
+                        for fk_name in metadata._fk_memos:
+                            fks = metadata._fk_memos[fk_name]
+                            for fk in fks:
+                                local_field_name = fk.column._label
+                                remote_table_name = fk._colspec.split(".")[-2].capitalize()
+                                remote_field_name = fk._colspec.split(".")[-1]
+
+                                try:
+                                    remote_object = get_attribute(row, remote_table_name)
+                                    remote_field_value = get_attribute(remote_object, remote_field_name)
+                                    setattr(current_object, local_field_name, remote_field_value)
+                                except:
+                                    pass
+
+                # Updating fields that are setted to None and that have default values
+                for label in labels:
+                    current_object = get_attribute(row, label)
+                    for field in current_object._sa_class_manager:
+                        instance_state = current_object._sa_instance_state
+                        field_value = get_attribute(current_object, field)
+                        if field_value is None:
+                            try:
+                                field_column = instance_state.mapper._props[field].columns[0]
+                                field_default_value = field_column.default.arg
+                                setattr(current_object, field, field_default_value)
+                            except:
+                                pass
 
                 return KeyedTuple(product, labels=labels)
             else:
                 model_name = self.find_table_name(selectables[0]._model).capitalize()
-                return getattr(row, model_name)
+                return get_attribute(row, model_name)
 
         import time
 
@@ -623,7 +623,7 @@ class Query:
             # def filtering_function(n):
             #     print(n.table_name == tablename)
             #     return True
-            authorized_secondary_indexes = getattr(selectable._model, "_secondary_indexes", [])
+            authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
             selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), self._hints)
             reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
             objects = utils.get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
@@ -794,7 +794,7 @@ class Query:
         for a in kwargs:
             for selectable in self._models:
                 try:
-                    column = getattr(selectable._model, a)
+                    column = get_attribute(selectable._model, a)
                     criterion = column.__eq__(kwargs[a])
                     self._extract_hint(criterion)
                     _criterions += [criterion]
