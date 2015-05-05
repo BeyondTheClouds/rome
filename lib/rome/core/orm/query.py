@@ -385,20 +385,21 @@ class Query:
                         if len(intersect(candidate_models, criterion_models)) > 1:
                             processed_models += [step[1]]
                             remaining_models = filter(lambda x:x ==step[1], remaining_models)
-                            # current_property =
-                            current_criterion_part = filter(lambda x:x["table"]==step[1], criterion)[0]
-                            remote_criterion_part = filter(lambda x:x["table"]!=step[1], criterion)[0]
-                            new_results = []
-                            for each in results:
-                                existing_tuple_index = processed_models.index(remote_criterion_part["table"])
-                                existing_value = each[existing_tuple_index][remote_criterion_part["column"]]
-                                key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
-                                candidates = filtering_values[key][existing_value]
-                                for candidate in candidates:
-                                    new_results += [each + [candidate["object"]]]
-                            results = new_results
-                            continue
-                    pass
+                            try:
+                                current_criterion_part = filter(lambda x:x["table"]==step[1], criterion)[0]
+                                remote_criterion_part = filter(lambda x:x["table"]!=step[1], criterion)[0]
+                                new_results = []
+                                for each in results:
+                                    existing_tuple_index = processed_models.index(remote_criterion_part["table"])
+                                    existing_value = each[existing_tuple_index][remote_criterion_part["column"]]
+                                    key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
+                                    candidates = filtering_values[key][existing_value]
+                                    for candidate in candidates:
+                                        new_results += [each + [candidate["object"]]]
+                                results = new_results
+                            except:
+                                pass
+                        continue
                 return results
 
         def extract_sub_row(row, selectables):
