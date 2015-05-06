@@ -9,6 +9,8 @@ from sqlalchemy.util._collections import KeyedTuple
 import uuid
 from lib.rome.core.utils import get_objects, is_novabase
 
+from lib.rome.core.rows.rows_experimental import building_tuples as building_tuples_experimental
+
 file_logger_enabled = False
 try:
     file_logger = logging.getLogger('rome_file_logger')
@@ -260,7 +262,9 @@ def construct_rows(models, criterions, hints):
     part3_starttime = current_milli_time()
 
     # construct the cartesian product
-    tuples = building_tuples(list_results, labels, criterions)
+    # tuples = building_tuples(list_results, labels, criterions)
+    tuples = building_tuples_experimental(list_results, labels, criterions)
+
     part4_starttime = current_milli_time()
 
     # filtering tuples (cartesian product)
