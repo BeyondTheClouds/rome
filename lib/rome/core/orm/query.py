@@ -140,8 +140,12 @@ class BooleanExpression(object):
             def __init__(self, **entries):
                 self.__dict__.update(entries)
         for key in value.keys():
-            s = Struct(**value[value.keys().index(key)])
-            values_dict[key] = s
+            try:
+                s = Struct(**value[value.keys().index(key)])
+                values_dict[key] = s
+            except:
+                print("[BUG] evaluation failed: %s -> %s" % (key, value))
+                return False
         # check if right value is a named argument
         if ":" in str(criterion.expression.right):
             # fix the prefix of the name argument

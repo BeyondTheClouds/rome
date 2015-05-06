@@ -164,6 +164,62 @@ def network_get_all_by_host(host):
                        all()
 
 
+def network_get_associated_fixed_ips(network_id, host=None):
+    # FIXME(sirp): since this returns fixed_ips, this would be better named
+    # fixed_ip_get_all_by_network.
+    # NOTE(vish): The ugly joins here are to solve a performance issue and
+    #             should be removed once we can add and remove leases
+    #             without regenerating the whole list
+    vif_and = and_(models.VirtualInterface.id ==
+                   models.FixedIp.virtual_interface_id,
+                   models.VirtualInterface.deleted == 0)
+    inst_and = and_(models.Instance.uuid == models.FixedIp.instance_uuid,
+                    models.Instance.deleted == 0)
+
+    query = Query(models.FixedIp.address,
+                          models.FixedIp.instance_uuid,
+                          models.FixedIp.network_id,
+                          models.FixedIp.virtual_interface_id,
+                          models.VirtualInterface.address,
+                          models.Instance.hostname,
+                          models.Instance.updated_at,
+                          models.Instance.created_at,
+                          models.FixedIp.allocated,
+                          models.FixedIp.leased)
+    query = query.join(models.VirtualInterface).join(models.Instance)
+    query = query.filter(models.FixedIp.deleted == 0)
+    query = query.filter(models.FixedIp.network_id == network_id)
+    query = query.join((models.VirtualInterface, vif_and))
+    query = query.filter(models.FixedIp.instance_uuid != None)
+    query = query.filter(models.FixedIp.virtual_interface_id != None)
+
+    # query = query.filter(models.FixedIp.deleted == 0).\
+    #                filter(models.FixedIp.network_id == network_id).\
+    #                join((models.VirtualInterface, vif_and)).\
+    #                join((models.Instance, inst_and)).\
+    #                filter(models.FixedIp.instance_uuid != None).\
+    #                filter(models.FixedIp.virtual_interface_id != None)
+    if host:
+        query = query.filter(models.Instance.host == host)
+    result = query.all()
+    print(result)
+    data = []
+    for datum in result:
+        cleaned = {}
+        cleaned['address'] = datum[0]
+        cleaned['instance_uuid'] = datum[1]
+        cleaned['network_id'] = datum[2]
+        cleaned['vif_id'] = datum[3]
+        cleaned['vif_address'] = datum[4]
+        cleaned['instance_hostname'] = datum[5]
+        cleaned['instance_updated'] = datum[6]
+        cleaned['instance_created'] = datum[7]
+        cleaned['allocated'] = datum[8]
+        cleaned['leased'] = datum[9]
+        cleaned['default_route'] = datum[10] is not None
+        data.append(cleaned)
+    return data
+
 if __name__ == '__main__':
 
 
@@ -192,8 +248,9 @@ if __name__ == '__main__':
 
     # fixed_ip_get_by_instance("1c5fc40a-abe1-48ee-829b-1be1c640fdf3")
 
-    network_get_all_by_host("econome-7")
-
+    # network_get_all_by_host("econome-7")
+    # network_get_associated_fixed_ips(1, None)
+    network_get_associated_fixed_ips(1, "econome-7")
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
     # print(result.share_address)
