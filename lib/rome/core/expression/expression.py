@@ -1,12 +1,9 @@
 __author__ = 'jonathan'
 
-
-from sqlalchemy.sql.expression import BinaryExpression
-from lib.rome.core.dataformat.deconverter import JsonDeconverter
+import datetime
+import pytz
 
 class BooleanExpression(object):
-    """This class represents expressions as encountered in SQL "where clauses"."""
-
     def __init__(self, operator, *exps):
         self.operator = operator
         self.exps = exps
@@ -16,69 +13,182 @@ class BooleanExpression(object):
 
     def evaluate_criterion(self, criterion, value):
 
-        criterion_str = criterion.__str__()
-        # replace equality operator
-        criterion_str = criterion_str.replace(" = ", " == ")
-        # remove prefix of arguments
-        criterion_str = criterion_str.replace(":", "")
-        # remove quotes arround attributes
-        criterion_str = criterion_str.replace("\"", "")
-        # replace "IN" operator by "in" operator
-        criterion_str = criterion_str.replace(" IN ", " in ")
-        # replace "IS" operator by "is" operator
-        criterion_str = criterion_str.replace(" IS ", " is ")
-        # replace "NULL" operator by "None" operator
-        criterion_str = criterion_str.replace("NULL", "None")
-        # Format correctly lists
-        criterion_str = criterion_str.replace("(", "[")
-        criterion_str = criterion_str.replace(")", "]")
+        def uncapitalize(s):
+            return s[:1].lower() + s[1:] if s else ''
 
+        def getattr_rec(obj, attr, otherwise=None):
+            """ A reccursive getattr function.
 
-        # construct a dict with the values involved in the expression
-        values_dict = {}
-
-        class LazyDictionnary:
-            """This temporary class is used to make a dict acting like an object. This code can be found at:
-                http://stackoverflow.com/questions/1305532/convert-python-dict-to-object
+            :param obj: the object that will be use to perform the search
+            :param attr: the searched attribute
+            :param otherwise: value returned in case attr was not found
+            :return:
             """
-
-            def __init__(self, **entries):
-                self.entries = entries
-                self.deconverter = JsonDeconverter()
-
-            def __getattr__(self, item):
-                deconverted_value = self.deconverter.desimplify(self.entries[item])
-                return deconverted_value
-
-        for key in value.keys():
             try:
-                s = LazyDictionnary(**value[value.keys().index(key)])
-                values_dict[key] = s
-            except:
-                print("[BUG] evaluation failed: %s -> %s" % (key, value))
-                return False
-        # check if right value is a named argument
-        expressions = []
-        if type(criterion) is BooleanExpression:
-            if criterion.operator in ["AND", "OR"]:
-                return criterion.evaluate(value)
-            else:
-                expressions = criterion.exps
-        elif type(criterion) is BinaryExpression:
-            expressions = [criterion.expression]
-        for expression in expressions:
-            if ":" in str(expression.right):
-                # fix the prefix of the name argument
-                if " in " in criterion_str:
-                    count = 1
-                    for i in expression.right.element:
-                        values_dict["%s_%i" % (i._orig_key, count)] = i.value
-                        count += 1
+                if not "." in attr:
+                    return getattr(obj, attr.replace("\"", ""))
                 else:
-                    corrected_label = str(expression.right).replace(":", "")
-                    values_dict[corrected_label] = expression.right.value
-        # evaluate the expression thanks to the 'eval' function
-        result = eval(criterion_str, values_dict)
+                    current_key = attr[:attr.index(".")]
+                    next_key = attr[attr.index(".") + 1:]
+                    if hasattr(obj, current_key):
+                        current_object = getattr(obj, current_key)
+                    elif hasattr(obj, current_key.capitalize()):
+                        current_object = getattr(obj, current_key.capitalize())
+                    elif hasattr(obj, uncapitalize(current_key)):
+                        current_object = getattr(obj, uncapitalize(current_key))
+                    else:
+                        current_object = getattr(obj, current_key)
+
+                    return getattr_rec(current_object, next_key, otherwise)
+            except AttributeError:
+                return otherwise
+
+        criterion_str = criterion.__str__()
+
+        if "=" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return "%s" % (a) == "%s" % (b) or a == b
+
+            op = "="
+
+        if "REGEXP" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return "%s" % (a) == "%s" % (b) or a == b
+
+            op = "REGEXP"
+
+        if "IS" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    if a is None and b is None:
+                        return True
+                    else:
+                        return False
+                return a is b
+
+            op = "IS"
+
+        if "!=" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a is not b
+
+            op = "!="
+
+        if "<" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a < b
+
+            op = "<"
+
+        if ">" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a > b
+
+            op = ">"
+
+        if "IN" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a == b or a is b
+
+            op = "IN"
+
+        split = criterion_str.split(op)
+        left = split[0].strip()
+        right = split[1].strip()
+        left_values = []
+
+        # Computing left value
+        if left.startswith(":"):
+            left_values += [criterion._orig[0].effective_value]
+        else:
+            left_values += [getattr_rec(value, left.capitalize())]
+
+
+        # Computing right value
+        if right.startswith(":"):
+            right_value = criterion._orig[1].effective_value
+        else:
+            if hasattr(criterion, "_orig"):
+                if isinstance(criterion._orig[1], bool):
+                    right_value = criterion._orig[1]
+                else:
+                    right_type_name = "none"
+                    try:
+                        right_type_name = str(criterion._orig[1].type)
+                    except:
+                        pass
+
+                    if right_type_name == "BOOLEAN":
+                        right_value = right
+                        if right_value == "1":
+                            right_value = True
+                        else:
+                            right_value = False
+                    else:
+                        right_value = getattr_rec(value, right.capitalize())
+            elif hasattr(criterion, "is_boolean_expression") and criterion.is_boolean_expression():
+                right_value = criterion.evaluate(value)
+        # try:
+        # print(">>> (%s)[%s] = %s <-> %s" % (value.keys(), left, left_values, right))
+        # except:
+        #     pass
+
+        result = False
+        for left_value in left_values:
+
+            if isinstance(left_value, datetime.datetime):
+                if left_value.tzinfo is None:
+                    left_value = pytz.utc.localize(left_value)
+
+            if isinstance(right_value, datetime.datetime):
+                if right_value.tzinfo is None:
+                    right_value = pytz.utc.localize(right_value)
+
+            if "NOT NULL" in right:
+                if left_value is not None:
+                    result = True
+            else:
+                if comparator(left_value, right_value):
+                    result = True
+
+        if op == "IN":
+            result = False
+            right_terms = set(criterion.right.element)
+            # print("before %s" % (right_terms))
+
+            if left_value is None and hasattr(value, "__iter__"):
+                left_key = left.split(".")[-1]
+                if value[0].has_key(left_key):
+                    left_value = value[0][left_key]
+
+            for right_term in right_terms:
+                try:
+                    right_value = getattr(right_term.value, "%s" % (right_term._orig_key))
+                except AttributeError:
+                    right_value = right_term.value
+
+                if isinstance(left_value, datetime.datetime):
+                    if left_value.tzinfo is None:
+                        left_value = pytz.utc.localize(left_value)
+
+                if isinstance(right_value, datetime.datetime):
+                    if right_value.tzinfo is None:
+                        right_value = pytz.utc.localize(right_value)
+                # print("comparing %s with %s" % (left_value, right_value))
+                if comparator(left_value, right_value):
+                    result = True
         return result
 
     def evaluate(self, value):

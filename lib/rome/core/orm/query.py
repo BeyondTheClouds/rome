@@ -11,7 +11,8 @@ import inspect
 import re
 import logging
 
-from lib.rome.core.expression.expression_old import BooleanExpression
+from lib.rome.core.expression.expression import BooleanExpression
+from lib.rome.core.terms.terms import *
 
 from sqlalchemy.util._collections import KeyedTuple
 from sqlalchemy.sql.expression import BinaryExpression
@@ -19,6 +20,8 @@ import pytz
 
 import lib.rome.core.utils as utils
 import lib.rome.driver.database_driver as database_driver
+
+from lib.rome.core.rows.rows import building_tuples
 
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
@@ -40,77 +43,6 @@ try:
 except:
     pass
 
-class Selection:
-    def __init__(self, model, attributes, is_function=False, function=None, is_hidden=False):
-        self._model = model
-        self._attributes = attributes
-        self._function = function
-        self._is_function = is_function
-        self.is_hidden = is_hidden
-
-    def __repr__(self):
-        return "Selection(%s.%s)" % (self._model, self._attributes)
-
-
-def and_(*exps):
-    return BooleanExpression("AND", *exps)
-
-
-def or_(*exps):
-    return BooleanExpression("OR", *exps)
-
-
-class Function:
-    def __init__(self, name, field):
-        self._name = name
-        if name == "count":
-            self._function = self.count
-        elif name == "sum":
-            self._function = self.sum
-        else:
-            self._function = self.sum
-        self._field = field
-
-    def collect_field(self, rows, field):
-        if rows is None:
-            rows = []
-        if "." in field:
-            fieldtable = field.split(".")[-2]
-            fieldname = field.split(".")[-1]
-        filtered_rows = []
-        for row in rows:
-            try:
-                iter(row)
-            except:
-                row = [row]
-            for subrow in row:
-                if subrow.__tablename__ == fieldtable:
-                    filtered_rows += [subrow]
-        result = [getattr(row, fieldname) for row in filtered_rows]
-        return result
-
-    def count(self, rows):
-        collected_field_values = self.collect_field(rows, self._field)
-        return len(collected_field_values)
-
-    def sum(self, rows):
-        result = 0
-        collected_field_values = self.collect_field(rows, self._field)
-        try:
-            result = sum(collected_field_values)
-        except:
-            pass
-        return result
-
-class Hint():
-
-    def __init__(self, table_name, attribute, value):
-        self.table_name = table_name
-        self.attribute = attribute
-        self.value = value
-
-    def __repr__(self):
-        return "%s.%s = %s" % (self.table_name, self.attribute, str(self.value))
 
 def extract_models(l):
     already_processed = set()
@@ -205,91 +137,6 @@ class Query:
         """This function constructs the rows that corresponds to the current orm.
         :return: a list of row, according to sqlalchemy expectation
         """
-
-        def building_tuples(list_results, labels):
-            mode = "not_cartesian_product"
-            if mode is "cartesian_product":
-                cartesian_product = []
-                for element in itertools.product(*list_results):
-                    cartesian_product += [element]
-                return cartesian_product
-            else:
-                # construct dicts that will keep a ref on objects according to their "id" and "uuid" fields.
-                indexed_results = {}
-                for i in zip(list_results, labels):
-                    (results, label) = i
-                    dict_result = {"id": {}, "uuid": {}}
-                    for j in results:
-                        if hasattr(j, "id"):
-                            dict_result["id"][j.id] = j
-                        if hasattr(j, "uuid"):
-                            dict_result["uuid"][j.uuid] = j
-                    indexed_results[label] = dict_result
-                # find iteratively pairs that matches according to relationship modelisation
-                tuples = []
-                tuples_labels = []
-
-                # initialise tuples
-                count = 0
-                for i in zip(list_results, labels):
-                    (results, label) = i
-                    tuples_labels += [label]
-                    for j in results:
-                        current_tuple = {label: j}
-                        tuples += [current_tuple]
-                    break
-
-                # increase model of exisintg tuples
-                count == 0
-                for i in zip(list_results, labels):
-                    if count == 0:
-                        count += 1
-                        continue
-                    (results, label) = i
-                    tuples_labels += [label]
-
-
-                    # iterate on tuples
-                    for t in tuples:
-                        # iterate on existing elements of the current tuple
-                        keys = t.keys()
-                        for e in keys:
-                            relationships = t[e].get_relationships()
-                            for r in relationships:
-                                if r.local_fk_field in ["id", "uuid"]:
-                                    continue
-                                remote_label_name = r.remote_object_tablename.capitalize()
-                                if remote_label_name in indexed_results:
-                                    local_value = getattr(t[e], r.local_fk_field)
-                                    if local_value is not None:
-                                        try:
-                                            remote_candidate = indexed_results[remote_label_name][r.remote_object_field][local_value]
-                                            t[remote_label_name] = remote_candidate
-                                        except Exception as e:
-                                            logging.error(e)
-                                            traceback.print_exc()
-                                            pass
-                    tuple_groupby_size = {}
-                    for t in tuples:
-                        tuple_size = len(t)
-                        if not tuple_size in tuple_groupby_size:
-                            tuple_groupby_size[tuple_size] = []
-                        tuple_groupby_size[tuple_size] += [t]
-                    if len(tuple_groupby_size.keys()) > 0:
-                        max_size = max(tuple_groupby_size.keys())
-                        tuples = tuple_groupby_size[max_size]
-                    else:
-                        tuples = []
-
-                # reordering tuples
-                results = []
-                for t in tuples:
-                    if len(t) == len(labels):
-                        ordered_t = [t[i] for i in labels]
-                        results += [tuple(ordered_t)]
-
-                return results
-
 
         def extract_sub_row(row, selectables):
 
