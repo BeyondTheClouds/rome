@@ -7,7 +7,7 @@ import traceback
 from sqlalchemy.util._collections import KeyedTuple
 
 import uuid
-import lib.rome.utils as utils
+from lib.rome.core.utils import get_objects, is_novabase
 
 file_logger_enabled = False
 try:
@@ -255,7 +255,7 @@ def construct_rows(models, criterions, hints):
         authorized_secondary_indexes = getattr(selectable._model, "_secondary_indexes", [])
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
-        objects = utils.get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
+        objects = get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
         list_results += [objects]
     part3_starttime = current_milli_time()
 
@@ -304,7 +304,7 @@ def construct_rows(models, criterions, hints):
                     current_table_name = find_table_name(selection._model)
                     key = current_table_name.capitalize()
                     value = None
-                    if not utils.is_novabase(row) and hasattr(row, key):
+                    if not is_novabase(row) and hasattr(row, key):
                         value = getattr(row, key)
                     else:
                         value = row
