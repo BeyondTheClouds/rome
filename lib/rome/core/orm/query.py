@@ -133,30 +133,47 @@ class BooleanExpression(object):
 
         # construct a dict with the values involved in the expression
         values_dict = {}
-        class Struct:
+
+        class LazyDictionnary:
             """This temporary class is used to make a dict acting like an object. This code can be found at:
                 http://stackoverflow.com/questions/1305532/convert-python-dict-to-object
             """
+
             def __init__(self, **entries):
-                self.__dict__.update(entries)
+                self.entries = entries
+                self.deconverter = JsonDeconverter()
+
+            def __getattr__(self, item):
+                deconverted_value = self.deconverter.desimplify(self.entries[item])
+                return deconverted_value
+
         for key in value.keys():
             try:
-                s = Struct(**value[value.keys().index(key)])
+                s = LazyDictionnary(**value[value.keys().index(key)])
                 values_dict[key] = s
             except:
                 print("[BUG] evaluation failed: %s -> %s" % (key, value))
                 return False
         # check if right value is a named argument
-        if ":" in str(criterion.expression.right):
-            # fix the prefix of the name argument
-            if " in " in criterion_str:
-                count = 1
-                for i in criterion.right.element:
-                    values_dict["%s_%i" % (i._orig_key, count)] = i.value
-                    count += 1
+        expressions = []
+        if type(criterion) is BooleanExpression:
+            if criterion.operator in ["AND", "OR"]:
+                return criterion.evaluate(value)
             else:
-                corrected_label = str(criterion.expression.right).replace(":", "")
-                values_dict[corrected_label] = criterion.expression.right.value
+                expressions = criterion.exps
+        elif type(criterion) is BinaryExpression:
+            expressions = [criterion.expression]
+        for expression in expressions:
+            if ":" in str(expression.right):
+                # fix the prefix of the name argument
+                if " in " in criterion_str:
+                    count = 1
+                    for i in expression.right.element:
+                        values_dict["%s_%i" % (i._orig_key, count)] = i.value
+                        count += 1
+                else:
+                    corrected_label = str(expression.right).replace(":", "")
+                    values_dict[corrected_label] = expression.right.value
         # evaluate the expression thanks to the 'eval' function
         result = eval(criterion_str, values_dict)
         return result

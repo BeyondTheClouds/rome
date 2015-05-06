@@ -220,6 +220,26 @@ def network_get_associated_fixed_ips(network_id, host=None):
         data.append(cleaned)
     return data
 
+def fixed_ip_disassociate_all_by_timeout(host, time):
+    # NOTE(vish): only update fixed ips that "belong" to this
+    #             host; i.e. the network host or the instance
+    #             host matches. Two queries necessary because
+    #             join with update doesn't work.
+    host_filter = or_(and_(models.Instance.host == host,
+                           models.Network.multi_host == True),
+                      models.Network.host == host)
+    result = Query(models.FixedIp.id).\
+            filter(models.FixedIp.leased == True).\
+            filter(models.FixedIp.allocated == False).\
+            filter(models.FixedIp.updated_at < time).\
+            join((models.Network,
+                  models.Network.id == models.FixedIp.network_id)).\
+            join((models.Instance,
+                  models.Instance.uuid == models.FixedIp.instance_uuid)).\
+            filter(host_filter).all()
+    print(result)
+    return result
+
 if __name__ == '__main__':
 
 
@@ -250,7 +270,8 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
     # network_get_associated_fixed_ips(1, None)
-    network_get_associated_fixed_ips(1, "econome-7")
+    # network_get_associated_fixed_ips(1, "econome-7")
+    fixed_ip_disassociate_all_by_timeout("econome-7", timeutils.utcnow())
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
     # print(result.share_address)
