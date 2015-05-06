@@ -77,7 +77,6 @@ class JsonDeconverter(object):
                 deconverter=self,
                 request_uuid=self.request_uuid
             )
-            self.cache[key].load(obj)
         return self.cache[key]
 
 

@@ -4,20 +4,20 @@ This module contains a definition of object queries.
 
 """
 
+import datetime
 import itertools
 import traceback
 import inspect
 import re
 import logging
 
+
 from sqlalchemy.util._collections import KeyedTuple
 from sqlalchemy.sql.expression import BinaryExpression
+import pytz
 
 import lib.rome.core.utils as utils
 import lib.rome.driver.database_driver as database_driver
-from lib.rome.core.expression.old_expression import BooleanExpression
-from lib.rome.core.lazy_reference import LazyRows
-
 
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
@@ -58,47 +58,218 @@ def and_(*exps):
 def or_(*exps):
     return BooleanExpression("OR", *exps)
 
-def has_attribute(obj, key):
-    if type(obj) is dict:
-        return key in obj
-    else:
-        return hasattr(obj, key)
 
-def get_attribute(obj, key, default=None):
-    if type(obj) is dict:
-        return obj[key] if key in obj else default
-    else:
-        return getattr(obj, key, default)
+class BooleanExpression(object):
+    def __init__(self, operator, *exps):
+        self.operator = operator
+        self.exps = exps
 
-def uncapitalize(s):
-    return s[:1].lower() + s[1:] if s else ''
+    def is_boolean_expression(self):
+        return True
 
-def getattr_rec(obj, attr, otherwise=None):
-    """ A reccursive getattr function.
+    def evaluate_criterion(self, criterion, value):
 
-    :param obj: the object that will be use to perform the search
-    :param attr: the searched attribute
-    :param otherwise: value returned in case attr was not found
-    :return:
-    """
-    try:
-        if not "." in attr:
-            return get_attribute(obj, attr.replace("\"", ""))
+        def uncapitalize(s):
+            return s[:1].lower() + s[1:] if s else ''
+
+        def getattr_rec(obj, attr, otherwise=None):
+            """ A reccursive getattr function.
+
+            :param obj: the object that will be use to perform the search
+            :param attr: the searched attribute
+            :param otherwise: value returned in case attr was not found
+            :return:
+            """
+            try:
+                if not "." in attr:
+                    return getattr(obj, attr.replace("\"", ""))
+                else:
+                    current_key = attr[:attr.index(".")]
+                    next_key = attr[attr.index(".") + 1:]
+                    if hasattr(obj, current_key):
+                        current_object = getattr(obj, current_key)
+                    elif hasattr(obj, current_key.capitalize()):
+                        current_object = getattr(obj, current_key.capitalize())
+                    elif hasattr(obj, uncapitalize(current_key)):
+                        current_object = getattr(obj, uncapitalize(current_key))
+                    else:
+                        current_object = getattr(obj, current_key)
+
+                    return getattr_rec(current_object, next_key, otherwise)
+            except AttributeError:
+                return otherwise
+
+        criterion_str = criterion.__str__()
+
+        if "=" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return "%s" % (a) == "%s" % (b) or a == b
+
+            op = "="
+
+        if "REGEXP" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return "%s" % (a) == "%s" % (b) or a == b
+
+            op = "REGEXP"
+
+        if "IS" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    if a is None and b is None:
+                        return True
+                    else:
+                        return False
+                return a is b
+
+            op = "IS"
+
+        if "!=" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a is not b
+
+            op = "!="
+
+        if "<" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a < b
+
+            op = "<"
+
+        if ">" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a > b
+
+            op = ">"
+
+        if "IN" in criterion_str:
+            def comparator(a, b):
+                if a is None or b is None:
+                    return False
+                return a == b or a is b
+
+            op = "IN"
+
+        split = criterion_str.split(op)
+        left = split[0].strip()
+        right = split[1].strip()
+        left_values = []
+
+        # Computing left value
+        if left.startswith(":"):
+            left_values += [criterion._orig[0].effective_value]
         else:
-            current_key = attr[:attr.index(".")]
-            next_key = attr[attr.index(".") + 1:]
-            if has_attribute(obj, current_key):
-                current_object = get_attribute(obj, current_key)
-            elif has_attribute(obj, current_key.capitalize()):
-                current_object = get_attribute(obj, current_key.capitalize())
-            elif has_attribute(obj, uncapitalize(current_key)):
-                current_object = get_attribute(obj, uncapitalize(current_key))
-            else:
-                current_object = get_attribute(obj, current_key)
+            left_values += [getattr_rec(value, left.capitalize())]
 
-            return getattr_rec(current_object, next_key, otherwise)
-    except AttributeError:
-        return otherwise
+
+        # Computing right value
+        if right.startswith(":"):
+            right_value = criterion._orig[1].effective_value
+        else:
+            if hasattr(criterion, "_orig"):
+                if isinstance(criterion._orig[1], bool):
+                    right_value = criterion._orig[1]
+                else:
+                    right_type_name = "none"
+                    try:
+                        right_type_name = str(criterion._orig[1].type)
+                    except:
+                        pass
+
+                    if right_type_name == "BOOLEAN":
+                        right_value = right
+                        if right_value == "1":
+                            right_value = True
+                        else:
+                            right_value = False
+                    else:
+                        right_value = getattr_rec(value, right.capitalize())
+            elif hasattr(criterion, "is_boolean_expression") and criterion.is_boolean_expression():
+                right_value = criterion.evaluate(value)
+        # try:
+        # print(">>> (%s)[%s] = %s <-> %s" % (value.keys(), left, left_values, right))
+        # except:
+        #     pass
+
+        result = False
+        for left_value in left_values:
+
+            if isinstance(left_value, datetime.datetime):
+                if left_value.tzinfo is None:
+                    left_value = pytz.utc.localize(left_value)
+
+            if isinstance(right_value, datetime.datetime):
+                if right_value.tzinfo is None:
+                    right_value = pytz.utc.localize(right_value)
+
+            if "NOT NULL" in right:
+                if left_value is not None:
+                    result = True
+            else:
+                if comparator(left_value, right_value):
+                    result = True
+
+        if op == "IN":
+            result = False
+            right_terms = set(criterion.right.element)
+            # print("before %s" % (right_terms))
+
+            if left_value is None and hasattr(value, "__iter__"):
+                left_key = left.split(".")[-1]
+                if value[0].has_key(left_key):
+                    left_value = value[0][left_key]
+
+            for right_term in right_terms:
+                try:
+                    right_value = getattr(right_term.value, "%s" % (right_term._orig_key))
+                except AttributeError:
+                    right_value = right_term.value
+
+                if isinstance(left_value, datetime.datetime):
+                    if left_value.tzinfo is None:
+                        left_value = pytz.utc.localize(left_value)
+
+                if isinstance(right_value, datetime.datetime):
+                    if right_value.tzinfo is None:
+                        right_value = pytz.utc.localize(right_value)
+                # print("comparing %s with %s" % (left_value, right_value))
+                if comparator(left_value, right_value):
+                    result = True
+        return result
+
+    def evaluate(self, value):
+
+        if self.operator == "AND":
+            if len(self.exps) <= 0:
+                return False
+            for exp in self.exps:
+                if hasattr(exp, "evaluate") and not exp.evaluate(value):
+                    return False
+                else:
+                    if not self.evaluate_criterion(exp, value):
+                        return False
+            return True
+
+        if self.operator == "OR" or self.operator == "NORMAL":
+            for exp in self.exps:
+                if hasattr(exp, "evaluate") and exp.evaluate(value):
+                    return True
+                else:
+                    if self.evaluate_criterion(exp, value):
+                        return True
+            return False
+
+        return True
 
 class Function:
     def __init__(self, name, field):
@@ -124,9 +295,9 @@ class Function:
             except:
                 row = [row]
             for subrow in row:
-                if subrow["nova_classname"] == fieldtable:
+                if subrow.__tablename__ == fieldtable:
                     filtered_rows += [subrow]
-        result = [get_attribute(row, fieldname) for row in filtered_rows]
+        result = [getattr(row, fieldname) for row in filtered_rows]
         return result
 
     def count(self, rows):
@@ -161,11 +332,6 @@ def extract_models(l):
             result += [selectable]
     return result
 
-def intersect(b1, b2):
-    return [val for val in b1 if val in b2]
-
-def flatten(l):
-    return [item for sublist in l for item in sublist]
 
 class Query:
     _funcs = []
@@ -251,100 +417,90 @@ class Query:
         :return: a list of row, according to sqlalchemy expectation
         """
 
-        def extract_table_data(term):
-            term_value = str(term)
-            if "." in term_value:
-                return {"table": term_value.split(".")[0], "column": term_value.split(".")[1]}
-            else:
-                return None
-
-        def extract_joining_criterion(exp):
-            if type(exp) is BooleanExpression:
-                return map(lambda x:extract_joining_criterion(x), exp.exps)
-            elif type(exp) is BinaryExpression:
-                return [[extract_table_data(exp.left)] + [extract_table_data(exp.right)]]
-            else:
-                return []
-
         def building_tuples(list_results, labels):
-            mode = "experimental"
+            mode = "not_cartesian_product"
             if mode is "cartesian_product":
                 cartesian_product = []
                 for element in itertools.product(*list_results):
                     cartesian_product += [element]
                 return cartesian_product
-            elif mode is "experimental":
+            else:
+                # construct dicts that will keep a ref on objects according to their "id" and "uuid" fields.
+                indexed_results = {}
+                for i in zip(list_results, labels):
+                    (results, label) = i
+                    dict_result = {"id": {}, "uuid": {}}
+                    for j in results:
+                        if hasattr(j, "id"):
+                            dict_result["id"][j.id] = j
+                        if hasattr(j, "uuid"):
+                            dict_result["uuid"][j.uuid] = j
+                    indexed_results[label] = dict_result
+                # find iteratively pairs that matches according to relationship modelisation
+                tuples = []
+                tuples_labels = []
 
-                results_per_table = {}
-                filtering_values = {}
-                joining_criterions = []
-                # Initialising results per table
-                for each in labels:
-                    index_list_results = labels.index(each)
-                    results_per_table[each] = list_results[index_list_results][:]
-                # Collecting joining expressions
-                for criterion in self._criterions:
-                    # if criterion.operator in  "NORMAL":
-                    for exp in criterion.exps:
-                        for joining_criterion in extract_joining_criterion(exp):
-                            foo = [x for x in joining_criterion if x is not None]
-                            if len(foo) > 1:
-                                joining_criterions += [foo]
-                # Collecting for each of the aforementioned expressions, its values <-> objects
-                for criterion in joining_criterions:
-                    for each in criterion:
-                        key = "%s.%s" % (each["table"], each["column"])
-                        index_list_results = labels.index(each["table"])
-                        objects = list_results[index_list_results]
-                        if not filtering_values.has_key(key):
-                            filtering_values[key] = {}
-                        for object in objects:
-                            value_key = get_attribute(object, each["column"])
-                            if not filtering_values[key].has_key(value_key):
-                                filtering_values[key][value_key] = []
-                            filtering_values[key][value_key] += [{"value": value_key, "object": object}]
-                # Progressively reduce the list of results
-                for criterion in joining_criterions:
-                    key_left = "%s.%s" % (criterion[0]["table"], criterion[0]["column"])
-                    key_right = "%s.%s" % (criterion[1]["table"], criterion[1]["column"])
-                    common_values = intersect(filtering_values[key_left].keys(), filtering_values[key_right].keys())
-                    left_objects_ok = flatten(map(lambda x:filtering_values[key_left][x], common_values))
-                    right_objects_ok = flatten(map(lambda x:filtering_values[key_right][x], common_values))
+                # initialise tuples
+                count = 0
+                for i in zip(list_results, labels):
+                    (results, label) = i
+                    tuples_labels += [label]
+                    for j in results:
+                        current_tuple = {label: j}
+                        tuples += [current_tuple]
+                    break
 
-                    results_per_table[criterion[0]["table"]] = intersect(results_per_table[criterion[0]["table"]], map(lambda x:x["object"], left_objects_ok))
-                    results_per_table[criterion[1]["table"]] = intersect(results_per_table[criterion[1]["table"]], map(lambda x:x["object"], right_objects_ok))
-                # Build the cartesian product
-                results = []
-                steps = zip(list_results, labels)
-                processed_models = []
-                if len(steps) > 0:
-                    step = steps[0]
-                    results = map(lambda x:[x], results_per_table[step[1]])
-                    processed_models += [step[1]]
-                remaining_models = map(lambda x:x[1], steps[1:])
-                for step in steps[1:]:
-                    for criterion in joining_criterions:
-                        criterion_models = map(lambda x:x["table"], criterion)
-                        candidate_models = [step[1]] + processed_models
-                        if len(intersect(candidate_models, criterion_models)) > 1:
-                            processed_models += [step[1]]
-                            remaining_models = filter(lambda x:x ==step[1], remaining_models)
-                            try:
-                                current_criterion_part = filter(lambda x:x["table"]==step[1], criterion)[0]
-                                remote_criterion_part = filter(lambda x:x["table"]!=step[1], criterion)[0]
-                                new_results = []
-                                for each in results:
-                                    existing_tuple_index = processed_models.index(remote_criterion_part["table"])
-                                    existing_value = each[existing_tuple_index][remote_criterion_part["column"]]
-                                    key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
-                                    candidates = filtering_values[key][existing_value]
-                                    for candidate in candidates:
-                                        new_results += [each + [candidate["object"]]]
-                                results = new_results
-                            except:
-                                pass
+                # increase model of exisintg tuples
+                count == 0
+                for i in zip(list_results, labels):
+                    if count == 0:
+                        count += 1
                         continue
+                    (results, label) = i
+                    tuples_labels += [label]
+
+
+                    # iterate on tuples
+                    for t in tuples:
+                        # iterate on existing elements of the current tuple
+                        keys = t.keys()
+                        for e in keys:
+                            relationships = t[e].get_relationships()
+                            for r in relationships:
+                                if r.local_fk_field in ["id", "uuid"]:
+                                    continue
+                                remote_label_name = r.remote_object_tablename.capitalize()
+                                if remote_label_name in indexed_results:
+                                    local_value = getattr(t[e], r.local_fk_field)
+                                    if local_value is not None:
+                                        try:
+                                            remote_candidate = indexed_results[remote_label_name][r.remote_object_field][local_value]
+                                            t[remote_label_name] = remote_candidate
+                                        except Exception as e:
+                                            logging.error(e)
+                                            traceback.print_exc()
+                                            pass
+                    tuple_groupby_size = {}
+                    for t in tuples:
+                        tuple_size = len(t)
+                        if not tuple_size in tuple_groupby_size:
+                            tuple_groupby_size[tuple_size] = []
+                        tuple_groupby_size[tuple_size] += [t]
+                    if len(tuple_groupby_size.keys()) > 0:
+                        max_size = max(tuple_groupby_size.keys())
+                        tuples = tuple_groupby_size[max_size]
+                    else:
+                        tuples = []
+
+                # reordering tuples
+                results = []
+                for t in tuples:
+                    if len(t) == len(labels):
+                        ordered_t = [t[i] for i in labels]
+                        results += [tuple(ordered_t)]
+
                 return results
+
 
         def extract_sub_row(row, selectables):
 
@@ -360,49 +516,49 @@ class Query:
                 labels = []
 
                 for selectable in selectables:
-                    labels += [self.find_table_name(selectable._model)]
+                    labels += [self.find_table_name(selectable._model).capitalize()]
 
                 product = []
                 for label in labels:
-                    product = product + [get_attribute(row, label)]
+                    product = product + [getattr(row, label)]
 
-                # # Updating Foreign Keys of objects that are in the row
-                # for label in labels:
-                #     current_object = get_attribute(row, label)
-                #     metadata = get_attribute(current_object, "metadata")
-                #     if metadata and hasattr(metadata, "_fk_memos"):
-                #         for fk_name in metadata._fk_memos:
-                #             fks = metadata._fk_memos[fk_name]
-                #             for fk in fks:
-                #                 local_field_name = fk.column._label
-                #                 remote_table_name = fk._colspec.split(".")[-2].capitalize()
-                #                 remote_field_name = fk._colspec.split(".")[-1]
-                #
-                #                 try:
-                #                     remote_object = get_attribute(row, remote_table_name)
-                #                     remote_field_value = get_attribute(remote_object, remote_field_name)
-                #                     setattr(current_object, local_field_name, remote_field_value)
-                #                 except:
-                #                     pass
-                #
-                # # Updating fields that are setted to None and that have default values
-                # for label in labels:
-                #     current_object = get_attribute(row, label)
-                #     for field in current_object._sa_class_manager:
-                #         instance_state = current_object._sa_instance_state
-                #         field_value = get_attribute(current_object, field)
-                #         if field_value is None:
-                #             try:
-                #                 field_column = instance_state.mapper._props[field].columns[0]
-                #                 field_default_value = field_column.default.arg
-                #                 setattr(current_object, field, field_default_value)
-                #             except:
-                #                 pass
+                # Updating Foreign Keys of objects that are in the row
+                for label in labels:
+                    current_object = getattr(row, label)
+                    metadata = current_object.metadata
+                    if metadata and hasattr(metadata, "_fk_memos"):
+                        for fk_name in metadata._fk_memos:
+                            fks = metadata._fk_memos[fk_name]
+                            for fk in fks:
+                                local_field_name = fk.column._label
+                                remote_table_name = fk._colspec.split(".")[-2].capitalize()
+                                remote_field_name = fk._colspec.split(".")[-1]
+
+                                try:
+                                    remote_object = getattr(row, remote_table_name)
+                                    remote_field_value = getattr(remote_object, remote_field_name)
+                                    setattr(current_object, local_field_name, remote_field_value)
+                                except:
+                                    pass
+
+                # Updating fields that are setted to None and that have default values
+                for label in labels:
+                    current_object = getattr(row, label)
+                    for field in current_object._sa_class_manager:
+                        instance_state = current_object._sa_instance_state
+                        field_value = getattr(current_object, field)
+                        if field_value is None:
+                            try:
+                                field_column = instance_state.mapper._props[field].columns[0]
+                                field_default_value = field_column.default.arg
+                                setattr(current_object, field, field_default_value)
+                            except:
+                                pass
 
                 return KeyedTuple(product, labels=labels)
             else:
-                model_name = self.find_table_name(selectables[0]._model)
-                return get_attribute(row, model_name)
+                model_name = self.find_table_name(selectables[0]._model).capitalize()
+                return getattr(row, model_name)
 
         import time
 
@@ -420,7 +576,7 @@ class Query:
 
         # get the fields of the join result
         for selectable in model_set:
-            labels += [self.find_table_name(selectable._model)]
+            labels += [self.find_table_name(selectable._model).capitalize()]
 
             if selectable._attributes == "*":
                 try:
@@ -450,7 +606,7 @@ class Query:
             # def filtering_function(n):
             #     print(n.table_name == tablename)
             #     return True
-            authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
+            authorized_secondary_indexes = getattr(selectable._model, "_secondary_indexes", [])
             selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), self._hints)
             reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
             objects = utils.get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
@@ -482,10 +638,9 @@ class Query:
         part5_starttime = current_milli_time()
 
         # reordering tuples (+ selecting attributes)
-        final_rows = LazyRows()
+        final_rows = []
         showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
         part6_starttime = current_milli_time()
-
         if self.all_selectable_are_functions():
             final_row = []
             for selection in showable_selection:
@@ -498,23 +653,20 @@ class Query:
                 for selection in showable_selection:
                     if selection._is_function:
                         value = selection._function._function(rows)
-                        final_value = value
-                        # final_row += [final_value]
+                        final_row += [value]
                     else:
                         current_table_name = self.find_table_name(selection._model)
-                        key = current_table_name
+                        key = current_table_name.capitalize()
                         value = None
-                        if not utils.is_novabase(row) and has_attribute(row, key):
-                            value = get_attribute(row, key)
+                        if not utils.is_novabase(row) and hasattr(row, key):
+                            value = getattr(row, key)
                         else:
                             value = row
                         if value is not None:
                             if selection._attributes != "*":
-                                final_value = get_attribute(value, selection._attributes)
+                                final_row += [getattr(value, selection._attributes)]
                             else:
-                                final_value = value
-
-                    final_row += [final_value]
+                                final_row += [value]
                 if len(showable_selection) == 1:
                     final_rows += final_row
                 else:
@@ -536,21 +688,19 @@ class Query:
         if file_logger_enabled:
             file_logger.info(query_information)
 
-        # return LazyRows(final_rows)
         return final_rows
-        # return  final_rows
 
     def all(self):
-        return self.construct_rows()
-        # result_list = self.construct_rows()
-        #
-        # result = []
-        # for r in result_list:
-        #     ok = True
-        #
-        #     if ok:
-        #         result += [r]
-        # return result
+
+        result_list = self.construct_rows()
+
+        result = []
+        for r in result_list:
+            ok = True
+
+            if ok:
+                result += [r]
+        return result
 
     def first(self):
         rows = self.all()
@@ -621,7 +771,7 @@ class Query:
         for a in kwargs:
             for selectable in self._models:
                 try:
-                    column = get_attribute(selectable._model, a)
+                    column = getattr(selectable._model, a)
                     criterion = column.__eq__(kwargs[a])
                     self._extract_hint(criterion)
                     _criterions += [criterion]
