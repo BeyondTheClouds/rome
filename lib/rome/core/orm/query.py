@@ -4,24 +4,18 @@ This module contains a definition of object queries.
 
 """
 
-import datetime
-import itertools
 import traceback
 import inspect
 import re
 import logging
 
-from lib.rome.core.expression.expression import BooleanExpression
 from lib.rome.core.terms.terms import *
 
-from sqlalchemy.util._collections import KeyedTuple
 from sqlalchemy.sql.expression import BinaryExpression
-import pytz
 
-import lib.rome.core.utils as utils
 import lib.rome.driver.database_driver as database_driver
 
-from lib.rome.core.rows.rows import building_tuples
+from lib.rome.core.rows.rows import construct_rows, find_table_name
 
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
@@ -30,39 +24,12 @@ except:
     pass
 import uuid
 
-
-file_logger_enabled = False
-try:
-    file_logger = logging.getLogger('rome_file_logger')
-    hdlr = logging.FileHandler('/opt/logs/rome.log')
-    formatter = logging.Formatter('%(message)s')
-    hdlr.setFormatter(formatter)
-    file_logger.addHandler(hdlr)
-    file_logger.setLevel(logging.INFO)
-    file_logger_enabled = True
-except:
-    pass
-
-
-def extract_models(l):
-    already_processed = set()
-    result = []
-    for selectable in [x for x in l if not x._is_function]:
-        if not selectable._model in already_processed:
-            already_processed.add(selectable._model)
-            result += [selectable]
-    return result
-
-
 class Query:
     _funcs = []
     _initial_models = []
     _models = []
     _criterions = []
     _hints = []
-
-    def all_selectable_are_functions(self):
-        return all(x._is_function for x in [y for y in self._models if not y.is_hidden])
 
     def __init__(self, *args, **kwargs):
         self._models = []
@@ -78,7 +45,7 @@ class Query:
                 function_name = re.sub("\(.*\)", "", str(arg))
                 field_id = re.sub("\)", "", re.sub(".*\(", "", str(arg)))
                 self._models += [Selection(None, None, is_function=True, function=Function(function_name, field_id))]
-            elif self.find_table_name(arg) != "none":
+            elif find_table_name(arg) != "none":
                 arg_as_text = "%s" % (arg)
                 attribute_name = "*"
                 if not hasattr(arg, "_sa_class_manager"):
@@ -109,226 +76,11 @@ class Query:
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
-    def find_table_name(self, model):
 
-        """This function return the name of the given model as a String. If the
-        model cannot be identified, it returns "none".
-        :param model: a model object candidate
-        :return: the table name or "none" if the object cannot be identified
-        """
-
-        if hasattr(model, "__tablename__"):
-            return model.__tablename__
-
-        if hasattr(model, "table"):
-            return model.table.name
-
-        if hasattr(model, "class_"):
-            return model.class_.__tablename__
-
-        if hasattr(model, "clauses"):
-            for clause in model.clauses:
-                return self.find_table_name(clause)
-
-        return "none"
-
-    def construct_rows(self):
-
-        """This function constructs the rows that corresponds to the current orm.
-        :return: a list of row, according to sqlalchemy expectation
-        """
-
-        def extract_sub_row(row, selectables):
-
-            """Adapt a row result to the expectation of sqlalchemy.
-            :param row: a list of python objects
-            :param selectables: a list entity class
-            :return: the response follows what is required by sqlalchemy (if len(model)==1, a single object is fine, in
-            the other case, a KeyTuple where each sub object is associated with it's entity name
-            """
-
-            if len(selectables) > 1:
-
-                labels = []
-
-                for selectable in selectables:
-                    labels += [self.find_table_name(selectable._model).capitalize()]
-
-                product = []
-                for label in labels:
-                    product = product + [getattr(row, label)]
-
-                # Updating Foreign Keys of objects that are in the row
-                for label in labels:
-                    current_object = getattr(row, label)
-                    metadata = current_object.metadata
-                    if metadata and hasattr(metadata, "_fk_memos"):
-                        for fk_name in metadata._fk_memos:
-                            fks = metadata._fk_memos[fk_name]
-                            for fk in fks:
-                                local_field_name = fk.column._label
-                                remote_table_name = fk._colspec.split(".")[-2].capitalize()
-                                remote_field_name = fk._colspec.split(".")[-1]
-
-                                try:
-                                    remote_object = getattr(row, remote_table_name)
-                                    remote_field_value = getattr(remote_object, remote_field_name)
-                                    setattr(current_object, local_field_name, remote_field_value)
-                                except:
-                                    pass
-
-                # Updating fields that are setted to None and that have default values
-                for label in labels:
-                    current_object = getattr(row, label)
-                    for field in current_object._sa_class_manager:
-                        instance_state = current_object._sa_instance_state
-                        field_value = getattr(current_object, field)
-                        if field_value is None:
-                            try:
-                                field_column = instance_state.mapper._props[field].columns[0]
-                                field_default_value = field_column.default.arg
-                                setattr(current_object, field, field_default_value)
-                            except:
-                                pass
-
-                return KeyedTuple(product, labels=labels)
-            else:
-                model_name = self.find_table_name(selectables[0]._model).capitalize()
-                return getattr(row, model_name)
-
-        import time
-
-        current_milli_time = lambda: int(round(time.time() * 1000))
-
-        part1_starttime = current_milli_time()
-
-        request_uuid = uuid.uuid1()
-
-        labels = []
-        columns = set([])
-        rows = []
-
-        model_set = extract_models(self._models)
-
-        # get the fields of the join result
-        for selectable in model_set:
-            labels += [self.find_table_name(selectable._model).capitalize()]
-
-            if selectable._attributes == "*":
-                try:
-                    selected_attributes = selectable._model._sa_class_manager
-                except:
-                    selected_attributes = selectable._model.class_._sa_class_manager
-                    pass
-            else:
-                selected_attributes = [selectable._attributes]
-
-            for field in selected_attributes:
-
-                attribute = None
-                if hasattr(self._models, "class_"):
-                    attribute = selectable._model.class_._sa_class_manager[field].__str__()
-                elif hasattr(self._models, "_sa_class_manager"):
-                    attribute = selectable._model._sa_class_manager[field].__str__()
-
-                if attribute is not None:
-                    columns.add(attribute)
-        part2_starttime = current_milli_time()
-
-        # loading objects (from database)
-        list_results = []
-        for selectable in model_set:
-            tablename = self.find_table_name(selectable._model)
-            # def filtering_function(n):
-            #     print(n.table_name == tablename)
-            #     return True
-            authorized_secondary_indexes = getattr(selectable._model, "_secondary_indexes", [])
-            selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), self._hints)
-            reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
-            objects = utils.get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
-            list_results += [objects]
-        part3_starttime = current_milli_time()
-
-        # construct the cartesian product
-        tuples = building_tuples(list_results, labels, self._criterions)
-        part4_starttime = current_milli_time()
-
-        # filtering tuples (cartesian product)
-        indexed_rows = {}
-        for product in tuples:
-            if len(product) > 0:
-                row = KeyedTuple(product, labels=labels)
-                row_index_key = "%s" % (str(row))
-
-                if row_index_key in indexed_rows:
-                    continue
-
-                all_criterions_satisfied = True
-
-                for criterion in self._criterions:
-                    if not criterion.evaluate(row):
-                        all_criterions_satisfied = False
-                if all_criterions_satisfied:
-                    indexed_rows[row_index_key] = True
-                    rows += [extract_sub_row(row, model_set)]
-        part5_starttime = current_milli_time()
-
-        # reordering tuples (+ selecting attributes)
-        final_rows = []
-        showable_selection = [x for x in self._models if (not x.is_hidden) or x._is_function]
-        part6_starttime = current_milli_time()
-        if self.all_selectable_are_functions():
-            final_row = []
-            for selection in showable_selection:
-                value = selection._function._function(rows)
-                final_row += [value]
-            return [final_row]
-        else:
-            for row in rows:
-                final_row = []
-                for selection in showable_selection:
-                    if selection._is_function:
-                        value = selection._function._function(rows)
-                        final_row += [value]
-                    else:
-                        current_table_name = self.find_table_name(selection._model)
-                        key = current_table_name.capitalize()
-                        value = None
-                        if not utils.is_novabase(row) and hasattr(row, key):
-                            value = getattr(row, key)
-                        else:
-                            value = row
-                        if value is not None:
-                            if selection._attributes != "*":
-                                final_row += [getattr(value, selection._attributes)]
-                            else:
-                                final_row += [value]
-                if len(showable_selection) == 1:
-                    final_rows += final_row
-                else:
-                    final_rows += [final_row]
-        part7_starttime = current_milli_time()
-
-        query_information = """{"building_query": %s, "loading_objects": %s, "building_tuples": %s, "filtering_tuples": %s, "reordering_columns": %s, "selecting_attributes": %s, "description": "%s", "timestamp": %i}""" % (
-            part2_starttime - part1_starttime,
-            part3_starttime - part2_starttime,
-            part4_starttime - part3_starttime,
-            part5_starttime - part4_starttime,
-            part6_starttime - part5_starttime,
-            part7_starttime - part6_starttime,
-            str(self),
-            current_milli_time()
-        )
-
-        logging.info(query_information)
-        if file_logger_enabled:
-            file_logger.info(query_information)
-
-        return final_rows
 
     def all(self):
 
-        result_list = self.construct_rows()
+        result_list = construct_rows(self._models, self._criterions, self._hints)
 
         result = []
         for r in result_list:
@@ -363,7 +115,7 @@ class Query:
 
         rows = self.all()
         for row in rows:
-            tablename = self.find_table_name(row)
+            tablename = find_table_name(row)
             id = row.id
 
             logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
