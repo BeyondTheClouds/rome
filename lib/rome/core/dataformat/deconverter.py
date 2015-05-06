@@ -85,7 +85,7 @@ class JsonDeconverter(object):
         """Desimplify a datetime object."""
 
         result = datetime.datetime.strptime(value["value"], '%b %d %Y %H:%M:%S')
-        if value["timezone"] == "UTC" or True:
+        if value["timezone"] == "UTC":
             result = pytz.utc.localize(result)
         return result
 

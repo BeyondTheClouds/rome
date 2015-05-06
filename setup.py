@@ -5,7 +5,7 @@ setup(
     version='0.1',
     packages=['lib', 'lib.rome', 'lib.rome.core', 'lib.rome.core.orm', 'lib.rome.core.dataformat', 'lib.rome.driver',
               'lib.rome.driver.riak', 'lib.rome.driver.redis', 'lib.rome.utils', 'lib.rome.conf', 'lib.rome.engine',
-              'test'],
+              'test', 'lib.rome.core.orm.expression'],
     url='https://github.com/badock/rome',
     license='',
     author='jonathan',

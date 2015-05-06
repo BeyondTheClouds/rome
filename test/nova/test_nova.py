@@ -275,7 +275,7 @@ if __name__ == '__main__':
     import pytz
 
     utc=pytz.UTC
-    fixed_ip_disassociate_all_by_timeout("econome-7", utc.localize(datetime.datetime.now()))
+    fixed_ip_disassociate_all_by_timeout("econome-7", datetime.datetime.now())
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
     # print(result.share_address)
