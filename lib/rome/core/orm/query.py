@@ -122,6 +122,10 @@ class BooleanExpression(object):
         criterion_str = criterion_str.replace("\"", "")
         # replace "IN" operator by "in" operator
         criterion_str = criterion_str.replace(" IN ", " in ")
+        # replace "IS" operator by "is" operator
+        criterion_str = criterion_str.replace(" IS ", " is ")
+        # replace "NULL" operator by "None" operator
+        criterion_str = criterion_str.replace("NULL", "None")
         # Format correctly lists
         criterion_str = criterion_str.replace("(", "[")
         criterion_str = criterion_str.replace(")", "]")
