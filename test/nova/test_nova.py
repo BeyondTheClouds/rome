@@ -125,6 +125,23 @@ def fixed_ip_disassociate_all_by_timeout(host, time):
                                  'updated_at': timeutils.utcnow()},
                                 synchronize_session='fetch')
 
+
+
+def fixed_ip_get_by_instance(instance_uuid):
+
+    vif_and = and_(models.VirtualInterface.id ==
+                   models.FixedIp.virtual_interface_id,
+                   models.VirtualInterface.deleted == 0)
+    result = Query(models.FixedIp).\
+                 outerjoin(models.VirtualInterface, vif_and).\
+                 all()
+
+    # if not result:
+    #     raise Exception()
+    # TODO(Jonathan): quick fix
+    return [x[0] for x in result]
+    # return result
+
 if __name__ == '__main__':
 
 
@@ -143,14 +160,15 @@ if __name__ == '__main__':
     # result = network_get_all_by_host(None, "granduc-4.luxembourg.grid5000.fr")
     # fixed_ip_disassociate_all_by_timeout("granduc-9.luxembourg.grid5000.fr", timeutils.utcnow())
 
-    project_id = "448a3aeaab2c47259637a3a632748b8b"
-    group_names = ["default", "default2"]
+    # project_id = "448a3aeaab2c47259637a3a632748b8b"
+    # group_names = ["default", "default2"]
+    #
+    # query = Query(models.SecurityGroup).\
+    #         filter(models.SecurityGroup.name.in_(group_names))
+    # result = query.all()
+    # print(result)
 
-    query = Query(models.SecurityGroup).\
-            filter(models.SecurityGroup.name.in_(group_names))
-    result = query.all()
-    print(result)
-
+    fixed_ip_get_by_instance("1c5fc40a-abe1-48ee-829b-1be1c640fdf3")
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()

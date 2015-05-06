@@ -355,12 +355,12 @@ class Query:
                     results_per_table[each] = list_results[index_list_results][:]
                 # Collecting joining expressions
                 for criterion in self._criterions:
-                    if criterion.operator is "NORMAL":
-                        for exp in criterion.exps:
-                            foo = [extract_table_data(exp.left)] + [extract_table_data(exp.right)]
-                            foo = [x for x in foo if x is not None]
-                            if len(foo) > 1:
-                                joining_criterions += [foo]
+                    # if criterion.operator in  "NORMAL":
+                    for exp in criterion.exps:
+                        foo = [extract_table_data(exp.left)] + [extract_table_data(exp.right)]
+                        foo = [x for x in foo if x is not None]
+                        if len(foo) > 1:
+                            joining_criterions += [foo]
                 # Collecting for each of the aforementioned expressions, its values <-> objects
                 for criterion in joining_criterions:
                     for each in criterion:
