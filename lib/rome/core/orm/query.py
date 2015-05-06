@@ -15,7 +15,7 @@ from sqlalchemy.sql.expression import BinaryExpression
 
 import lib.rome.driver.database_driver as database_driver
 
-from lib.rome.core.rows.rows import construct_rows, find_table_name
+from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
 
 try:
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
@@ -72,7 +72,7 @@ class Query:
             else:
                 pass
 
-        if self.all_selectable_are_functions():
+        if all_selectable_are_functions(self._models):
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
