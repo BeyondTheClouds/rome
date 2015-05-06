@@ -142,6 +142,28 @@ def fixed_ip_get_by_instance(instance_uuid):
     return [x[0] for x in result]
     # return result
 
+def _network_get_query():
+    return Query(models.Network)
+
+def network_get_all_by_host(host):
+    fixed_host_filter = or_(models.FixedIp.host == host,
+            and_(models.FixedIp.instance_uuid != None,
+                 models.Instance.host == host))
+    fixed_ip_query = Query(models.FixedIp.network_id).\
+                     outerjoin((models.Instance,
+                                models.Instance.uuid ==
+                                models.FixedIp.instance_uuid)).\
+                     filter(fixed_host_filter)
+    # NOTE(vish): return networks that have host set
+    #             or that have a fixed ip with host set
+    #             or that have an instance with host set
+    host_filter = or_(models.Network.host == host,
+                      models.Network.id.in_(fixed_ip_query.subquery()))
+    return _network_get_query().\
+                       filter(host_filter).\
+                       all()
+
+
 if __name__ == '__main__':
 
 
@@ -168,7 +190,9 @@ if __name__ == '__main__':
     # result = query.all()
     # print(result)
 
-    fixed_ip_get_by_instance("1c5fc40a-abe1-48ee-829b-1be1c640fdf3")
+    # fixed_ip_get_by_instance("1c5fc40a-abe1-48ee-829b-1be1c640fdf3")
+
+    network_get_all_by_host("econome-7")
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()

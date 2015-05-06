@@ -332,6 +332,21 @@ class Query:
         :return: a list of row, according to sqlalchemy expectation
         """
 
+        def extract_table_data(term):
+            term_value = str(term)
+            if "." in term_value:
+                return {"table": term_value.split(".")[0], "column": term_value.split(".")[1]}
+            else:
+                return None
+
+        def extract_joining_criterion(exp):
+            if type(exp) is BooleanExpression:
+                return map(lambda x:extract_joining_criterion(x), exp.exps)
+            elif type(exp) is BinaryExpression:
+                return [[extract_table_data(exp.left)] + [extract_table_data(exp.right)]]
+            else:
+                return []
+
         def building_tuples(list_results, labels):
             mode = "experimental"
             if mode is "cartesian_product":
@@ -340,12 +355,7 @@ class Query:
                     cartesian_product += [element]
                 return cartesian_product
             elif mode is "experimental":
-                def extract_table_data(term):
-                    term_value = str(term)
-                    if "." in term_value:
-                        return {"table": term_value.split(".")[0], "column": term_value.split(".")[1]}
-                    else:
-                        return None
+
                 results_per_table = {}
                 filtering_values = {}
                 joining_criterions = []
@@ -357,10 +367,10 @@ class Query:
                 for criterion in self._criterions:
                     # if criterion.operator in  "NORMAL":
                     for exp in criterion.exps:
-                        foo = [extract_table_data(exp.left)] + [extract_table_data(exp.right)]
-                        foo = [x for x in foo if x is not None]
-                        if len(foo) > 1:
-                            joining_criterions += [foo]
+                        for joining_criterion in extract_joining_criterion(exp):
+                            foo = [x for x in joining_criterion if x is not None]
+                            if len(foo) > 1:
+                                joining_criterions += [foo]
                 # Collecting for each of the aforementioned expressions, its values <-> objects
                 for criterion in joining_criterions:
                     for each in criterion:
