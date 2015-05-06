@@ -26,7 +26,7 @@ def all_selectable_are_functions(models):
     return all(x._is_function for x in [y for y in models if not y.is_hidden])
 
 
-def find_table_name(self, model):
+def find_table_name(model):
 
     """This function return the name of the given model as a String. If the
     model cannot be identified, it returns "none".
@@ -45,7 +45,7 @@ def find_table_name(self, model):
 
     if hasattr(model, "clauses"):
         for clause in model.clauses:
-            return self.find_table_name(clause)
+            return find_table_name(clause)
 
     return "none"
 
