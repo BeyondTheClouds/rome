@@ -287,7 +287,7 @@ def construct_rows(models, criterions, hints):
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]
     part6_starttime = current_milli_time()
-    if all_selectable_are_functions():
+    if all_selectable_are_functions(models):
         final_row = []
         for selection in showable_selection:
             value = selection._function._function(rows)
