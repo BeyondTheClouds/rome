@@ -250,7 +250,7 @@ class Query:
         part3_starttime = current_milli_time()
 
         # construct the cartesian product
-        tuples = building_tuples(list_results, labels)
+        tuples = building_tuples(list_results, labels, self._criterions)
         part4_starttime = current_milli_time()
 
         # filtering tuples (cartesian product)

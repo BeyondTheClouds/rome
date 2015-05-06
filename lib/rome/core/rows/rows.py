@@ -4,7 +4,7 @@ import itertools
 import logging
 import traceback
 
-def building_tuples(list_results, labels):
+def building_tuples(list_results, labels, criterions):
     mode = "not_cartesian_product"
     if mode is "cartesian_product":
         cartesian_product = []
