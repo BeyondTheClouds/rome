@@ -140,7 +140,7 @@ class Query:
 
 
     def distinct(self):
-        return list(set(all()))
+        return list(set(self.all()))
 
     ####################################################################################################################
     # Query construction
