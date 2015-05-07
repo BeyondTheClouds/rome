@@ -176,9 +176,10 @@ class BooleanExpression(object):
                     left_value = value[0][left_key]
 
             for right_term in right_terms:
-                try:
-                    right_value = get_attribute(right_term.value, "%s" % (right_term._orig_key))
-                except AttributeError:
+                key = "%s" % (right_term._orig_key)
+                if has_attribute(right_term.value, key):
+                    right_value = get_attribute(right_term.value, key)
+                else:
                     right_value = right_term.value
 
                 if isinstance(left_value, datetime.datetime):

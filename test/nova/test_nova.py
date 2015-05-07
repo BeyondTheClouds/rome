@@ -102,6 +102,28 @@ def network_get_all_by_host(host):
                        filter(host_filter).\
                        all()
 
+
+def _security_group_get_query():
+    query = Query(models.SecurityGroup)
+    return query
+
+def _security_group_get_by_names(project_id, group_names):
+    """Get security group models for a project by a list of names.
+    Raise SecurityGroupNotFoundForProject for a name not found.
+    """
+    query = _security_group_get_query().\
+            filter_by(project_id=project_id).\
+            filter(models.SecurityGroup.name.in_(group_names))
+    sg_models = query.all()
+    if len(sg_models) == len(group_names):
+        return sg_models
+    # Find the first one missing and raise
+    group_names_from_models = [x.name for x in sg_models]
+    for group_name in group_names:
+        if group_name not in group_names_from_models:
+            raise Exception()
+    # Not Reached
+
 if __name__ == '__main__':
 
 
@@ -117,7 +139,13 @@ if __name__ == '__main__':
     # # result = query.all()
     # # print(result)
 
-    network_get_all_by_host("econome-7")
+    # network_get_all_by_host("econome-7")
+
+
+    project_id = "9b7df33293f049ccb0c51746889f00e9"
+    result = _security_group_get_by_names(project_id, ["default"])
+
+    print(result)
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
