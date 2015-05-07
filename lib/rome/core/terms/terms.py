@@ -46,9 +46,10 @@ class Function:
             except:
                 row = [row]
             for subrow in row:
-                if subrow.__tablename__ == fieldtable:
+                table = get_attribute(subrow, "__tablename__", get_attribute(subrow, "nova_classname", None))
+                if table == fieldtable:
                     filtered_rows += [subrow]
-        result = [getattr(row, fieldname) for row in filtered_rows]
+        result = [get_attribute(row, fieldname) for row in filtered_rows]
         return result
 
     def count(self, rows):

@@ -3,6 +3,8 @@ __author__ = 'jonathan'
 import datetime
 import pytz
 
+from lib.rome.core.rows.rows import get_attribute, has_attribute, set_attribute
+
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
         self.operator = operator
@@ -16,7 +18,7 @@ class BooleanExpression(object):
         def uncapitalize(s):
             return s[:1].lower() + s[1:] if s else ''
 
-        def getattr_rec(obj, attr, otherwise=None):
+        def get_attribute_reccursively(obj, attr, otherwise=None):
             """ A reccursive getattr function.
 
             :param obj: the object that will be use to perform the search
@@ -26,20 +28,20 @@ class BooleanExpression(object):
             """
             try:
                 if not "." in attr:
-                    return getattr(obj, attr.replace("\"", ""))
+                    return get_attribute(obj, attr.replace("\"", ""))
                 else:
                     current_key = attr[:attr.index(".")]
                     next_key = attr[attr.index(".") + 1:]
-                    if hasattr(obj, current_key):
-                        current_object = getattr(obj, current_key)
-                    elif hasattr(obj, current_key.capitalize()):
-                        current_object = getattr(obj, current_key.capitalize())
-                    elif hasattr(obj, uncapitalize(current_key)):
-                        current_object = getattr(obj, uncapitalize(current_key))
+                    if has_attribute(obj, current_key):
+                        current_object = get_attribute(obj, current_key)
+                    elif has_attribute(obj, current_key.capitalize()):
+                        current_object = get_attribute(obj, current_key.capitalize())
+                    elif has_attribute(obj, uncapitalize(current_key)):
+                        current_object = get_attribute(obj, uncapitalize(current_key))
                     else:
-                        current_object = getattr(obj, current_key)
+                        current_object = get_attribute(obj, current_key)
 
-                    return getattr_rec(current_object, next_key, otherwise)
+                    return get_attribute_reccursively(current_object, next_key, otherwise)
             except AttributeError:
                 return otherwise
 
@@ -113,7 +115,7 @@ class BooleanExpression(object):
         if left.startswith(":"):
             left_values += [criterion._orig[0].effective_value]
         else:
-            left_values += [getattr_rec(value, left.capitalize())]
+            left_values += [get_attribute_reccursively(value, left.capitalize())]
 
 
         # Computing right value
@@ -137,7 +139,7 @@ class BooleanExpression(object):
                         else:
                             right_value = False
                     else:
-                        right_value = getattr_rec(value, right.capitalize())
+                        right_value = get_attribute_reccursively(value, right.capitalize())
             elif hasattr(criterion, "is_boolean_expression") and criterion.is_boolean_expression():
                 right_value = criterion.evaluate(value)
         # try:
@@ -175,7 +177,7 @@ class BooleanExpression(object):
 
             for right_term in right_terms:
                 try:
-                    right_value = getattr(right_term.value, "%s" % (right_term._orig_key))
+                    right_value = get_attribute(right_term.value, "%s" % (right_term._orig_key))
                 except AttributeError:
                     right_value = right_term.value
 

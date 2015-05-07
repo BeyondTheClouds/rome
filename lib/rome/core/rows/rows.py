@@ -3,13 +3,17 @@ __author__ = 'jonathan'
 import itertools
 import logging
 import traceback
+import time
 
 from sqlalchemy.util._collections import KeyedTuple
 
 import uuid
 from lib.rome.core.utils import get_objects, is_novabase
 
+from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
 from lib.rome.core.rows.rows_experimental import building_tuples as building_tuples_experimental
+
+from lib.rome.core.lazy_reference import LazyRows
 
 file_logger_enabled = False
 try:
@@ -150,14 +154,13 @@ def building_tuples(list_results, labels, criterions):
             dict_result = {"id": {}, "uuid": {}}
             for j in results:
                 if has_attribute(j, "id"):
-                    dict_result["id"][j.id] = j
+                    dict_result["id"][get_attribute(j, "id")] = j
                 if has_attribute(j, "uuid"):
-                    dict_result["uuid"][j.uuid] = j
+                    dict_result["uuid"][get_attribute(j, "uuid")] = j
             indexed_results[label] = dict_result
         # find iteratively pairs that matches according to relationship modelisation
         tuples = []
         tuples_labels = []
-
         # initialise tuples
         count = 0
         for i in zip(list_results, labels):
@@ -167,7 +170,6 @@ def building_tuples(list_results, labels, criterions):
                 current_tuple = {label: j}
                 tuples += [current_tuple]
             break
-
         # increase model of exisintg tuples
         count == 0
         for i in zip(list_results, labels):
@@ -176,14 +178,14 @@ def building_tuples(list_results, labels, criterions):
                 continue
             (results, label) = i
             tuples_labels += [label]
-
-
             # iterate on tuples
             for t in tuples:
                 # iterate on existing elements of the current rows
                 keys = t.keys()
                 for e in keys:
-                    relationships = t[e].get_relationships()
+                    model_classname = get_model_classname_from_tablename(e)
+                    fake_instance = get_model_class_from_name(model_classname)()
+                    relationships = fake_instance.get_relationships()
                     for r in relationships:
                         if r.local_fk_field in ["id", "uuid"]:
                             continue
@@ -197,7 +199,6 @@ def building_tuples(list_results, labels, criterions):
                                 except Exception as e:
                                     logging.error(e)
                                     traceback.print_exc()
-                                    pass
             tuple_groupby_size = {}
             for t in tuples:
                 tuple_size = len(t)
@@ -209,14 +210,12 @@ def building_tuples(list_results, labels, criterions):
                 tuples = tuple_groupby_size[max_size]
             else:
                 tuples = []
-
         # reordering tuples
         results = []
         for t in tuples:
             if len(t) == len(labels):
                 ordered_t = [t[i] for i in labels]
                 results += [tuple(ordered_t)]
-
         return results
 
 def construct_rows(models, criterions, hints):
@@ -224,8 +223,6 @@ def construct_rows(models, criterions, hints):
     """This function constructs the rows that corresponds to the current orm.
     :return: a list of row, according to sqlalchemy expectation
     """
-
-    import time
 
     current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -316,7 +313,8 @@ def construct_rows(models, criterions, hints):
         return [final_row]
     else:
         for row in rows:
-            final_row = []
+            # final_row = []
+            final_row = LazyRows()
             for selection in showable_selection:
                 if selection._is_function:
                     value = selection._function._function(rows)

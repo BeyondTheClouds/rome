@@ -19,6 +19,7 @@ def extract_table_data(term):
         return None
 
 def extract_joining_criterion(exp):
+    from lib.rome.core.expression.expression import BooleanExpression
     if type(exp) is BooleanExpression:
         return map(lambda x:extract_joining_criterion(x), exp.exps)
     elif type(exp) is BinaryExpression:
@@ -28,7 +29,6 @@ def extract_joining_criterion(exp):
 
 def building_tuples(list_results, labels, criterions):
     from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
-
     mode = "experimental"
     if mode is "cartesian_product":
         cartesian_product = []
@@ -36,7 +36,6 @@ def building_tuples(list_results, labels, criterions):
             cartesian_product += [element]
         return cartesian_product
     elif mode is "experimental":
-
         results_per_table = {}
         filtering_values = {}
         joining_criterions = []
@@ -72,7 +71,6 @@ def building_tuples(list_results, labels, criterions):
             common_values = intersect(filtering_values[key_left].keys(), filtering_values[key_right].keys())
             left_objects_ok = flatten(map(lambda x:filtering_values[key_left][x], common_values))
             right_objects_ok = flatten(map(lambda x:filtering_values[key_right][x], common_values))
-
             results_per_table[criterion[0]["table"]] = intersect(results_per_table[criterion[0]["table"]], map(lambda x:x["object"], left_objects_ok))
             results_per_table[criterion[1]["table"]] = intersect(results_per_table[criterion[1]["table"]], map(lambda x:x["object"], right_objects_ok))
         # Build the cartesian product
