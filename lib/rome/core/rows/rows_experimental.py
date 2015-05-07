@@ -5,7 +5,6 @@ import itertools
 from lib.rome.core.expression.expression import *
 from sqlalchemy.sql.expression import BinaryExpression
 
-
 def intersect(b1, b2):
     return [val for val in b1 if val in b2]
 
@@ -28,6 +27,8 @@ def extract_joining_criterion(exp):
         return []
 
 def building_tuples(list_results, labels, criterions):
+    from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
+
     mode = "experimental"
     if mode is "cartesian_product":
         cartesian_product = []
@@ -60,7 +61,7 @@ def building_tuples(list_results, labels, criterions):
                 if not filtering_values.has_key(key):
                     filtering_values[key] = {}
                 for object in objects:
-                    value_key = getattr(object, each["column"])
+                    value_key = get_attribute(object, each["column"])
                     if not filtering_values[key].has_key(value_key):
                         filtering_values[key][value_key] = []
                     filtering_values[key][value_key] += [{"value": value_key, "object": object}]

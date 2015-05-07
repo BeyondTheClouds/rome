@@ -96,6 +96,7 @@ def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=Fals
     data = database_driver.get_driver().getall(tablename, hints=hints)
     result = map(lambda x: transform(x, object_deconverter, skip_loading), data)
     return result
+    # return data
 
 
 def get_models_satisfying(tablename, field, value, request_uuid=None, hints=[]):

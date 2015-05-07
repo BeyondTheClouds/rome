@@ -279,8 +279,8 @@ def construct_rows(models, criterions, hints):
     part3_starttime = current_milli_time()
 
     # construct the cartesian product
-    tuples = building_tuples(list_results, labels, criterions)
-    # tuples = building_tuples_experimental(list_results, labels, criterions)
+    # tuples = building_tuples(list_results, labels, criterions)
+    tuples = building_tuples_experimental(list_results, labels, criterions)
 
     part4_starttime = current_milli_time()
 
