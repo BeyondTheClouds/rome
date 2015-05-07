@@ -138,6 +138,10 @@ class Query:
 
         return len(rows)
 
+
+    def distinct(self):
+        return list(set(all()))
+
     ####################################################################################################################
     # Query construction
     ####################################################################################################################
@@ -237,7 +241,6 @@ class Query:
 
     def with_lockmode(self, mode):
         return self
-
 
     def subquery(self):
         _func = self._funcs[:]
