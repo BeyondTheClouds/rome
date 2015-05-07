@@ -98,37 +98,37 @@ def extract_sub_row(row, selectables):
             product = product + [get_attribute(row, label)]
 
         # Updating Foreign Keys of objects that are in the row
-        for label in labels:
-            current_object = get_attribute(row, label)
-            metadata = current_object.metadata
-            if metadata and has_attribute(metadata, "_fk_memos"):
-                for fk_name in metadata._fk_memos:
-                    fks = metadata._fk_memos[fk_name]
-                    for fk in fks:
-                        local_field_name = fk.column._label
-                        remote_table_name = fk._colspec.split(".")[-2]
-                        remote_field_name = fk._colspec.split(".")[-1]
-
-                        try:
-                            remote_object = get_attribute(row, remote_table_name)
-                            remote_field_value = get_attribute(remote_object, remote_field_name)
-                            set_attribute(current_object, local_field_name, remote_field_value)
-                        except:
-                            pass
-
-        # Updating fields that are setted to None and that have default values
-        for label in labels:
-            current_object = get_attribute(row, label)
-            for field in current_object._sa_class_manager:
-                instance_state = current_object._sa_instance_state
-                field_value = get_attribute(current_object, field)
-                if field_value is None:
-                    try:
-                        field_column = instance_state.mapper._props[field].columns[0]
-                        field_default_value = field_column.default.arg
-                        set_attribute(current_object, field, field_default_value)
-                    except:
-                        pass
+        # for label in labels:
+        #     current_object = get_attribute(row, label)
+        #     metadata = current_object.metadata
+        #     if metadata and has_attribute(metadata, "_fk_memos"):
+        #         for fk_name in metadata._fk_memos:
+        #             fks = metadata._fk_memos[fk_name]
+        #             for fk in fks:
+        #                 local_field_name = fk.column._label
+        #                 remote_table_name = fk._colspec.split(".")[-2]
+        #                 remote_field_name = fk._colspec.split(".")[-1]
+        #
+        #                 try:
+        #                     remote_object = get_attribute(row, remote_table_name)
+        #                     remote_field_value = get_attribute(remote_object, remote_field_name)
+        #                     set_attribute(current_object, local_field_name, remote_field_value)
+        #                 except:
+        #                     pass
+        #
+        # # Updating fields that are setted to None and that have default values
+        # for label in labels:
+        #     current_object = get_attribute(row, label)
+        #     for field in current_object._sa_class_manager:
+        #         instance_state = current_object._sa_instance_state
+        #         field_value = get_attribute(current_object, field)
+        #         if field_value is None:
+        #             try:
+        #                 field_column = instance_state.mapper._props[field].columns[0]
+        #                 field_default_value = field_column.default.arg
+        #                 set_attribute(current_object, field, field_default_value)
+        #             except:
+        #                 pass
 
         return KeyedTuple(product, labels=labels)
     else:
