@@ -27,6 +27,23 @@ except:
 def all_selectable_are_functions(models):
     return all(x._is_function for x in [y for y in models if not y.is_hidden])
 
+def has_attribute(obj, key):
+    if type(obj) is dict:
+        return key in obj
+    else:
+        return hasattr(obj, key)
+
+def set_attribute(obj, key, value):
+    if type(obj) is dict:
+        obj[key] = value
+    else:
+        return setattr(obj, key, value)
+
+def get_attribute(obj, key, default=None):
+    if type(obj) is dict:
+        return obj[key] if key in obj else default
+    else:
+        return getattr(obj, key, default)
 
 def find_table_name(model):
 
@@ -36,16 +53,16 @@ def find_table_name(model):
     :return: the table name or "none" if the object cannot be identified
     """
 
-    if hasattr(model, "__tablename__"):
+    if has_attribute(model, "__tablename__"):
         return model.__tablename__
 
-    if hasattr(model, "table"):
+    if has_attribute(model, "table"):
         return model.table.name
 
-    if hasattr(model, "class_"):
+    if has_attribute(model, "class_"):
         return model.class_.__tablename__
 
-    if hasattr(model, "clauses"):
+    if has_attribute(model, "clauses"):
         for clause in model.clauses:
             return find_table_name(clause)
 
@@ -78,13 +95,13 @@ def extract_sub_row(row, selectables):
 
         product = []
         for label in labels:
-            product = product + [getattr(row, label)]
+            product = product + [get_attribute(row, label)]
 
         # Updating Foreign Keys of objects that are in the row
         for label in labels:
-            current_object = getattr(row, label)
+            current_object = get_attribute(row, label)
             metadata = current_object.metadata
-            if metadata and hasattr(metadata, "_fk_memos"):
+            if metadata and has_attribute(metadata, "_fk_memos"):
                 for fk_name in metadata._fk_memos:
                     fks = metadata._fk_memos[fk_name]
                     for fk in fks:
@@ -93,30 +110,30 @@ def extract_sub_row(row, selectables):
                         remote_field_name = fk._colspec.split(".")[-1]
 
                         try:
-                            remote_object = getattr(row, remote_table_name)
-                            remote_field_value = getattr(remote_object, remote_field_name)
-                            setattr(current_object, local_field_name, remote_field_value)
+                            remote_object = get_attribute(row, remote_table_name)
+                            remote_field_value = get_attribute(remote_object, remote_field_name)
+                            set_attribute(current_object, local_field_name, remote_field_value)
                         except:
                             pass
 
         # Updating fields that are setted to None and that have default values
         for label in labels:
-            current_object = getattr(row, label)
+            current_object = get_attribute(row, label)
             for field in current_object._sa_class_manager:
                 instance_state = current_object._sa_instance_state
-                field_value = getattr(current_object, field)
+                field_value = get_attribute(current_object, field)
                 if field_value is None:
                     try:
                         field_column = instance_state.mapper._props[field].columns[0]
                         field_default_value = field_column.default.arg
-                        setattr(current_object, field, field_default_value)
+                        set_attribute(current_object, field, field_default_value)
                     except:
                         pass
 
         return KeyedTuple(product, labels=labels)
     else:
         model_name = find_table_name(selectables[0]._model)
-        return getattr(row, model_name)
+        return get_attribute(row, model_name)
 
 def building_tuples(list_results, labels, criterions):
     mode = "not_cartesian_product"
@@ -132,9 +149,9 @@ def building_tuples(list_results, labels, criterions):
             (results, label) = i
             dict_result = {"id": {}, "uuid": {}}
             for j in results:
-                if hasattr(j, "id"):
+                if has_attribute(j, "id"):
                     dict_result["id"][j.id] = j
-                if hasattr(j, "uuid"):
+                if has_attribute(j, "uuid"):
                     dict_result["uuid"][j.uuid] = j
             indexed_results[label] = dict_result
         # find iteratively pairs that matches according to relationship modelisation
@@ -172,7 +189,7 @@ def building_tuples(list_results, labels, criterions):
                             continue
                         remote_label_name = r.remote_object_tablename
                         if remote_label_name in indexed_results:
-                            local_value = getattr(t[e], r.local_fk_field)
+                            local_value = get_attribute(t[e], r.local_fk_field)
                             if local_value is not None:
                                 try:
                                     remote_candidate = indexed_results[remote_label_name][r.remote_object_field][local_value]
@@ -238,9 +255,9 @@ def construct_rows(models, criterions, hints):
         for field in selected_attributes:
 
             attribute = None
-            if hasattr(models, "class_"):
+            if has_attribute(models, "class_"):
                 attribute = selectable._model.class_._sa_class_manager[field].__str__()
-            elif hasattr(models, "_sa_class_manager"):
+            elif has_attribute(models, "_sa_class_manager"):
                 attribute = selectable._model._sa_class_manager[field].__str__()
 
             if attribute is not None:
@@ -254,7 +271,7 @@ def construct_rows(models, criterions, hints):
         # def filtering_function(n):
         #     print(n.table_name == tablename)
         #     return True
-        authorized_secondary_indexes = getattr(selectable._model, "_secondary_indexes", [])
+        authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
         objects = get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
@@ -262,8 +279,8 @@ def construct_rows(models, criterions, hints):
     part3_starttime = current_milli_time()
 
     # construct the cartesian product
-    # tuples = building_tuples(list_results, labels, criterions)
-    tuples = building_tuples_experimental(list_results, labels, criterions)
+    tuples = building_tuples(list_results, labels, criterions)
+    # tuples = building_tuples_experimental(list_results, labels, criterions)
 
     part4_starttime = current_milli_time()
 
@@ -308,13 +325,13 @@ def construct_rows(models, criterions, hints):
                     current_table_name = find_table_name(selection._model)
                     key = current_table_name
                     value = None
-                    if not is_novabase(row) and hasattr(row, key):
-                        value = getattr(row, key)
+                    if not is_novabase(row) and has_attribute(row, key):
+                        value = get_attribute(row, key)
                     else:
                         value = row
                     if value is not None:
                         if selection._attributes != "*":
-                            final_row += [getattr(value, selection._attributes)]
+                            final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
             if len(showable_selection) == 1:
