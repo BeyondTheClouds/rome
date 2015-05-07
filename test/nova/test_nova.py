@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # network_get_all_by_host("econome-7")
 
 
-    project_id = "4718e5bde37e4b10aaf7063911704eaf"
+    project_id = "02b587cf077f4317af04c2aea9874f21"
     result = _security_group_get_by_names(project_id, ["default"])
 
     print(result)

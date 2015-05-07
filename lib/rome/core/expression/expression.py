@@ -2,6 +2,7 @@ __author__ = 'jonathan'
 
 import datetime
 import pytz
+from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
 from lib.rome.core.rows.rows import get_attribute, has_attribute, set_attribute
 
@@ -9,6 +10,7 @@ class BooleanExpression(object):
     def __init__(self, operator, *exps):
         self.operator = operator
         self.exps = exps
+        self.deconverter = JsonDeconverter()
 
     def is_boolean_expression(self):
         return True
@@ -116,7 +118,7 @@ class BooleanExpression(object):
             left_values += [criterion._orig[0].effective_value]
         else:
             left_values += [get_attribute_reccursively(value, left.capitalize())]
-
+        left_values = map(lambda x: self.deconverter.desimplify(x), left_values)
 
         # Computing right value
         if right.startswith(":"):
@@ -142,6 +144,7 @@ class BooleanExpression(object):
                         right_value = get_attribute_reccursively(value, right.capitalize())
             elif hasattr(criterion, "is_boolean_expression") and criterion.is_boolean_expression():
                 right_value = criterion.evaluate(value)
+        right_value = self.deconverter.desimplify(right_value)
         # try:
         # print(">>> (%s)[%s] = %s <-> %s" % (value.keys(), left, left_values, right))
         # except:
@@ -174,6 +177,7 @@ class BooleanExpression(object):
                 left_key = left.split(".")[-1]
                 if value[0].has_key(left_key):
                     left_value = value[0][left_key]
+            left_value = self.deconverter.desimplify(left_value)
 
             for right_term in right_terms:
                 key = "%s" % (right_term._orig_key)
@@ -181,6 +185,7 @@ class BooleanExpression(object):
                     right_value = get_attribute(right_term.value, key)
                 else:
                     right_value = right_term.value
+                right_value = self.deconverter.desimplify(right_value)
 
                 if isinstance(left_value, datetime.datetime):
                     if left_value.tzinfo is None:
