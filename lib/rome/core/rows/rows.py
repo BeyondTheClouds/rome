@@ -74,7 +74,7 @@ def extract_sub_row(row, selectables):
         labels = []
 
         for selectable in selectables:
-            labels += [find_table_name(selectable._model).capitalize()]
+            labels += [find_table_name(selectable._model)]
 
         product = []
         for label in labels:
@@ -89,7 +89,7 @@ def extract_sub_row(row, selectables):
                     fks = metadata._fk_memos[fk_name]
                     for fk in fks:
                         local_field_name = fk.column._label
-                        remote_table_name = fk._colspec.split(".")[-2].capitalize()
+                        remote_table_name = fk._colspec.split(".")[-2]
                         remote_field_name = fk._colspec.split(".")[-1]
 
                         try:
@@ -115,7 +115,7 @@ def extract_sub_row(row, selectables):
 
         return KeyedTuple(product, labels=labels)
     else:
-        model_name = find_table_name(selectables[0]._model).capitalize()
+        model_name = find_table_name(selectables[0]._model)
         return getattr(row, model_name)
 
 def building_tuples(list_results, labels, criterions):
@@ -170,7 +170,7 @@ def building_tuples(list_results, labels, criterions):
                     for r in relationships:
                         if r.local_fk_field in ["id", "uuid"]:
                             continue
-                        remote_label_name = r.remote_object_tablename.capitalize()
+                        remote_label_name = r.remote_object_tablename
                         if remote_label_name in indexed_results:
                             local_value = getattr(t[e], r.local_fk_field)
                             if local_value is not None:
@@ -224,7 +224,7 @@ def construct_rows(models, criterions, hints):
 
     # get the fields of the join result
     for selectable in model_set:
-        labels += [find_table_name(selectable._model).capitalize()]
+        labels += [find_table_name(selectable._model)]
 
         if selectable._attributes == "*":
             try:
@@ -262,9 +262,9 @@ def construct_rows(models, criterions, hints):
     part3_starttime = current_milli_time()
 
     # construct the cartesian product
-    # tuples = building_tuples(list_results, labels, criterions)
-    tuples = building_tuples_experimental(list_results, labels, criterions)
-
+    tuples = building_tuples(list_results, labels, criterions)
+    # tuples = building_tuples_experimental(list_results, labels, criterions)
+    
     part4_starttime = current_milli_time()
 
     # filtering tuples (cartesian product)
@@ -306,7 +306,7 @@ def construct_rows(models, criterions, hints):
                     final_row += [value]
                 else:
                     current_table_name = find_table_name(selection._model)
-                    key = current_table_name.capitalize()
+                    key = current_table_name
                     value = None
                     if not is_novabase(row) and hasattr(row, key):
                         value = getattr(row, key)
