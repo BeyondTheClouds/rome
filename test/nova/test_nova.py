@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
 
-    result = query = Query(models.Instance, models.Instance.id).all()
+    result = query = Query(models.Instance.launched_at).all()
     print(result)
     for each in result:
         print(each)

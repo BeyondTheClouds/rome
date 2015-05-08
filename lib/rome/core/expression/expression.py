@@ -4,7 +4,7 @@ import datetime
 import pytz
 from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
-from lib.rome.core.rows.rows import get_attribute, has_attribute, set_attribute
+from lib.rome.core.rows.rows import get_attribute, has_attribute
 
 class BooleanExpression(object):
     def __init__(self, operator, *exps):

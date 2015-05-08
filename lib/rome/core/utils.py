@@ -94,9 +94,9 @@ def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=Fals
     from lib.rome.core.dataformat.deconverter import JsonDeconverter
     object_deconverter = JsonDeconverter(request_uuid=request_uuid)
     data = database_driver.get_driver().getall(tablename, hints=hints)
-    result = map(lambda x: transform(x, object_deconverter, skip_loading), data)
-    return result
-    # return data
+    # result = map(lambda x: transform(x, object_deconverter, skip_loading), data)
+    # return result
+    return data
 
 
 def get_models_satisfying(tablename, field, value, request_uuid=None, hints=[]):
@@ -308,14 +308,5 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                             each.local_object_field,
                             lazy_candidates
                         )
-                        # for cand in lazy_candidates:
-                        # setattr(
-                        #         cand,
-                        #         each.remote_object_field,
-                        #         each.local_fk_value
-                        #     )
-                        #     pass
-
-                        # print("   * %s@%s -> rel(%s)" % (str(self.id), str(self.__tablename__), each))
                         pass
 
