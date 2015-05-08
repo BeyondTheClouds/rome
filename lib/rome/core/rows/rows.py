@@ -332,7 +332,7 @@ def construct_rows(models, criterions, hints):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-            final_row = LazyRows(final_row)
+            # final_row = LazyRows(final_row)
             if len(showable_selection) == 1:
                 final_rows += final_row
             else:
