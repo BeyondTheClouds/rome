@@ -119,7 +119,7 @@ class LazyRows:
             return self.wrap(x)
         if "KeyedTuple" in str(type(x)):
             return x
-        elif "__iter__" in x:
+        elif hasattr(x, "__iter__") and type(x) is not dict:
             return LazyRows(x)
         else:
             return self.deconverter.desimplify(x)
@@ -127,7 +127,7 @@ class LazyRows:
     def __getattr__(self, attr):
         ret = getattr(self.wrapped_list, attr)
         if hasattr(ret, "__call__"):
-            callable_object = self.FunctionWrapper(ret, attr)
+            callable_object = self.FunctionWrapper(ret, attr, self.transform)
             return callable_object
         return ret
 
@@ -136,16 +136,17 @@ class LazyRows:
         """Class that is used to "simulate" the call to a functions on two objects: it enables to measure the difference
         between the two implementations. This class will target the creation of runnable objects."""
 
-        def __init__(self, callable, call_name):
+        def __init__(self, callable, call_name, transform):
             self.callable = callable
             self.call_name = call_name
             self.label = "LazyRows"
+            self.transform = transform
 
         def __call__(self, *args, **kwargs):
             result_callable = self.callable(*args, **kwargs)
             pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
-            print(pretty_print_callable)
-            return result_callable
+            # print(pretty_print_callable)
+            return self.transform(result_callable)
 
 class LazyReference:
     """Class that references a remote object stored in database. This aims

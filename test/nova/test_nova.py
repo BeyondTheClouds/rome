@@ -141,10 +141,10 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
 
-    result = query = Query(models.Instance).filter(models.Instance.vm_state=="building").all()
+    result = query = Query(models.Network).all()
     print(result)
     for each in result:
-        print(each.vm_state)
+        print(each)
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
