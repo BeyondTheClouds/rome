@@ -61,6 +61,7 @@ class JsonDeconverter(object):
 
         key = self.get_key(obj)
         if not self.cache.has_key(key):
+            can_load = True
             if obj.has_key("nova_classname"):
                 tablename = obj["nova_classname"]
             elif obj.has_key("novabase_classname"):
@@ -71,12 +72,17 @@ class JsonDeconverter(object):
                 tablename = models.get_tablename_from_name(
                     obj["metadata_novabase_classname"]
                 )
+            if "simplify_strategy" in obj:
+                can_load = False
             self.cache[key] = lazy_reference.LazyReference(
                 tablename,
                 obj["id"],
                 deconverter=self,
                 request_uuid=self.request_uuid
             )
+            if can_load:
+                self.cache[key].load(obj)
+
         return self.cache[key]
 
 
