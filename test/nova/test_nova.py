@@ -181,15 +181,12 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
 
-    # result = query = Query(models.Instance).all()
-    # print(result)
-    # for each in result:
-    #     # each.vm_state = "building"
-    #     each.update({"vm_state": "building"})
-    #     # print(each.vm_state)
-    #     each.save()
+    result = query = Query(models.Instance, models.Instance.id).all()
+    print(result)
+    for each in result:
+        print(each)
 
-    _instance_update("eae16b16-08ad-4070-9c49-50d905334621", {"expected_vm_state": "building"})
+    # _instance_update("eae16b16-08ad-4070-9c49-50d905334621", {"expected_vm_state": "building"})
 
     # result = query = Query(models.Instance).first()
     # print(result)
