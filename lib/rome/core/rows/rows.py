@@ -313,6 +313,7 @@ def construct_rows(models, criterions, hints):
         for selection in showable_selection:
             value = selection._function._function(rows)
             final_row += [value]
+        final_row = map(lambda x: deconverter.desimplify(x), final_row)
         return [final_row]
     else:
         for row in rows:
@@ -337,7 +338,7 @@ def construct_rows(models, criterions, hints):
                             final_row += [value]
             previous_version_final_row = final_row
             final_row = map(lambda x: deconverter.desimplify(x), final_row)
-            print("final_row: %s to %s" % (previous_version_final_row, final_row))
+            # print("final_row: %s to %s" % (previous_version_final_row, final_row))
             # final_row = LazyRows(final_row)
             if len(showable_selection) == 1:
                 final_rows += final_row
