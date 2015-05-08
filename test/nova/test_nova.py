@@ -124,6 +124,46 @@ def _security_group_get_by_names(project_id, group_names):
             raise Exception()
     # Not Reached
 
+def _build_instance_get(columns_to_join=None,):
+    query = Query(models.Instance)
+    if columns_to_join is None:
+        columns_to_join = ['metadata', 'system_metadata']
+    for column in columns_to_join:
+        if column in ['info_cache', 'security_groups']:
+            # Already always joined above
+            continue
+    return query
+
+def _instance_get_by_uuid(uuid, session=None,
+                          columns_to_join=None, use_slave=False):
+    result = _build_instance_get(columns_to_join=columns_to_join).\
+                filter_by(uuid=uuid).\
+                first()
+    if not result:
+        raise Exception()
+    return result
+
+def _instance_update(instance_uuid, values, columns_to_join=None):
+    instance_ref = _instance_get_by_uuid(instance_uuid, columns_to_join=columns_to_join)
+    if "expected_task_state" in values:
+        # it is not a db column so always pop out
+        expected = values.pop("expected_task_state")
+        if not isinstance(expected, (tuple, list, set)):
+            expected = (expected,)
+        actual_state = instance_ref["task_state"]
+        if actual_state not in expected:
+            if actual_state == "DELETING":
+                raise Exception()
+            else:
+                raise Exception()
+    if "expected_vm_state" in values:
+        expected = values.pop("expected_vm_state")
+        if not isinstance(expected, (tuple, list, set)):
+            expected = (expected,)
+        actual_state = instance_ref["vm_state"]
+        if actual_state not in expected:
+            raise Exception()
+
 if __name__ == '__main__':
 
 
@@ -141,10 +181,23 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
 
-    result = query = Query(models.Network).all()
-    print(result)
-    for each in result:
-        print(each)
+    # result = query = Query(models.Instance).all()
+    # print(result)
+    # for each in result:
+    #     # each.vm_state = "building"
+    #     each.update({"vm_state": "building"})
+    #     # print(each.vm_state)
+    #     each.save()
+
+    _instance_update("eae16b16-08ad-4070-9c49-50d905334621", {"expected_vm_state": "building"})
+
+    # result = query = Query(models.Instance).first()
+    # print(result)
+    # for each in result:
+    #     # each.vm_state = "building"
+    #     print(each.vm_state)
+    #     # each.save()
+
 
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.first()
