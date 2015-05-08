@@ -62,14 +62,51 @@ class LazyBackrefBuffer(object):
         return getattr(self, item)
 
 
-class LazyRows(list):
+# class LazyRows(list):
+#     """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
+#     when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
+#     (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
+#
+#     def __init__(self):
+#         from lib.rome.core.dataformat.deconverter import JsonDeconverter
+#         self.deconverter = JsonDeconverter()
+#
+#     def wrap(self, existing_list):
+#         result = LazyRows()
+#         for each in existing_list:
+#             result += [each]
+#         return result
+#
+#     def transform(self, x):
+#         if type(x) is list:
+#             return self.wrap(x)
+#         if "KeyedTuple" in str(type(x)):
+#             return x
+#         else:
+#             return self.deconverter.desimplify(x)
+#
+#     def __getitem__(self, y):
+#         return self.transform(list.__getitem__(self, y))
+#
+#     def __iter__(self):
+#         return map(lambda x: self.transform(x), list.__iter__(self)).__iter__()
+#
+#     def __repr__(self):
+#         values = []
+#         for item in self.__iter__():
+#             values += [self.transform(item)]
+#         return str(values)
+#         return "Rows(...)"
+
+class LazyRows:
     """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
     when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
     (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
 
-    def __init__(self):
+    def __init__(self, wrapped_list):
         from lib.rome.core.dataformat.deconverter import JsonDeconverter
         self.deconverter = JsonDeconverter()
+        self.wrapped_list = wrapped_list
 
     def wrap(self, existing_list):
         result = LazyRows()
@@ -82,21 +119,33 @@ class LazyRows(list):
             return self.wrap(x)
         if "KeyedTuple" in str(type(x)):
             return x
+        elif "__iter__" in x:
+            return LazyRows(x)
         else:
             return self.deconverter.desimplify(x)
 
-    def __getitem__(self, y):
-        return self.transform(list.__getitem__(self, y))
+    def __getattr__(self, attr):
+        ret = getattr(self.wrapped_list, attr)
+        if hasattr(ret, "__call__"):
+            callable_object = self.FunctionWrapper(ret, attr)
+            return callable_object
+        return ret
 
-    def __iter__(self):
-        return map(lambda x: self.transform(x), list.__iter__(self)).__iter__()
+    class FunctionWrapper:
 
-    def __repr__(self):
-        values = []
-        for item in self.__iter__():
-            values += [self.transform(item)]
-        return str(values)
-        return "Rows(...)"
+        """Class that is used to "simulate" the call to a functions on two objects: it enables to measure the difference
+        between the two implementations. This class will target the creation of runnable objects."""
+
+        def __init__(self, callable, call_name):
+            self.callable = callable
+            self.call_name = call_name
+            self.label = "LazyRows"
+
+        def __call__(self, *args, **kwargs):
+            result_callable = self.callable(*args, **kwargs)
+            pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
+            print(pretty_print_callable)
+            return result_callable
 
 class LazyReference:
     """Class that references a remote object stored in database. This aims
