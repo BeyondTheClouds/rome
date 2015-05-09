@@ -92,6 +92,8 @@ def extract_sub_row(row, selectables):
     the other case, a KeyTuple where each sub object is associated with it's entity name
     """
 
+    deconverter = JsonDeconverter()
+
     if len(selectables) > 1:
 
         labels = []
@@ -101,7 +103,10 @@ def extract_sub_row(row, selectables):
 
         product = []
         for label in labels:
-            product = product + [get_attribute(row, label)]
+            value = get_attribute(row, label)
+            deconverted_value = deconverter.desimplify(value)
+            product = product + [deconverted_value]
+            # product = product + [value]
 
         # Updating Foreign Keys of objects that are in the row
         # for label in labels:
@@ -139,7 +144,9 @@ def extract_sub_row(row, selectables):
         return KeyedTuple(product, labels=labels)
     else:
         model_name = find_table_name(selectables[0]._model)
-        return get_attribute(row, model_name)
+        value = get_attribute(row, model_name)
+        deconverted_value = deconverter.desimplify(value)
+        return deconverted_value
 
 def building_tuples(list_results, labels, criterions):
     mode = "not_cartesian_product"
@@ -302,12 +309,12 @@ def construct_rows(models, criterions, hints):
                 indexed_rows[row_index_key] = True
                 rows += [extract_sub_row(row, model_set)]
     part5_starttime = current_milli_time()
-    deconverter = JsonDeconverter()
-    copy_rows = []
-    for row in rows:
-        copy_row = deconverter.desimplify(row)
-        copy_rows += [copy_row]
-    rows = copy_rows
+    # deconverter = JsonDeconverter()
+    # copy_rows = []
+    # for row in rows:
+    #     copy_row = deconverter.desimplify(row)
+    #     copy_rows += [copy_row]
+    # rows = copy_rows
     # reordering tuples (+ selecting attributes)
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]
