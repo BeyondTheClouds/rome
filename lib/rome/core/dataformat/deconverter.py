@@ -80,8 +80,8 @@ class JsonDeconverter(object):
                 deconverter=self,
                 request_uuid=self.request_uuid
             )
-            if can_load:
-                self.cache[key].load(obj)
+            # if can_load:
+            #     self.cache[key].load(obj)
 
         return self.cache[key]
 

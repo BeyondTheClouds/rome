@@ -103,9 +103,9 @@ class LazyRows:
     when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
     (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
 
-    def __init__(self, wrapped_list):
+    def __init__(self, wrapped_list, request_uuid):
         from lib.rome.core.dataformat.deconverter import JsonDeconverter
-        self.deconverter = JsonDeconverter()
+        self.deconverter = JsonDeconverter(request_uuid=request_uuid)
         self.wrapped_list = wrapped_list
 
     def wrap(self, existing_list):
