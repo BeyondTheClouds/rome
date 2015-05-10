@@ -302,7 +302,7 @@ def construct_rows(models, criterions, hints):
                 indexed_rows[row_index_key] = True
                 rows += [extract_sub_row(row, model_set)]
     part5_starttime = current_milli_time()
-    deconverter = JsonDeconverter()
+    deconverter = JsonDeconverter(request_uuid=request_uuid)
     # copy_rows = []
     # for row in rows:
     #     copy_row = deconverter.desimplify(row)
@@ -317,8 +317,8 @@ def construct_rows(models, criterions, hints):
         for selection in showable_selection:
             value = selection._function._function(rows)
             final_row += [value]
-        # final_row = map(lambda x: deconverter.desimplify(x), final_row)
-        final_row = LazyRows([final_row])
+        final_row = map(lambda x: deconverter.desimplify(x), final_row)
+        # final_row = LazyRows([final_row])
         return final_row
         # return [final_row]
     else:
