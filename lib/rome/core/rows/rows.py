@@ -273,7 +273,7 @@ def construct_rows(models, criterions, hints):
         authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
-        objects = get_objects(tablename, request_uuid=request_uuid, hints=reduced_hints)
+        objects = get_objects(tablename, request_uuid=request_uuid, skip_loading=True, hints=reduced_hints)
         list_results += [objects]
     part3_starttime = current_milli_time()
 
@@ -318,7 +318,9 @@ def construct_rows(models, criterions, hints):
             value = selection._function._function(rows)
             final_row += [value]
         # final_row = map(lambda x: deconverter.desimplify(x), final_row)
-        return [final_row]
+        final_row = LazyRows([final_row])
+        return final_row
+        # return [final_row]
     else:
         for row in rows:
             # final_row = []
@@ -340,8 +342,8 @@ def construct_rows(models, criterions, hints):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-            # previous_version_final_row = final_row
-            # final_row = map(lambda x: deconverter.desimplify(x), final_row)
+            previous_version_final_row = final_row
+            final_row = map(lambda x: deconverter.desimplify(x), final_row)
             # print("final_row: %s to %s" % (previous_version_final_row, final_row))
             # final_row = LazyRows(final_row)
             if len(showable_selection) == 1:

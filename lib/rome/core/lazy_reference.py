@@ -124,6 +124,9 @@ class LazyRows:
         else:
             return self.deconverter.desimplify(x)
 
+    def __repr__(self):
+        return "LazyRows(...)"
+
     def __getattr__(self, attr):
         ret = getattr(self.wrapped_list, attr)
         if hasattr(ret, "__call__"):
