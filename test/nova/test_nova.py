@@ -181,10 +181,10 @@ if __name__ == '__main__':
 
     # network_get_all_by_host("econome-7")
 
-    result = query = Query(models.Instance.hostname, models.Instance).all()
-    print(result)
-    for each in result:
-        print(each)
+    # result = query = Query(models.Instance.hostname, models.Instance).all()
+    # print(result)
+    # for each in result:
+    #     print(each)
 
     # _instance_update("eae16b16-08ad-4070-9c49-50d905334621", {"expected_vm_state": "building"})
 
@@ -200,5 +200,18 @@ if __name__ == '__main__':
     # result = query.first()
     # print(result.share_address)
 
+    project_id = "39880583162c4ff38c406489a27230e7"
+    from sqlalchemy.sql import func
+    result = Query(func.count(models.Instance.id),
+                         func.sum(models.Instance.vcpus),
+                         func.sum(models.Instance.memory_mb),
+                    base_model=models.Instance
+            ).\
+                     filter_by(project_id=project_id)
+    # if user_id:
+    #     result = result.filter_by(user_id=user_id).first()
+    # else:
+    result = result.first()
 
+    print((result[0] or 0, result[1] or 0, result[2] or 0))
     pass

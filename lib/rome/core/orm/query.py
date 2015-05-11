@@ -170,7 +170,8 @@ class Query:
                     break
                 except Exception as e:
                     # create a binary expression
-                    traceback.print_exc()
+                    # traceback.print_exc()
+                    pass
         _hints = self._hints[:]
         args = self._models + _func + _criterions + _hints + self._initial_models
         return Query(*args)

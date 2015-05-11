@@ -319,7 +319,7 @@ def construct_rows(models, criterions, hints):
             final_row += [value]
         final_row = map(lambda x: deconverter.desimplify(x), final_row)
         # final_row = LazyRows([final_row], request_uuid=request_uuid)
-        return final_row
+        return [final_row]
         # return [final_row]
     else:
         for row in rows:

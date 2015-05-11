@@ -41,9 +41,7 @@ class Function:
             fieldname = field.split(".")[-1]
         filtered_rows = []
         for row in rows:
-            try:
-                iter(row)
-            except:
+            if not type(row) is list:
                 row = [row]
             for subrow in row:
                 table = get_attribute(subrow, "__tablename__", get_attribute(subrow, "nova_classname", None))
