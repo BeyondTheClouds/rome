@@ -7,11 +7,11 @@ models in the same way as SQLALCHEMY do.
 
 import uuid
 import sys
-import inspect
 import datetime
 import logging
 
 from lib.rome.core.dataformat import converter
+from lib.rome.core.session.session import SessionException
 import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
@@ -109,6 +109,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         return hasattr(self, "id") and (self.id is not None)
 
     def soft_delete(self, session=None):
+        valid_operation = session.is_valid(self) if session is not None else True
+        if not valid_operation:
+            raise SessionException("cannot soft_delete %s" % (self))
         database_driver.get_driver().remove_key(self.__tablename__, self.id)
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True):
@@ -150,6 +153,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def save(self, session=None, request_uuid=uuid.uuid1()):
 
+        valid_operation = session.is_valid(self) if session is not None else True
+        if not valid_operation:
+            raise SessionException("cannot save %s" % (self))
+
         self.update_foreign_keys()
 
         target = self
@@ -167,7 +174,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         extracted. It results in a list of object that will be stored in the
         database."""
         object_converter = converter.JsonConverter(request_uuid)
-        simplified_object = object_converter.simplify(target)
 
         for key in [key for key in object_converter.complex_cache if "x" in key]:
 
