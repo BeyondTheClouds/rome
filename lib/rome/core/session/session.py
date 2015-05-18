@@ -4,6 +4,8 @@ from lib.rome.core.utils import merge_dicts
 from lib.rome.core.utils import current_milli_time
 from lib.rome.core.lazy_reference import LazyReference
 
+import logging
+
 import uuid
 
 class SessionException(Exception):
@@ -47,7 +49,9 @@ class Session(object):
         return SessionControlledExecution(session=self)
 
     def flush(self, *args, **kwargs):
+        logging.info("flushing session %s" % (self.session_id))
         if self.commit_request():
+            logging.info("committing session %s" % (self.session_id))
             self.commit()
 
     def can_be_used(self, obj):
@@ -58,6 +62,7 @@ class Session(object):
                 return True
             if current_milli_time >= obj.session["session_timeout"]:
                 return True
+        logging.error("session %s cannot use object %s" % (self.session_id, obj))
         return False
 
     def commit_request(self):
@@ -72,24 +77,25 @@ class Session(object):
                         recent_version.update({"session": session_object})
                         recent_version.save(force=True, session=self)
                         processed_objects += [recent_version]
+                    else:
+                        success = False
             else:
                 success = False
         if not success:
+            logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for obj in processed_objects:
                 obj.session = None
                 obj.save(force=True)
         return success
 
     def commit(self):
+        logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
             obj.update({"session": None})
             obj.save(force=True)
         for obj in self.session_objects_delete:
             obj.update({"session": None})
             obj.soft_delete(force=True)
+        logging.info("session %s will committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []
-
-
-    def is_valid(self, object):
-        return True
