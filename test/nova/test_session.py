@@ -11,10 +11,11 @@ class TestMemoization(unittest.TestCase):
         logging.getLogger().setLevel(logging.DEBUG)
         session = Session()
         with session.begin():
-            dogs = Query(Dog).all()
+            # dogs = Query(Dog).all()
+            dogs = [Dog()]
             print("dogs: %s" % (dogs))
             print("session_id: %s" % (session.session_id))
-            dogs[0].name += "aa"
+            # dogs[0].name += "aa"
             dogs[0].save(session=session)
             # raise Exception("toto")
 

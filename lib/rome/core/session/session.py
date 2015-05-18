@@ -47,8 +47,7 @@ class Session(object):
         return SessionControlledExecution(session=self)
 
     def flush(self, *args, **kwargs):
-        objs = self.commit_request()
-        if len(objs) > 0:
+        if self.commit_request():
             self.commit()
 
     def can_be_used(self, obj):
@@ -63,24 +62,23 @@ class Session(object):
 
     def commit_request(self):
         processed_objects = []
-        failed = False
+        success = True
         for obj in self.session_objects_add + self.session_objects_delete:
             if getattr(obj, "session", None) is None:
-                recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
-                if self.can_be_used(recent_version):
-                    session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
-                    recent_version.update({"session": session_object})
-                    recent_version.save(force=True, session=self)
-                    processed_objects += [recent_version]
+                if obj.id is not None:
+                    recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
+                    if self.can_be_used(recent_version):
+                        session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
+                        recent_version.update({"session": session_object})
+                        recent_version.save(force=True, session=self)
+                        processed_objects += [recent_version]
             else:
-                failed = True
-        if failed:
+                success = False
+        if not success:
             for obj in processed_objects:
                 obj.session = None
                 obj.save(force=True)
-            return []
-        else:
-            return processed_objects
+        return success
 
     def commit(self):
         for obj in self.session_objects_add:
