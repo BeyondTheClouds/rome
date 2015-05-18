@@ -11,8 +11,7 @@ class TestMemoization(unittest.TestCase):
         logging.getLogger().setLevel(logging.DEBUG)
         session = Session()
         with session.begin():
-            # dogs = Query(Dog).all()
-            dogs = [Dog()]
+            dogs = session.query(Dog).all()
             print("dogs: %s" % (dogs))
             print("session_id: %s" % (session.session_id))
             # dogs[0].name += "aa"

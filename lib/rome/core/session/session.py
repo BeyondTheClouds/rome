@@ -40,7 +40,7 @@ class Session(object):
         self.session_objects_delete += objs
 
     def query(self, *entities, **kwargs):
-        import lib.rome.core.orm.query as Query
+        from lib.rome.core.orm.query import Query
         return Query(*entities, **merge_dicts(kwargs, {"session": self}))
 
     def begin(self, *args, **kwargs):
