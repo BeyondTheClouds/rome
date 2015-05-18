@@ -69,18 +69,15 @@ class Session(object):
         processed_objects = []
         success = True
         for obj in self.session_objects_add + self.session_objects_delete:
-            if getattr(obj, "session", None) is None:
-                if obj.id is not None:
-                    recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
-                    if self.can_be_used(recent_version):
-                        session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
-                        recent_version.update({"session": session_object})
-                        recent_version.save(force=True, session=self)
-                        processed_objects += [recent_version]
-                    else:
-                        success = False
-            else:
-                success = False
+            if obj.id is not None:
+                recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
+                if self.can_be_used(recent_version):
+                    session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
+                    recent_version.update({"session": session_object})
+                    recent_version.save(force=True, session=self)
+                    processed_objects += [recent_version]
+                else:
+                    success = False
         if not success:
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for obj in processed_objects:
@@ -91,10 +88,10 @@ class Session(object):
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
-            obj.update({"session": None})
+            obj.update({"session": None}, skip_session=True)
             obj.save(force=True)
         for obj in self.session_objects_delete:
-            obj.update({"session": None})
+            obj.update({"session": None}, skip_session=True)
             obj.soft_delete(force=True)
         logging.info("session %s will committed" % (self.session_id))
         self.session_objects_add = []

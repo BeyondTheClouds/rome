@@ -52,22 +52,17 @@ def get_attribute(obj, key, default=None):
         return getattr(obj, key, default)
 
 def find_table_name(model):
-
     """This function return the name of the given model as a String. If the
     model cannot be identified, it returns "none".
     :param model: a model object candidate
     :return: the table name or "none" if the object cannot be identified
     """
-
     if has_attribute(model, "__tablename__"):
         return model.__tablename__
-
     if has_attribute(model, "table"):
         return model.table.name
-
     if has_attribute(model, "class_"):
         return model.class_.__tablename__
-
     if has_attribute(model, "clauses"):
         for clause in model.clauses:
             return find_table_name(clause)
@@ -84,25 +79,19 @@ def extract_models(l):
     return result
 
 def extract_sub_row(row, selectables):
-
     """Adapt a row result to the expectation of sqlalchemy.
     :param row: a list of python objects
     :param selectables: a list entity class
     :return: the response follows what is required by sqlalchemy (if len(model)==1, a single object is fine, in
     the other case, a KeyTuple where each sub object is associated with it's entity name
     """
-
     if len(selectables) > 1:
-
         labels = []
-
         for selectable in selectables:
             labels += [find_table_name(selectable._model)]
-
         product = []
         for label in labels:
             product = product + [get_attribute(row, label)]
-
         # Updating Foreign Keys of objects that are in the row
         # for label in labels:
         #     current_object = get_attribute(row, label)
@@ -135,7 +124,6 @@ def extract_sub_row(row, selectables):
         #                 set_attribute(current_object, field, field_default_value)
         #             except:
         #                 pass
-
         return KeyedTuple(product, labels=labels)
     else:
         model_name = find_table_name(selectables[0]._model)
@@ -220,7 +208,7 @@ def building_tuples(list_results, labels, criterions):
                 results += [tuple(ordered_t)]
         return results
 
-def construct_rows(models, criterions, hints):
+def construct_rows(models, criterions, hints, session=None):
 
     """This function constructs the rows that corresponds to the current orm.
     :return: a list of row, according to sqlalchemy expectation
@@ -241,7 +229,6 @@ def construct_rows(models, criterions, hints):
     # get the fields of the join result
     for selectable in model_set:
         labels += [find_table_name(selectable._model)]
-
         if selectable._attributes == "*":
             try:
                 selected_attributes = selectable._model._sa_class_manager
@@ -252,13 +239,11 @@ def construct_rows(models, criterions, hints):
             selected_attributes = [selectable._attributes]
 
         for field in selected_attributes:
-
             attribute = None
             if has_attribute(models, "class_"):
                 attribute = selectable._model.class_._sa_class_manager[field].__str__()
             elif has_attribute(models, "_sa_class_manager"):
                 attribute = selectable._model._sa_class_manager[field].__str__()
-
             if attribute is not None:
                 columns.add(attribute)
     part2_starttime = current_milli_time()
@@ -344,6 +329,8 @@ def construct_rows(models, criterions, hints):
                             final_row += [value]
             previous_version_final_row = final_row
             final_row = map(lambda x: deconverter.desimplify(x), final_row)
+            if session is not None:
+                map(lambda x: x.set_session(session), final_row)
             # print("final_row: %s to %s" % (previous_version_final_row, final_row))
             # final_row = LazyRows(final_row, request_uuid=request_uuid)
             if len(showable_selection) == 1:

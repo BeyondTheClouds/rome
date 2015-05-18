@@ -102,7 +102,9 @@ class IterableModel(object):
             yield field
 
 class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
-    metadata = None
+
+    def __init__(self):
+        self._session = None
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -113,7 +115,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             return
         database_driver.get_driver().remove_key(self.__tablename__, self.id)
 
-    def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True):
+    def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
 
         primitive = (int, str, bool)
 
@@ -134,7 +136,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                         pass
         except:
             pass
-
         for key in values:
             value = values[key]
             try:
@@ -142,9 +143,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             except Exception as e:
                 logging.error(e)
                 pass
-
         self.update_foreign_keys()
-
+        if not skip_session and getattr(self, "_session", None) is not None:
+            self._session.add(self)
         # if do_save:
         #     self.save(request_uuid=request_uuid)
         return self

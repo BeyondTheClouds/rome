@@ -10,11 +10,8 @@ import re
 import logging
 
 from lib.rome.core.terms.terms import *
-
 from sqlalchemy.sql.expression import BinaryExpression
-
 import lib.rome.driver.database_driver as database_driver
-
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
 
 try:
@@ -25,21 +22,19 @@ except:
 import uuid
 
 class Query:
-    _funcs = []
-    _initial_models = []
-    _models = []
-    _criterions = []
-    _hints = []
 
     def __init__(self, *args, **kwargs):
         self._models = []
+        self._initial_models = []
         self._criterions = []
         self._funcs = []
         self._hints = []
-
+        self._session = None
         base_model = None
-        if kwargs.has_key("base_model"):
+        if "base_model" in kwargs:
             base_model = kwargs.get("base_model")
+        if "session" in kwargs:
+            self._session = kwargs.get("session")
         for arg in args:
             if "count" in str(arg) or "sum" in str(arg):
                 function_name = re.sub("\(.*\)", "", str(arg))
@@ -71,21 +66,15 @@ class Query:
                 self._criterions += [arg]
             else:
                 pass
-
         if all_selectable_are_functions(self._models):
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
-
-
     def all(self):
-
-        result_list = construct_rows(self._models, self._criterions, self._hints)
-
+        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session)
         result = []
         for r in result_list:
             ok = True
-
             if ok:
                 result += [r]
         return result
@@ -107,27 +96,20 @@ class Query:
         return self
 
     def update(self, values, synchronize_session='evaluate'):
-
         try:
             from lib.rome.core.dataformat.deconverter import JsonDeconverter
         except:
             pass
-
         rows = self.all()
         for row in rows:
             tablename = find_table_name(row)
             id = row.id
-
             logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
-
             data = database_driver.get_driver().get(tablename, id)
-
             for key in values:
                 data[key] = values[key]
-
             request_uuid = uuid.uuid1()
             object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
-
             try:
                 desimplified_object = object_desimplifier.desimplify(data)
                 desimplified_object.save()
@@ -135,7 +117,6 @@ class Query:
                 traceback.print_exc()
                 logging.error("could not save %s@%s" % (str(id), tablename))
                 return None
-
         return len(rows)
 
 
@@ -174,7 +155,10 @@ class Query:
                     pass
         _hints = self._hints[:]
         args = self._models + _func + _criterions + _hints + self._initial_models
-        return Query(*args)
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs)
 
     def filter_dict(self, filters):
         return self.filter_by(**filters)
@@ -188,7 +172,10 @@ class Query:
             _criterions += [criterion]
         _hints = self._hints[:]
         args = self._models + _func + _criterions + _hints + self._initial_models
-        return Query(*args)
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs)
 
     def join(self, *args, **kwargs):
         _func = self._funcs[:]
@@ -217,7 +204,10 @@ class Query:
                 else:
                     pass
         args = _models + _func + _criterions + _hints + self._initial_models
-        return Query(*args)
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs)
 
     def outerjoin(self, *args, **kwargs):
         return self.join(*args, **kwargs)
@@ -229,7 +219,10 @@ class Query:
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
         args = _models + _func + _criterions + _hints + _initial_models
-        return Query(*args)
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs)
 
     def order_by(self, *criterion):
         _func = self._funcs[:]
@@ -238,7 +231,10 @@ class Query:
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
         args = _models + _func + _criterions + _hints + _initial_models
-        return Query(*args)
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs)
 
     def with_lockmode(self, mode):
         return self
@@ -250,7 +246,10 @@ class Query:
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
         args = _models + _func + _criterions + _hints + _initial_models
-        return Query(*args).all()
+        kwargs = {}
+        if self._session is not None:
+            kwargs["session"] = self._session
+        return Query(*args, **kwargs).all()
 
     def __iter__(self):
         return iter(self.all())

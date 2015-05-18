@@ -58,7 +58,6 @@ class JsonDeconverter(object):
 
     def novabase_desimplify(self, obj):
         """Desimplify a novabase object."""
-
         key = self.get_key(obj)
         if not self.cache.has_key(key):
             can_load = True
@@ -82,7 +81,6 @@ class JsonDeconverter(object):
             )
             if can_load:
                 self.cache[key].load(obj)
-
         return self.cache[key]
 
 
