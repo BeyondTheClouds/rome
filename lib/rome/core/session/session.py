@@ -1,6 +1,9 @@
 __author__ = 'jonathan'
 
 from lib.rome.core.utils import merge_dicts
+from lib.rome.core.utils import current_milli_time
+from lib.rome.core.lazy_reference import LazyReference
+
 import uuid
 
 class SessionException(Exception):
@@ -17,16 +20,24 @@ class SessionControlledExecution():
     def __exit__(self, type, value, traceback):
         if traceback:
             print(traceback)
-        pass
+        else:
+            self.session.flush()
 
 class Session(object):
 
+    max_duration = 300
+
     def __init__(self):
         self.session_id = uuid.uuid1()
+        self.session_objects_add = []
+        self.session_objects_delete = []
+        self.session_timeout = current_milli_time() + Session.max_duration
 
     def add(self, *objs):
-        for obj in objs:
-            obj.save()
+        self.session_objects_add += objs
+
+    def delete(self, *objs):
+        self.session_objects_delete += objs
 
     def query(self, *entities, **kwargs):
         import lib.rome.core.orm.query as Query
@@ -36,7 +47,51 @@ class Session(object):
         return SessionControlledExecution(session=self)
 
     def flush(self, *args, **kwargs):
-        pass
+        objs = self.commit_request()
+        if len(objs) > 0:
+            self.commit()
+
+    def can_be_used(self, obj):
+        if getattr(obj, "session", None) is None:
+            return True
+        else:
+            if obj.session["session_id"] == self.session_id:
+                return True
+            if current_milli_time >= obj.session["session_timeout"]:
+                return True
+        return False
+
+    def commit_request(self):
+        processed_objects = []
+        failed = False
+        for obj in self.session_objects_add + self.session_objects_delete:
+            if getattr(obj, "session", None) is None:
+                recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
+                if self.can_be_used(recent_version):
+                    session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
+                    recent_version.update({"session": session_object})
+                    recent_version.save(force=True, session=self)
+                    processed_objects += [recent_version]
+            else:
+                failed = True
+        if failed:
+            for obj in processed_objects:
+                obj.session = None
+                obj.save(force=True)
+            return []
+        else:
+            return processed_objects
+
+    def commit(self):
+        for obj in self.session_objects_add:
+            obj.update({"session": None})
+            obj.save(force=True)
+        for obj in self.session_objects_delete:
+            obj.update({"session": None})
+            obj.soft_delete(force=True)
+        self.session_objects_add = []
+        self.session_objects_delete = []
+
 
     def is_valid(self, object):
         return True

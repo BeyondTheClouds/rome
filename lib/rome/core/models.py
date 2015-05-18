@@ -11,13 +11,12 @@ import datetime
 import logging
 
 from lib.rome.core.dataformat import converter
-from lib.rome.core.session.session import SessionException
 import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
 
 def starts_with_uppercase(name):
-    if name is None or len(name) < 1:
+    if name is None or len(name) == 0:
         return False
     else:
         return name[0].isupper()
@@ -108,10 +107,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 
-    def soft_delete(self, session=None):
-        valid_operation = session.is_valid(self) if session is not None else True
-        if not valid_operation:
-            raise SessionException("cannot soft_delete %s" % (self))
+    def soft_delete(self, session=None, force=False):
+        if not force and session is not None:
+            session.delete(self)
+            return
         database_driver.get_driver().remove_key(self.__tablename__, self.id)
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True):
@@ -146,16 +145,16 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         self.update_foreign_keys()
 
-        if do_save:
-            self.save(request_uuid=request_uuid)
+        # if do_save:
+        #     self.save(request_uuid=request_uuid)
         return self
 
 
-    def save(self, session=None, request_uuid=uuid.uuid1()):
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False):
 
-        valid_operation = session.is_valid(self) if session is not None else True
-        if not valid_operation:
-            raise SessionException("cannot save %s" % (self))
+        if not force and session is not None:
+            session.add(self)
+            return
 
         self.update_foreign_keys()
 
@@ -174,6 +173,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         extracted. It results in a list of object that will be stored in the
         database."""
         object_converter = converter.JsonConverter(request_uuid)
+        object_converter.simplify(self)
 
         for key in [key for key in object_converter.complex_cache if "x" in key]:
 
@@ -211,7 +211,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             else:
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
-                if not same_version(existing_object, current_object, model_class):
+                if not same_version(existing_object, current_object, model_class) or force:
                     current_object = merge_dict(existing_object, current_object)
                 else:
                     continue
@@ -232,6 +232,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             try:
                 local_object_converter = converter.JsonConverter(request_uuid)
                 corrected_object = local_object_converter.simplify(current_object)
+                if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
+                    corrected_object["session"] = getattr(target, "session", None)
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:

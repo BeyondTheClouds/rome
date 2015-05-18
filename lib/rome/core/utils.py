@@ -13,6 +13,10 @@ from sqlalchemy import Column, Integer
 from sqlalchemy import DateTime
 
 import lib.rome.driver.database_driver as database_driver
+import time
+
+
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 def merge_dicts(dict1, dict2):
     """Merge two dictionnaries into one dictionnary: the values containeds
