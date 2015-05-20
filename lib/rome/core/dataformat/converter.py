@@ -33,7 +33,7 @@ class JsonConverter(object):
     dictionnaries, novabase objects, ...) to a representation that can
     be stored in database."""
 
-    def __init__(self, request_uuid=uuid.uuid1(), spare_unloaded_lazyrefs=False):
+    def __init__(self, request_uuid=uuid.uuid1()):
         self.request_uuid = (request_uuid if request_uuid is not None
                              else uuid.uuid1()
                              )
@@ -47,8 +47,6 @@ class JsonConverter(object):
         self.simple_cache = SIMPLE_CACHES[self.request_uuid]
         self.complex_cache = COMPLEX_CACHES[self.request_uuid]
         self.target_cache = TARGET_CACHES[self.request_uuid]
-
-        self.spare_unloaded_lazyrefs = spare_unloaded_lazyrefs
 
         self.reset()
 
@@ -94,11 +92,8 @@ class JsonConverter(object):
         """Inner function that processes a value."""
 
         if utils.is_novabase(field_value):
-            should_continue = not (self.already_processed(field_value) or (self.spare_unloaded_lazyrefs))
-            if should_continue:
+            if not self.already_processed(field_value):
                 self.process_object(field_value, False)
-            if self.spare_unloaded_lazyrefs:
-                self.process_object(field_value, True)
             key = self.get_cache_key(field_value)
             result = self.simple_cache[key]
         else:
@@ -137,8 +132,7 @@ class JsonConverter(object):
 
         if not self.already_processed(obj):
 
-            if not skip_complex_processing:
-                obj.update_foreign_keys()
+            obj.update_foreign_keys()
             key = self.get_cache_key(obj)
 
             if self.simple_cache.has_key(key):
@@ -248,7 +242,7 @@ class JsonConverter(object):
 
         if utils.is_novabase(obj):
             if should_skip:
-                result = self.novabase_simplify(obj, skip_reccursive_call)
+                result = self.novabase_simplify(obj)
             else:
                 key = self.get_cache_key(obj)
                 self.novabase_simplify(obj)

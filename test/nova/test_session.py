@@ -12,9 +12,10 @@ class TestSession(unittest.TestCase):
         logging.getLogger().setLevel(logging.DEBUG)
         session = Session()
         # with session.begin():
-        query = Query(models.Instance).filter(models.Instance.id==1)
+        # query = Query(models.Instance).filter(models.Instance.id==1)
+        query = Query(models.Network)
         instance = query.first()
-        instance.display_name += "a"
+        # instance.display_name += "a"
         instance.save(force=True)
             # session.add(instance)
             # print(instance)

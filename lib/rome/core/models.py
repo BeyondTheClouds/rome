@@ -174,7 +174,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         converted into "JSON like" representation, and nested objects are
         extracted. It results in a list of object that will be stored in the
         database."""
-        object_converter = converter.JsonConverter(request_uuid, spare_unloaded_lazyrefs=True)
+        object_converter = converter.JsonConverter(request_uuid)
         object_converter.simplify(self)
 
         for key in [key for key in object_converter.complex_cache if "x" in key]:
