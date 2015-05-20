@@ -4,8 +4,21 @@ import unittest
 from lib.rome.core.session.session import Session as Session
 from lib.rome.core.orm.query import Query as Query
 from test.test_dogs import *
+import _fixtures as models
 
 class TestSession(unittest.TestCase):
+
+    def test_session_instances(self):
+        logging.getLogger().setLevel(logging.DEBUG)
+        session = Session()
+        # with session.begin():
+        query = Query(models.Instance).filter(models.Instance.id==1)
+        instance = query.first()
+        instance.display_name += "a"
+        instance.save(force=True)
+            # session.add(instance)
+            # print(instance)
+        pass
 
     def test_session_execution(self):
         logging.getLogger().setLevel(logging.DEBUG)

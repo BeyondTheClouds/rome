@@ -174,7 +174,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         converted into "JSON like" representation, and nested objects are
         extracted. It results in a list of object that will be stored in the
         database."""
-        object_converter = converter.JsonConverter(request_uuid)
+        object_converter = converter.JsonConverter(request_uuid, spare_unloaded_lazyrefs=True)
         object_converter.simplify(self)
 
         for key in [key for key in object_converter.complex_cache if "x" in key]:
@@ -213,7 +213,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             else:
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
-                if not same_version(existing_object, current_object, model_class) or force:
+                current_object["_version_number"] = getattr(object_converter.target_cache[key], "_version_number", -2)
+
+                forced = force and (object_converter.target_cache[key] is self)
+                if not same_version(existing_object, current_object, model_class) and forced:
                     current_object = merge_dict(existing_object, current_object)
                 else:
                     continue
