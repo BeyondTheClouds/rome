@@ -278,6 +278,8 @@ class LazyReference:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)
+            if self._session is not None:
+                self._session.add(self)
             self.version += 1
             return self
 

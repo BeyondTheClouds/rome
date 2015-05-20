@@ -74,7 +74,7 @@ class Session(object):
                 if self.can_be_used(recent_version):
                     session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
                     recent_version.update({"session": session_object})
-                    recent_version.save(force=True, session=self)
+                    recent_version.save(force=True, session=self, no_nested_save=True)
                     processed_objects += [recent_version]
                 else:
                     success = False
@@ -82,7 +82,7 @@ class Session(object):
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for obj in processed_objects:
                 obj.session = None
-                obj.save(force=True)
+                obj.save(force=True, no_nested_save=True)
         return success
 
     def commit(self):

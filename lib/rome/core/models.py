@@ -150,8 +150,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         #     self.save(request_uuid=request_uuid)
         return self
 
-
-    def save(self, session=None, request_uuid=uuid.uuid1(), force=False):
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False):
 
         if not force and session is not None:
             session.add(self)
@@ -176,7 +175,15 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         object_converter = converter.JsonConverter(request_uuid)
         object_converter.simplify(self)
 
-        for key in [key for key in object_converter.complex_cache if "x" in key]:
+        saving_candidates = object_converter.complex_cache
+
+        if no_nested_save:
+            key = object_converter.get_cache_key(self)
+            saving_candidates = {
+                key: saving_candidates[key]
+            }
+
+        for key in [key for key in saving_candidates if "x" in key]:
 
             classname = "_".join(key.split("_")[0:-1])
             table_name = get_model_tablename_from_classname(classname)
@@ -198,7 +205,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             pass
 
-        for key in object_converter.complex_cache:
+        for key in saving_candidates:
 
             classname = "_".join(key.split("_")[0:-1])
             table_name = get_model_tablename_from_classname(classname)
