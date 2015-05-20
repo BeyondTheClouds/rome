@@ -267,8 +267,6 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
-        if item == "__tablename__":
-            return self.base
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
@@ -281,8 +279,6 @@ class LazyReference:
         else:
             setattr(self.get_complex_ref(), name, value)
             self.version += 1
-            if self._session is not None:
-                self._session.add(self)
             return self
 
     def __str__(self):
