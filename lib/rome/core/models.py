@@ -220,7 +220,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             else:
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
-                force_save = force and self.nova_classname == current_object["nova_classname"] and self.id == current_object["id"]
+                force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
                 if not same_version(existing_object, current_object, model_class) or force_save:
                     current_object = merge_dict(existing_object, current_object)
                 else:
