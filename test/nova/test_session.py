@@ -4,8 +4,20 @@ import unittest
 from lib.rome.core.session.session import Session as Session
 from lib.rome.core.orm.query import Query as Query
 from test.test_dogs import *
+import _fixtures as models
 
 class TestSession(unittest.TestCase):
+
+    def test_session_instance_modification(self):
+        logging.getLogger().setLevel(logging.DEBUG)
+        session = Session()
+        with session.begin():
+            instances = session.query(models.Instance).all()
+            instances[0].hostname += "aa"
+            # dogs[0].update({"name": dogs[0].name + "bb"})
+            # dogs[0].save(session=session)
+            # dogs[0].save(session=session)
+            # raise Exception("toto")
 
     def test_session_execution(self):
         logging.getLogger().setLevel(logging.DEBUG)
