@@ -27,7 +27,6 @@ class JsonDeconverter(object):
 
     def __init__(self, request_uuid=uuid.uuid1()):
         """Constructor"""
-
         self.request_uuid = (request_uuid if request_uuid is not None
                              else uuid.uuid1()
                              )
@@ -37,14 +36,12 @@ class JsonDeconverter(object):
 
     def is_dict_and_has_key(self, obj, key):
         """Check if the given object is a dict which contains the given key."""
-
         if isinstance(obj, dict):
             return obj.has_key(key)
         return False
 
     def get_key(self, obj):
         """Returns a unique key for the given object."""
-
         if self.is_dict_and_has_key(obj, "nova_classname"):
             table_name = obj["nova_classname"]
             key = obj["id"]
@@ -83,10 +80,8 @@ class JsonDeconverter(object):
                 self.cache[key].load(obj)
         return self.cache[key]
 
-
     def datetime_desimplify(self, value):
         """Desimplify a datetime object."""
-
         result = datetime.datetime.strptime(value["value"], '%b %d %Y %H:%M:%S')
         if value["timezone"] == "UTC":
             result = pytz.utc.localize(result)
@@ -94,17 +89,13 @@ class JsonDeconverter(object):
 
     def ipnetwork_desimplify(self, value):
         """Desimplify an IPNetwork object."""
-
         return netaddr.IPNetwork(value["value"])
 
     def desimplify(self, obj):
         """Apply the best desimplification strategy on the given object."""
-
         result = obj
-
         is_dict = isinstance(obj, dict)
         is_list = isinstance(obj, list)
-
         if self.is_dict_and_has_key(obj, "simplify_strategy"):
             if obj['simplify_strategy'] == 'datetime':
                 result = self.datetime_desimplify(obj)

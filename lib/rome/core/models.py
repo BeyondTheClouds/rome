@@ -105,6 +105,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
         self._session = None
+        self._version_number = -1
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -242,6 +243,13 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 corrected_object = local_object_converter.simplify(current_object)
                 if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
                     corrected_object["session"] = getattr(target, "session", None)
+                if "_version_number" in corrected_object:
+                    self._version_number = corrected_object["_version_number"]
+                if hasattr(self, "_version_number"):
+                    self._version_number += 1
+                else:
+                    self._version_number = 0
+                corrected_object["_version_number"] = self._version_number
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:

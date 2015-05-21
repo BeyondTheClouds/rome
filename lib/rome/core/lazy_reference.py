@@ -258,7 +258,6 @@ class LazyReference:
             self.load()
         return self.cache[key]
 
-
     def __getattr__(self, item):
         """This method 'intercepts' call to attribute/method on the referenced
         object: the object is thus loaded from database, and the requested
@@ -274,7 +273,7 @@ class LazyReference:
         referenced object: the object is thus loaded from database, and the
         requested attribute/method is then setted with the given value."""
         if name in ["base", "id", "cache", "deconverter", "request_uuid",
-                    "uuid", "version", "lazy_backref_buffer", "_session"]:
+                    "uuid", "version", "lazy_backref_buffer", "_session", "_version"]:
             self.__dict__[name] = value
         else:
             setattr(self.get_complex_ref(), name, value)
