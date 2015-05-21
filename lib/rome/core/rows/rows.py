@@ -258,7 +258,7 @@ def construct_rows(models, criterions, hints, session=None):
         authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
-        objects = get_objects(tablename, request_uuid=request_uuid, skip_loading=True, hints=reduced_hints)
+        objects = get_objects(tablename, request_uuid=request_uuid, skip_loading=False, hints=reduced_hints)
         list_results += [objects]
     part3_starttime = current_milli_time()
 
