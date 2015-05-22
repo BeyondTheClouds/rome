@@ -74,7 +74,7 @@ class Session(object):
                 if self.can_be_used(recent_version):
                     session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
                     recent_version.update({"session": session_object})
-                    recent_version.save(force=True, session=self, no_nested_save=True)
+                    recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
                     processed_objects += [recent_version]
                 else:
                     success = False
@@ -93,6 +93,6 @@ class Session(object):
         for obj in self.session_objects_delete:
             obj.update({"session": None}, skip_session=True)
             obj.soft_delete(force=True)
-        logging.info("session %s will committed" % (self.session_id))
+        logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []

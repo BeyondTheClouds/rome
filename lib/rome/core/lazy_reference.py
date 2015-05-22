@@ -279,7 +279,7 @@ class LazyReference:
             setattr(self.get_complex_ref(), name, value)
             if self._session is not None:
                 self._session.add(self)
-            self.version += 1
+            # self.version += 1
             return self
 
     def __str__(self):

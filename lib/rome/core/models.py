@@ -151,7 +151,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         #     self.save(request_uuid=request_uuid)
         return self
 
-    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False):
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
 
         if not force and session is not None:
             session.add(self)
@@ -221,6 +221,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
                 force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
+                print("check version: %i vs %i" % (self._version_number, existing_object["_version_number"]))
+
+                if self._version_number < existing_object["_version_number"]:
+                    continue
                 if not same_version(existing_object, current_object, model_class) or force_save:
                     current_object = merge_dict(existing_object, current_object)
                 else:
@@ -244,12 +248,13 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 corrected_object = local_object_converter.simplify(current_object)
                 if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
                     corrected_object["session"] = getattr(target, "session", None)
-                if "_version_number" in corrected_object:
-                    self._version_number = corrected_object["_version_number"]
-                if hasattr(self, "_version_number"):
-                    self._version_number += 1
-                else:
-                    self._version_number = 0
+                if increase_version:
+                    if "_version_number" in corrected_object:
+                        self._version_number = corrected_object["_version_number"]
+                    if hasattr(self, "_version_number"):
+                        self._version_number += 1
+                    else:
+                        self._version_number = 0
                 corrected_object["_version_number"] = self._version_number
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
