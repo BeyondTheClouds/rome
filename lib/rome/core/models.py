@@ -222,11 +222,11 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
                 force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
-                version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                print("check version: %i vs %i" % (version_number, existing_object["_version_number"]))
-
-                if version_number < existing_object["_version_number"]:
-                    continue
+                if existing_object is not None:
+                    version_number = getattr(self, "_version_number", existing_object["_version_number"])
+                    print("check version: %i vs %i" % (version_number, existing_object["_version_number"]))
+                    if version_number < existing_object["_version_number"]:
+                        continue
                 if not same_version(existing_object, current_object, model_class) or force_save:
                     current_object = merge_dict(existing_object, current_object)
                 else:
