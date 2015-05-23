@@ -107,6 +107,8 @@ class Session(object):
         for obj in self.session_objects_delete:
             obj.update({"session": None}, skip_session=True)
             obj.soft_delete(force=True)
+        for lock in self.locks:
+            self.dlm.unlock(lock)
         logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []
