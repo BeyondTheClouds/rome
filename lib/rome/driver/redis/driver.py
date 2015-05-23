@@ -6,6 +6,7 @@ from lib.rome.conf.Configuration import get_config
 # from redlock import RedLock as RedLock
 # import redis_lock
 from redlock import Redlock as Redlock
+import time
 
 class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -36,7 +37,14 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
         lockname = "lock-%s" % (tablename)
-        my_lock = self.dlm.lock(lockname,1000)
+        my_lock = None
+        try_to_lock = True
+        while try_to_lock:
+            my_lock = self.dlm.lock(lockname,1000)
+            if my_lock is not False:
+                try_to_lock = False
+            else:
+                time.sleep(20)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
