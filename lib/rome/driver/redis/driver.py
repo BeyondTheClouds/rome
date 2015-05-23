@@ -12,7 +12,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def __init__(self):
         config = get_config()
         self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
-        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ])
+        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
 
     def add_key(self, tablename, key):
         """"""
@@ -35,7 +35,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        lockname = "%s-%s" % (tablename, key)
+        lockname = "%s" % (tablename)
         my_lock = self.dlm.lock(lockname,1000)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
@@ -87,7 +87,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         # startup_nodes = [{"host": "127.0.0.1", "port": "6379"}]
         startup_nodes = map(lambda x: {"host": x, "port": "%s" % (config.port())}, config.cluster_nodes())
         self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
-        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ])
+        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
 
     def add_key(self, tablename, key):
         """"""
@@ -110,7 +110,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        lockname = "%s-%s" % (tablename, key)
+        lockname = "%s" % (tablename)
         my_lock = self.dlm.lock(lockname,1000)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
