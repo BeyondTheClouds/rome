@@ -3,6 +3,7 @@ __author__ = 'jonathan'
 from lib.rome.core.utils import merge_dicts
 from lib.rome.core.utils import current_milli_time
 from lib.rome.core.lazy_reference import LazyReference
+from redlock import Redlock as Redlock
 
 import logging
 
@@ -34,6 +35,8 @@ class Session(object):
         self.session_objects_add = []
         self.session_objects_delete = []
         self.session_timeout = current_milli_time() + Session.max_duration
+        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        self.locks = []
 
     def add(self, *objs):
         self.session_objects_add += objs
@@ -68,21 +71,32 @@ class Session(object):
     def commit_request(self):
         processed_objects = []
         success = True
+        tablenames_index = {}
         for obj in self.session_objects_add + self.session_objects_delete:
-            if obj.id is not None:
-                recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
-                if self.can_be_used(recent_version):
-                    session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
-                    recent_version.update({"session": session_object})
-                    recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
-                    processed_objects += [recent_version]
-                else:
-                    success = False
+            tablenames_index[obj.__tablename__] = True
+            # if obj.id is not None:
+            #     recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
+            #     if self.can_be_used(recent_version):
+            #         session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
+            #         recent_version.update({"session": session_object})
+            #         recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
+            #         processed_objects += [recent_version]
+            #     else:
+            #         success = False
+        for tablename in tablenames_index:
+            lockname = "lock-%s" % (tablename)
+            lock = self.dlm.lock(lockname, 1000)
+            if lock is False:
+                success = False
+            self.locks += [lock]
+
         if not success:
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for obj in processed_objects:
                 obj.session = None
                 obj.save(force=True, no_nested_save=True)
+            for lock in self.locks:
+                self.dlm.unlock(lock)
         return success
 
     def commit(self):
