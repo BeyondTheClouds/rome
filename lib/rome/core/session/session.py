@@ -5,6 +5,8 @@ from lib.rome.core.utils import current_milli_time
 from lib.rome.core.lazy_reference import LazyReference
 from redlock import Redlock as Redlock
 
+import time
+import random
 import logging
 
 import uuid
@@ -22,7 +24,8 @@ class SessionControlledExecution():
 
     def __exit__(self, type, value, traceback):
         if traceback:
-            print(traceback)
+            self.session.handle_error(traceback)
+            # print(traceback)
         else:
             self.session.flush()
 
@@ -37,6 +40,7 @@ class Session(object):
         self.session_timeout = current_milli_time() + Session.max_duration
         self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
         self.locks = []
+        self.current_count = 0
 
     def add(self, *objs):
         self.session_objects_add += objs
@@ -56,6 +60,17 @@ class Session(object):
         if self.commit_request():
             logging.info("committing session %s" % (self.session_id))
             self.commit()
+        else:
+            self.handle_error()
+
+    def handle_error(self, traceback=None):
+            self.current_count += 1
+            if self.current_count < 10:
+                time_to_wait = random.randint(1, 10) / 100.0
+                time.sleep(time_to_wait)
+                self.begin()
+            else:
+                raise traceback
 
     def can_be_used(self, obj):
         if getattr(obj, "session", None) is None:
@@ -74,15 +89,15 @@ class Session(object):
         tablenames_index = {}
         for obj in self.session_objects_add + self.session_objects_delete:
             tablenames_index[obj.__tablename__] = True
-            # if obj.id is not None:
-            #     recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
-            #     if self.can_be_used(recent_version):
-            #         session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
-            #         recent_version.update({"session": session_object})
-            #         recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
-            #         processed_objects += [recent_version]
-            #     else:
-            #         success = False
+            if obj.id is not None:
+                recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
+                if self.can_be_used(recent_version):
+                    session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
+                    recent_version.update({"session": session_object})
+                    recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
+                    processed_objects += [recent_version]
+                else:
+                    success = False
         for tablename in tablenames_index:
             lockname = "lock-%s" % (tablename)
             lock = self.dlm.lock(lockname, 1000)
@@ -102,10 +117,10 @@ class Session(object):
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
-            # obj.update({"session": None}, skip_session=True)
+            obj.update({"session": None}, skip_session=True)
             obj.save(force=True)
         for obj in self.session_objects_delete:
-            # obj.update({"session": None}, skip_session=True)
+            obj.update({"session": None}, skip_session=True)
             obj.soft_delete(force=True)
         for lock in self.locks:
             self.dlm.unlock(lock)
