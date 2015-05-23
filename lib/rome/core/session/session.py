@@ -64,13 +64,14 @@ class Session(object):
             self.handle_error()
 
     def handle_error(self, traceback=None):
-            self.current_count += 1
-            if self.current_count < 3:
-                time_to_wait = random.randint(1, 10) / 100.0
-                time.sleep(time_to_wait)
-                self.begin()
-            else:
-                raise traceback
+            # self.current_count += 1
+            # if self.current_count < 3:
+            #     time_to_wait = random.randint(1, 10) / 100.0
+            #     time.sleep(time_to_wait)
+            #     self.begin()
+            # else:
+            #     raise traceback
+        pass
 
     def can_be_used(self, obj):
         if getattr(obj, "session", None) is None:
