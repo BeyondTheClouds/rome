@@ -35,7 +35,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        lockname = "%s" % (tablename)
+        lockname = "lock-%s" % (tablename)
         my_lock = self.dlm.lock(lockname,1000)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
@@ -110,7 +110,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        lockname = "%s" % (tablename)
+        lockname = "lock-%s" % (tablename)
         my_lock = self.dlm.lock(lockname,1000)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
