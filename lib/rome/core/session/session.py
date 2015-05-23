@@ -102,10 +102,10 @@ class Session(object):
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
-            obj.update({"session": None}, skip_session=True)
+            # obj.update({"session": None}, skip_session=True)
             obj.save(force=True)
         for obj in self.session_objects_delete:
-            obj.update({"session": None}, skip_session=True)
+            # obj.update({"session": None}, skip_session=True)
             obj.soft_delete(force=True)
         for lock in self.locks:
             self.dlm.unlock(lock)
