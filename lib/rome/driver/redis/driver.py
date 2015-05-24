@@ -44,7 +44,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             if my_lock is not False:
                 try_to_lock = False
             else:
-                time.sleep(20)
+                time.sleep(0.07)
         json_value = json.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
