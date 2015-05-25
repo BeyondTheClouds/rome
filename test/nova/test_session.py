@@ -5,6 +5,7 @@ from lib.rome.core.session.session import Session as Session
 from lib.rome.core.orm.query import Query as Query
 from test.test_dogs import *
 import _fixtures as models
+import time
 
 class TestSession(unittest.TestCase):
 
@@ -47,6 +48,8 @@ class TestSession(unittest.TestCase):
                 dogs[0].name += "bb"
                 # dogs[0].update({"name": dogs[0].name + "bb"})
                 # dogs[0].save(session=session)
+            time.sleep(0.02)
+            print("end")
 
         a = threading.Thread(None, work(), None)
         # b = threading.Thread(None, work(), None)
