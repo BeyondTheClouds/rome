@@ -119,7 +119,6 @@ class Query:
                 return None
         return len(rows)
 
-
     def distinct(self):
         return list(set(self.all()))
 
@@ -136,7 +135,6 @@ class Query:
                 self._hints += [Hint(table_name, attribute_name, value)]
         except:
             pass
-
 
     def filter_by(self, **kwargs):
         _func = self._funcs[:]

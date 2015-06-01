@@ -346,7 +346,7 @@ def construct_rows(models, criterions, hints, session=None):
         part5_starttime - part4_starttime,
         part6_starttime - part5_starttime,
         part7_starttime - part6_starttime,
-        "None",
+        """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (models, criterions),
         current_milli_time()
     )
 
