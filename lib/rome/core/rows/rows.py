@@ -129,7 +129,7 @@ def extract_sub_row(row, selectables):
         model_name = find_table_name(selectables[0]._model)
         return get_attribute(row, model_name)
 
-def building_tuples(list_results, labels, criterions):
+def building_tuples(list_results, labels, criterions, hints=[]):
     mode = "not_cartesian_product"
     if mode is "cartesian_product":
         cartesian_product = []
@@ -264,7 +264,7 @@ def construct_rows(models, criterions, hints, session=None):
 
     # construct the cartesian product
     # tuples = building_tuples(list_results, labels, criterions)
-    tuples = building_tuples_experimental(list_results, labels, criterions)
+    tuples = building_tuples_experimental(list_results, labels, criterions, hints)
 
     part4_starttime = current_milli_time()
 

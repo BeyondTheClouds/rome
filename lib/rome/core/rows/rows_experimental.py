@@ -35,7 +35,7 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     remote_tabledata = {"table": rel.remote_object_tablename, "column": rel.remote_object_field}
     return [local_tabledata, remote_tabledata]
 
-def building_tuples(list_results, labels, criterions):
+def building_tuples(list_results, labels, criterions, hints=[]):
     from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
     mode = "experimental"
     if mode is "cartesian_product":
@@ -45,13 +45,18 @@ def building_tuples(list_results, labels, criterions):
         return cartesian_product
     elif mode is "experimental":
         steps = zip(list_results, labels)
-        results_per_table = {}
-        filtering_values = {}
+        # results_per_table = {}
+        candidates_values = {}
+        candidates_per_table = {}
         joining_criterions = []
-        # Initialising results per table
+        filtering_criterions = []
+        # Initialising candidates per table
+
+        time1 = current_milli_time()
         for each in labels:
-            index_list_results = labels.index(each)
-            results_per_table[each] = list_results[index_list_results][:]
+            candidates_per_table[each] = []
+            # index_list_results = labels.index(each)
+            # candidates_per_table[each] = list_results[index_list_results][:]
         # Collecting joining expressions
         for criterion in criterions:
             # if criterion.operator in  "NORMAL":
@@ -61,6 +66,7 @@ def building_tuples(list_results, labels, criterions):
                     if len(foo) > 1:
                         joining_criterions += [foo]
         done_index = {}
+        # Consolidating joining criterions with data stored in relationships
         for step in steps:
             tablename = step[1]
             model_classname = get_model_classname_from_tablename(tablename)
@@ -81,23 +87,31 @@ def building_tuples(list_results, labels, criterions):
                 key = "%s.%s" % (each["table"], each["column"])
                 index_list_results = labels.index(each["table"])
                 objects = list_results[index_list_results]
-                if not filtering_values.has_key(key):
-                    filtering_values[key] = {}
+                if not candidates_values.has_key(key):
+                    candidates_values[key] = {}
                 for object in objects:
                     value_key = get_attribute(object, each["column"])
-                    if not filtering_values[key].has_key(value_key):
-                        filtering_values[key][value_key] = []
-                    filtering_values[key][value_key] += [{"value": value_key, "object": object}]
+                    skip = False
+                    for hint in hints:
+                        if each["table"] == hint.table_name and hint.attribute in object and object[hint.attribute] != hint.value:
+                            skip = True
+                            break
+                    if not skip:
+                        if not candidates_values[key].has_key(value_key):
+                            candidates_values[key][value_key] = []
+                        candidates_values[key][value_key] += [{"value": value_key, "object": object}]
+                        candidates_per_table[object.base] += [object]
         # Progressively reduce the list of results
-        time1 = current_milli_time()
-        print("here => %s seconds" % (current_milli_time() - time1))
         results = []
         processed_models = []
         if len(steps) > 0:
             step = steps[0]
-            results = map(lambda x:[x], list_results[0])
+            # results = map(lambda x:[x], list_results[0])
+            results = map(lambda  x: [x], candidates_per_table[step[1]])
             processed_models += [step[1]]
         remaining_models = map(lambda x:x[1], steps[1:])
+
+        print("here => %s seconds" % (current_milli_time() - time1))
         print("here4??")
         for step in steps[1:]:
             for criterion in joining_criterions:
@@ -119,7 +133,7 @@ def building_tuples(list_results, labels, criterions):
                         existing_value = get_attribute(each[existing_tuple_index], remote_criterion_part["column"])
                         if existing_value is not None:
                             key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
-                            candidates_value_index = filtering_values[key]
+                            candidates_value_index = candidates_values[key]
                             candidates = candidates_value_index[existing_value] if existing_value in candidates_value_index else []
                             for candidate in candidates:
                                 new_results += [each + [candidate["object"]]]

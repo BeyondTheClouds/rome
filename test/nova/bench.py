@@ -9,11 +9,12 @@ import time
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 
-def compute_ip(fixed_ip_id):
-    pass
+def compute_ip(network_id, fixed_ip_id):
+    digits = [fixed_ip_id / 255, fixed_ip_id % 255]
+    return "172.%d.%d.%d" % (network_id, digits[0], digits[1])
 
 
-def bench_join(network_count=3, fixed_ip_count=200):
+def create_mock_data(network_count=3, fixed_ip_count=200):
 
     for i in range(1, network_count):
         network = models.Network()
@@ -25,17 +26,23 @@ def bench_join(network_count=3, fixed_ip_count=200):
             fixed_ip = models.FixedIp()
             fixed_ip.id = i * fixed_ip_count + j
             fixed_ip.network_id = i
+            fixed_ip.address = compute_ip(i, j)
             fixed_ip.save()
+
+    pass
 
 
 
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    bench_join(3, 900)
+    create_mock_data(3, 2000)
 
     query = Query(models.FixedIp.id, models.Network.id).join(models.FixedIp.network_id == models.Network.id)
+    query.filter(models.FixedIp.address == "172.1.1.13")
     result = query.all()
+
+    print(len(result))
 
     # for each in result:
     #     print(each)
