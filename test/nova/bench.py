@@ -8,30 +8,34 @@ import time
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
+
+def compute_ip(fixed_ip_id):
+    pass
+
+
+def bench_join(network_count=3, fixed_ip_count=200):
+
+    for i in range(1, network_count):
+        network = models.Network()
+        network.id = i
+        network.save()
+
+    for i in range(1, network_count):
+        for j in range(1, fixed_ip_count):
+            fixed_ip = models.FixedIp()
+            fixed_ip.id = i * fixed_ip_count + j
+            fixed_ip.network_id = i
+            fixed_ip.save()
+
+
+
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
+    bench_join(3, 900)
 
-    # for i in xrange(0, 10000):
-    #     network = models.Network()
-    #     network.uuid = str(i)
-    #     network.save()
+    query = Query(models.FixedIp.id, models.Network.id).join(models.FixedIp.network_id == models.Network.id)
+    result = query.all()
 
-    time1 = current_milli_time()
-    # result = Query(models.InstanceSystemMetadata).all()
-    # print(result[0]["network_id"])
-
-    rows = Query(models.FixedIp, models.Network).filter(models.FixedIp.network_id, models.Network.id).all()
-    print(rows)
-
-    for row in rows:
-        print(row)
-
-    # result = Query(models.Network).first()
-    # print(len(result))
-    print(rows[0])
-    # print(result)
-    # print(result.share_address)
-
-    # print(result)
-    # print(time2 - time1)
+    # for each in result:
+    #     print(each)

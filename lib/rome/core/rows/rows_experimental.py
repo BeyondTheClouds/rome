@@ -4,6 +4,9 @@ import itertools
 
 from lib.rome.core.expression.expression import *
 from sqlalchemy.sql.expression import BinaryExpression
+from lib.rome.core.utils import current_milli_time
+
+from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
 
 def intersect(b1, b2):
     return [val for val in b1 if val in b2]
@@ -27,6 +30,11 @@ def extract_joining_criterion(exp):
     else:
         return []
 
+def extract_joining_criterion_from_relationship(rel, local_table):
+    local_tabledata = {"table": local_table, "column": rel.local_fk_field}
+    remote_tabledata = {"table": rel.remote_object_tablename, "column": rel.remote_object_field}
+    return [local_tabledata, remote_tabledata]
+
 def building_tuples(list_results, labels, criterions):
     from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
     mode = "experimental"
@@ -36,6 +44,7 @@ def building_tuples(list_results, labels, criterions):
             cartesian_product += [element]
         return cartesian_product
     elif mode is "experimental":
+        steps = zip(list_results, labels)
         results_per_table = {}
         filtering_values = {}
         joining_criterions = []
@@ -51,6 +60,21 @@ def building_tuples(list_results, labels, criterions):
                     foo = [x for x in joining_criterion if x is not None]
                     if len(foo) > 1:
                         joining_criterions += [foo]
+        done_index = {}
+        for step in steps:
+            tablename = step[1]
+            model_classname = get_model_classname_from_tablename(tablename)
+            fake_instance = get_model_class_from_name(model_classname)()
+            relationships = fake_instance.get_relationships()
+            for r in relationships:
+                criterion = extract_joining_criterion_from_relationship(r, tablename)
+                key1 = criterion[0]["table"]+"__"+criterion[1]["table"]
+                key2 = criterion[1]["table"]+"__"+criterion[0]["table"]
+                if key1 not in done_index and key2 not in criterion[0]["table"] in labels and criterion[1]["table"] in labels:
+                    joining_criterions += [criterion]
+                    done_index[key1] = True
+                    done_index[key2] = True
+                pass
         # Collecting for each of the aforementioned expressions, its values <-> objects
         for criterion in joining_criterions:
             for each in criterion:
@@ -65,43 +89,40 @@ def building_tuples(list_results, labels, criterions):
                         filtering_values[key][value_key] = []
                     filtering_values[key][value_key] += [{"value": value_key, "object": object}]
         # Progressively reduce the list of results
-        for criterion in joining_criterions:
-            key_left = "%s.%s" % (criterion[0]["table"], criterion[0]["column"])
-            key_right = "%s.%s" % (criterion[1]["table"], criterion[1]["column"])
-            common_values = intersect(filtering_values[key_left].keys(), filtering_values[key_right].keys())
-            left_objects_ok = flatten(map(lambda x:filtering_values[key_left][x], common_values))
-            right_objects_ok = flatten(map(lambda x:filtering_values[key_right][x], common_values))
-            results_per_table[criterion[0]["table"]] = intersect(results_per_table[criterion[0]["table"]], map(lambda x:x["object"], left_objects_ok))
-            results_per_table[criterion[1]["table"]] = intersect(results_per_table[criterion[1]["table"]], map(lambda x:x["object"], right_objects_ok))
-        # Build the cartesian product
+        time1 = current_milli_time()
+        print("here => %s seconds" % (current_milli_time() - time1))
         results = []
-        steps = zip(list_results, labels)
         processed_models = []
         if len(steps) > 0:
             step = steps[0]
-            results = map(lambda x:[x], results_per_table[step[1]])
+            results = map(lambda x:[x], list_results[0])
             processed_models += [step[1]]
         remaining_models = map(lambda x:x[1], steps[1:])
+        print("here4??")
         for step in steps[1:]:
             for criterion in joining_criterions:
-                criterion_models = map(lambda x:x["table"], criterion)
+                criterion_models = map(lambda x: x["table"], criterion)
                 candidate_models = [step[1]] + processed_models
                 if len(intersect(candidate_models, criterion_models)) > 1:
                     processed_models += [step[1]]
-                    remaining_models = filter(lambda x:x ==step[1], remaining_models)
-                    try:
-                        current_criterion_part = filter(lambda x:x["table"]==step[1], criterion)[0]
-                        remote_criterion_part = filter(lambda x:x["table"]!=step[1], criterion)[0]
-                        new_results = []
-                        for each in results:
-                            existing_tuple_index = processed_models.index(remote_criterion_part["table"])
-                            existing_value = each[existing_tuple_index][remote_criterion_part["column"]]
+                    remaining_models = filter(lambda x: x ==step[1], remaining_models)
+                    # try:
+                    current_criterion_option = filter(lambda x:x["table"]==step[1], criterion)
+                    remote_criterion_option = filter(lambda x:x["table"]!=step[1], criterion)
+                    if not (len(current_criterion_option) > 0 and len(remote_criterion_option) > 0):
+                        continue
+                    current_criterion_part = current_criterion_option[0]
+                    remote_criterion_part = remote_criterion_option[0]
+                    new_results = []
+                    for each in results:
+                        existing_tuple_index = processed_models.index(remote_criterion_part["table"])
+                        existing_value = get_attribute(each[existing_tuple_index], remote_criterion_part["column"])
+                        if existing_value is not None:
                             key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
-                            candidates = filtering_values[key][existing_value]
+                            candidates_value_index = filtering_values[key]
+                            candidates = candidates_value_index[existing_value] if existing_value in candidates_value_index else []
                             for candidate in candidates:
                                 new_results += [each + [candidate["object"]]]
-                        results = new_results
-                    except:
-                        pass
+                    results = new_results
                 continue
         return results
