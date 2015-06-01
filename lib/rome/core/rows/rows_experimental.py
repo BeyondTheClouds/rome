@@ -82,25 +82,30 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                     done_index[key2] = True
                 pass
         # Collecting for each of the aforementioned expressions, its values <-> objects
-        for criterion in joining_criterions:
-            for each in criterion:
-                key = "%s.%s" % (each["table"], each["column"])
-                index_list_results = labels.index(each["table"])
-                objects = list_results[index_list_results]
-                if not candidates_values.has_key(key):
-                    candidates_values[key] = {}
-                for object in objects:
-                    value_key = get_attribute(object, each["column"])
-                    skip = False
-                    for hint in hints:
-                        if each["table"] == hint.table_name and hint.attribute in object and object[hint.attribute] != hint.value:
-                            skip = True
-                            break
-                    if not skip:
-                        if not candidates_values[key].has_key(value_key):
-                            candidates_values[key][value_key] = []
-                        candidates_values[key][value_key] += [{"value": value_key, "object": object}]
-                        candidates_per_table[object.base] += [object]
+        if len(joining_criterions) > 0:
+            for criterion in joining_criterions:
+                for each in criterion:
+                    key = "%s.%s" % (each["table"], each["column"])
+                    index_list_results = labels.index(each["table"])
+                    objects = list_results[index_list_results]
+                    if not candidates_values.has_key(key):
+                        candidates_values[key] = {}
+                    for object in objects:
+                        value_key = get_attribute(object, each["column"])
+                        skip = False
+                        for hint in hints:
+                            if each["table"] == hint.table_name and hint.attribute in object and object[hint.attribute] != hint.value:
+                                skip = True
+                                break
+                        if not skip:
+                            if not candidates_values[key].has_key(value_key):
+                                candidates_values[key][value_key] = []
+                            candidates_values[key][value_key] += [{"value": value_key, "object": object}]
+                            candidates_per_table[object.base] += [object]
+        else:
+            for each in steps:
+                candidates_per_table[each[1]] = each[0]
+            # print("toto?")
         # Progressively reduce the list of results
         results = []
         processed_models = []

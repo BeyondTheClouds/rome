@@ -165,53 +165,7 @@ def _instance_update(instance_uuid, values, columns_to_join=None):
             raise Exception()
 
 if __name__ == '__main__':
-
-
-    logging.getLogger().setLevel(logging.DEBUG)
-
-    # host = "econome-18"
-    # # query = Query(models.Instance).filter(models.Instance.host==host)
-    # query = Query(models.Instance).filter_by(host=host)
-    # result = query.all()
-    # _instances_fill_metadata(None, result)
-    # print(map(lambda x: x.id, result))
-    # # query = Query(models.Network).filter_by(id=1)
-    # # result = query.all()
-    # # print(result)
-
-    # network_get_all_by_host("econome-7")
-
-    # result = query = Query(models.Instance.hostname, models.Instance).all()
-    # print(result)
-    # for each in result:
-    #     print(each)
-
-    # _instance_update("eae16b16-08ad-4070-9c49-50d905334621", {"expected_vm_state": "building"})
-
-    # result = query = Query(models.Instance).first()
-    # print(result)
-    # for each in result:
-    #     # each.vm_state = "building"
-    #     print(each.vm_state)
-    #     # each.save()
-
-
-    # query = Query(models.Network).filter(models.Network.id==1)
-    # result = query.first()
-    # print(result.share_address)
-
-    project_id = "39880583162c4ff38c406489a27230e7"
-    from sqlalchemy.sql import func
-    result = Query(func.count(models.Instance.id),
-                         func.sum(models.Instance.vcpus),
-                         func.sum(models.Instance.memory_mb),
-                    base_model=models.Instance
-            ).\
-                     filter_by(project_id=project_id)
-    # if user_id:
-    #     result = result.filter_by(user_id=user_id).first()
-    # else:
-    result = result.first()
-
-    print((result[0] or 0, result[1] or 0, result[2] or 0))
-    pass
+    # query = Query(models.Network).filter_by(id=1)
+    query = Query(models.Network).filter(models.Network.id==1)
+    result = query.all()
+    print(result)
