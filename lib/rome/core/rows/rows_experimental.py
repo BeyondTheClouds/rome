@@ -54,7 +54,7 @@ def building_tuples(list_results, labels, criterions, hints=[]):
 
         time1 = current_milli_time()
         for each in labels:
-            candidates_per_table[each] = []
+            candidates_per_table[each] = set()
             # index_list_results = labels.index(each)
             # candidates_per_table[each] = list_results[index_list_results][:]
         # Collecting joining expressions
@@ -99,9 +99,9 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                                 break
                         if not skip:
                             if not candidates_values[key].has_key(value_key):
-                                candidates_values[key][value_key] = []
-                            candidates_values[key][value_key] += [{"value": value_key, "object": object}]
-                            candidates_per_table[object.base] += [object]
+                                candidates_values[key][value_key] = {}
+                            candidates_values[key][value_key][object.__hash__()] = {"value": value_key, "object": object}
+                            candidates_per_table[object.base] = candidates_per_table[object.base].union(set([object]))
         else:
             for each in steps:
                 candidates_per_table[each[1]] = each[0]
@@ -115,9 +115,6 @@ def building_tuples(list_results, labels, criterions, hints=[]):
             results = map(lambda  x: [x], candidates_per_table[step[1]])
             processed_models += [step[1]]
         remaining_models = map(lambda x:x[1], steps[1:])
-
-        print("here => %s seconds" % (current_milli_time() - time1))
-        print("here4??")
         for step in steps[1:]:
             for criterion in joining_criterions:
                 criterion_models = map(lambda x: x["table"], criterion)
@@ -139,9 +136,10 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                         if existing_value is not None:
                             key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
                             candidates_value_index = candidates_values[key]
-                            candidates = candidates_value_index[existing_value] if existing_value in candidates_value_index else []
-                            for candidate in candidates:
-                                new_results += [each + [candidate["object"]]]
+                            candidates = candidates_value_index[existing_value] if existing_value in candidates_value_index else {}
+                            for candidate_key in candidates:
+                                new_results += [each + [candidates[candidate_key]["object"]]]
                     results = new_results
+                    break
                 continue
         return results
