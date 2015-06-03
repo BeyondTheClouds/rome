@@ -45,18 +45,12 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         return cartesian_product
     elif mode is "experimental":
         steps = zip(list_results, labels)
-        # results_per_table = {}
         candidates_values = {}
         candidates_per_table = {}
         joining_criterions = []
-        filtering_criterions = []
         # Initialising candidates per table
-
-        time1 = current_milli_time()
         for each in labels:
-            candidates_per_table[each] = set()
-            # index_list_results = labels.index(each)
-            # candidates_per_table[each] = list_results[index_list_results][:]
+            candidates_per_table[each] = {}
         # Collecting joining expressions
         for criterion in criterions:
             # if criterion.operator in  "NORMAL":
@@ -100,19 +94,22 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                         if not skip:
                             if not candidates_values[key].has_key(value_key):
                                 candidates_values[key][value_key] = {}
-                            candidates_values[key][value_key][object.__hash__()] = {"value": value_key, "object": object}
-                            candidates_per_table[object.base] = candidates_per_table[object.base].union(set([object]))
+                            object_hash = str(object).__hash__()
+                            object_table = object["nova_classname"]
+                            candidates_values[key][value_key][object_hash] = {"value": value_key, "object": object}
+                            candidates_per_table[object_table][object_hash] = object
         else:
             for each in steps:
-                candidates_per_table[each[1]] = each[0]
-            # print("toto?")
+                for each_object in each[0]:
+                    object_hash = str(each_object).__hash__()
+                    object_table = each_object["nova_classname"]
+                    candidates_per_table[object_table][object_hash] = each_object
         # Progressively reduce the list of results
         results = []
         processed_models = []
         if len(steps) > 0:
             step = steps[0]
-            # results = map(lambda x:[x], list_results[0])
-            results = map(lambda  x: [x], candidates_per_table[step[1]])
+            results = map(lambda  x: [candidates_per_table[step[1]][x]], candidates_per_table[step[1]])
             processed_models += [step[1]]
         remaining_models = map(lambda x:x[1], steps[1:])
         for step in steps[1:]:

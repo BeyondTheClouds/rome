@@ -38,11 +38,11 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
     # create_mock_data(3, 2000)
 
-    query = Query(models.FixedIp.id, models.Network.id, models.Instance.id)\
-        .join(models.Instance.uuid==models.FixedIp.instance_uuid)\
-        .join(models.FixedIp.network_id == models.Network.id)
-    # query.filter(models.FixedIp.address == "172.1.1.13")
-    result = query.all()
+    for i in range(1, 5):
+        query = Query(models.FixedIp.id, models.Network.id)\
+            .join(models.FixedIp.network_id == models.Network.id)
+        # query.filter(models.FixedIp.address == "172.1.1.13")
+        result = query.all()
 
     print(len(result))
 

@@ -92,38 +92,6 @@ def extract_sub_row(row, selectables):
         product = []
         for label in labels:
             product = product + [get_attribute(row, label)]
-        # Updating Foreign Keys of objects that are in the row
-        # for label in labels:
-        #     current_object = get_attribute(row, label)
-        #     metadata = current_object.metadata
-        #     if metadata and has_attribute(metadata, "_fk_memos"):
-        #         for fk_name in metadata._fk_memos:
-        #             fks = metadata._fk_memos[fk_name]
-        #             for fk in fks:
-        #                 local_field_name = fk.column._label
-        #                 remote_table_name = fk._colspec.split(".")[-2]
-        #                 remote_field_name = fk._colspec.split(".")[-1]
-        #
-        #                 try:
-        #                     remote_object = get_attribute(row, remote_table_name)
-        #                     remote_field_value = get_attribute(remote_object, remote_field_name)
-        #                     set_attribute(current_object, local_field_name, remote_field_value)
-        #                 except:
-        #                     pass
-        #
-        # # Updating fields that are setted to None and that have default values
-        # for label in labels:
-        #     current_object = get_attribute(row, label)
-        #     for field in current_object._sa_class_manager:
-        #         instance_state = current_object._sa_instance_state
-        #         field_value = get_attribute(current_object, field)
-        #         if field_value is None:
-        #             try:
-        #                 field_column = instance_state.mapper._props[field].columns[0]
-        #                 field_default_value = field_column.default.arg
-        #                 set_attribute(current_object, field, field_default_value)
-        #             except:
-        #                 pass
         return KeyedTuple(product, labels=labels)
     else:
         model_name = find_table_name(selectables[0]._model)
@@ -252,9 +220,6 @@ def construct_rows(models, criterions, hints, session=None):
     list_results = []
     for selectable in model_set:
         tablename = find_table_name(selectable._model)
-        # def filtering_function(n):
-        #     print(n.table_name == tablename)
-        #     return True
         authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
@@ -288,11 +253,6 @@ def construct_rows(models, criterions, hints, session=None):
                 rows += [extract_sub_row(row, model_set)]
     part5_starttime = current_milli_time()
     deconverter = JsonDeconverter(request_uuid=request_uuid)
-    # copy_rows = []
-    # for row in rows:
-    #     copy_row = deconverter.desimplify(row)
-    #     copy_rows += [copy_row]
-    # rows = copy_rows
     # reordering tuples (+ selecting attributes)
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]

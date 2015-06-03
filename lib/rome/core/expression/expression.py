@@ -6,6 +6,36 @@ from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
 from lib.rome.core.rows.rows import get_attribute, has_attribute
 
+def uncapitalize(s):
+    return s[:1].lower() + s[1:] if s else ''
+
+def get_attribute_reccursively(obj, attr, otherwise=None):
+    """ A reccursive getattr function.
+
+    :param obj: the object that will be use to perform the search
+    :param attr: the searched attribute
+    :param otherwise: value returned in case attr was not found
+    :return:
+    """
+    try:
+        if not "." in attr:
+            return get_attribute(obj, attr.replace("\"", ""))
+        else:
+            current_key = attr[:attr.index(".")]
+            next_key = attr[attr.index(".") + 1:]
+            if has_attribute(obj, current_key):
+                current_object = get_attribute(obj, current_key)
+            elif has_attribute(obj, current_key.capitalize()):
+                current_object = get_attribute(obj, current_key.capitalize())
+            elif has_attribute(obj, uncapitalize(current_key)):
+                current_object = get_attribute(obj, uncapitalize(current_key))
+            else:
+                current_object = get_attribute(obj, current_key)
+
+            return get_attribute_reccursively(current_object, next_key, otherwise)
+    except AttributeError:
+        return otherwise
+
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
         self.operator = operator
@@ -16,36 +46,6 @@ class BooleanExpression(object):
         return True
 
     def evaluate_criterion(self, criterion, value):
-
-        def uncapitalize(s):
-            return s[:1].lower() + s[1:] if s else ''
-
-        def get_attribute_reccursively(obj, attr, otherwise=None):
-            """ A reccursive getattr function.
-
-            :param obj: the object that will be use to perform the search
-            :param attr: the searched attribute
-            :param otherwise: value returned in case attr was not found
-            :return:
-            """
-            try:
-                if not "." in attr:
-                    return get_attribute(obj, attr.replace("\"", ""))
-                else:
-                    current_key = attr[:attr.index(".")]
-                    next_key = attr[attr.index(".") + 1:]
-                    if has_attribute(obj, current_key):
-                        current_object = get_attribute(obj, current_key)
-                    elif has_attribute(obj, current_key.capitalize()):
-                        current_object = get_attribute(obj, current_key.capitalize())
-                    elif has_attribute(obj, uncapitalize(current_key)):
-                        current_object = get_attribute(obj, uncapitalize(current_key))
-                    else:
-                        current_object = get_attribute(obj, current_key)
-
-                    return get_attribute_reccursively(current_object, next_key, otherwise)
-            except AttributeError:
-                return otherwise
 
         criterion_str = criterion.__str__()
 
@@ -149,7 +149,6 @@ class BooleanExpression(object):
         # print(">>> (%s)[%s] = %s <-> %s" % (value.keys(), left, left_values, right))
         # except:
         #     pass
-
         result = False
         for left_value in left_values:
 
