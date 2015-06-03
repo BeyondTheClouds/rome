@@ -58,12 +58,16 @@ def is_lazyreference(obj):
 def is_novabase(obj):
     """Check if the given object is an instance of a NovaBase."""
 
-    try:
-        found_table_name = find_table_name(obj.__class__) is not "none"
-        is_lazy = is_lazyreference(obj)
-        return found_table_name or is_lazy
-    except:
-        pass
+    if hasattr(obj, "__tablename__"):
+        return True
+    elif "nova_classname" in obj:
+        return True
+    # try:
+    #     found_table_name = find_table_name(obj.__class__) is not "none"
+    #     is_lazy = is_lazyreference(obj)
+    #     return found_table_name or is_lazy
+    # except:
+    #     pass
 
     return False
 

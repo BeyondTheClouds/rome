@@ -257,18 +257,16 @@ def construct_rows(models, criterions, hints, session=None):
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]
     part6_starttime = current_milli_time()
+    # selecting attributes
     if all_selectable_are_functions(models):
         final_row = []
         for selection in showable_selection:
             value = selection._function._function(rows)
             final_row += [value]
         final_row = map(lambda x: deconverter.desimplify(x), final_row)
-        # final_row = LazyRows([final_row], request_uuid=request_uuid)
         return [final_row]
-        # return [final_row]
     else:
         for row in rows:
-            # final_row = []
             final_row = []
             for selection in showable_selection:
                 if selection._is_function:
@@ -277,7 +275,6 @@ def construct_rows(models, criterions, hints, session=None):
                 else:
                     current_table_name = find_table_name(selection._model)
                     key = current_table_name
-                    value = None
                     if not is_novabase(row) and has_attribute(row, key):
                         value = get_attribute(row, key)
                     else:
@@ -287,12 +284,9 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-            previous_version_final_row = final_row
             final_row = map(lambda x: deconverter.desimplify(x), final_row)
             if session is not None:
                 map(lambda x: x.set_session(session), final_row)
-            # print("final_row: %s to %s" % (previous_version_final_row, final_row))
-            # final_row = LazyRows(final_row, request_uuid=request_uuid)
             if len(showable_selection) == 1:
                 final_rows += final_row
             else:
