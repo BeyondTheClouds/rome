@@ -286,7 +286,10 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [value]
             final_row = map(lambda x: deconverter.desimplify(x), final_row)
             if session is not None:
-                map(lambda x: x.set_session(session), final_row)
+                try:
+                    map(lambda x: x.set_session(session), final_row)
+                except:
+                    pass
             if len(showable_selection) == 1:
                 final_rows += final_row
             else:

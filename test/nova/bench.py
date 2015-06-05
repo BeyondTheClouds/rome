@@ -38,13 +38,22 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
     # create_mock_data(3, 2000)
 
-    for i in range(1, 5):
-        query = Query(models.FixedIp.id, models.Network.id)\
-            .join(models.FixedIp.network_id == models.Network.id)
-        # query.filter(models.FixedIp.address == "172.1.1.13")
-        result = query.all()
+    from lib.rome.core.session.session import Session as Session
+    logging.getLogger().setLevel(logging.DEBUG)
+    session = Session()
 
-    print(len(result))
+    with session.begin():
+        for i in range(1, 10):
+            network = models.Network()
+            network.id = i
+            network.save()
+    # for i in range(1, 5):
+    #     query = Query(models.FixedIp.id, models.Network.id)\
+    #         .join(models.FixedIp.network_id == models.Network.id)
+    #     # query.filter(models.FixedIp.address == "172.1.1.13")
+    #     result = query.all()
+
+    # print(len(result))
 
     # for each in result:
     #     print(each)
