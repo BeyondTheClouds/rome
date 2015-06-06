@@ -166,6 +166,10 @@ def _instance_update(instance_uuid, values, columns_to_join=None):
 
 if __name__ == '__main__':
     # query = Query(models.Network).filter_by(id=1)
-    query = Query(models.Network).filter(models.Network.id==1)
-    result = query.all()
-    print(result)
+    # query = Query(models.Network).filter(models.Network.id==1)
+    # result = query.all()
+    # print(result)
+
+    service = models.Service()
+    service.update({'topic': 'conductor', 'binary': 'nova-conductor', 'host': 'petitprince-15', 'report_count': 0})
+    service.save()
