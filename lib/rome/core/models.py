@@ -9,6 +9,7 @@ import uuid
 import sys
 import datetime
 import logging
+from pyre.db import versatileReference
 
 from lib.rome.core.dataformat import converter
 import lib.rome.driver.database_driver as database_driver
@@ -213,6 +214,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             table_name = get_model_tablename_from_classname(classname)
 
             current_object = object_converter.complex_cache[key]
+            target_object = object_converter.target_cache[key]
 
             current_object["nova_classname"] = table_name
 
@@ -224,8 +226,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
                 if existing_object is not None:
+                    version_number = getattr(target_object, "_version_number")
                     # version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                    version_number = current_object["_version_number"] if "_version_number" in current_object else 0
+                    # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
                     # current_object
                     print("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
                     if version_number < existing_object["_version_number"]:

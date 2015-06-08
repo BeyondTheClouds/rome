@@ -58,6 +58,7 @@ class TestDogs(unittest.TestCase):
         logging.getLogger().setLevel(logging.DEBUG)
         query = Query(Dog).filter(Dog.name=="Bobby").filter(Dog.specy=="Griffon")
         bobby = query.first()
+        bobby.save()
         print("My dog's name is %s" % (bobby.name))
         self.assertEqual(True, True)
 
