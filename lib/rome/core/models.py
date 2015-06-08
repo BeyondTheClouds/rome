@@ -9,7 +9,6 @@ import uuid
 import sys
 import datetime
 import logging
-from pyre.db import versatileReference
 
 from lib.rome.core.dataformat import converter
 import lib.rome.driver.database_driver as database_driver
