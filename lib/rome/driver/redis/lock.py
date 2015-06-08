@@ -72,9 +72,12 @@ class ClusterLock(object):
         for each in data:
             if each:
                 json_object = json.loads(each)
+                expiration_date = json_object["start_date"] + (json_object["ttl"] / 1000.0)
                 if json_object["request_uuid"] == request_uuid:
                     keys_to_delete += [json_object["key"]]
-                elif json_object["start_date"] + json_object["ttl"] < now:
+                elif expiration_date < now:
                     keys_to_delete += [json_object["key"]]
-        self.redis_client.delete("lock", keys_to_delete)
+        for key in keys_to_delete:
+            self.redis_client.hdel("lock", key)
+        # self.redis_client.delete("lock", keys_to_delete)
         return True
