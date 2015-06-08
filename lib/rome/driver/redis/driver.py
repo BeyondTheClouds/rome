@@ -5,15 +5,18 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 # from redlock import RedLock as RedLock
 # import redis_lock
-from redlock import Redlock as Redlock
+# from redlock import Redlock as Redlock
 import time
+
+from lib.rome.driver.redis.lock import ClusterLock as ClusterLock
 
 class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
         config = get_config()
         self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
-        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        # self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
         """"""
@@ -40,7 +43,8 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         my_lock = None
         try_to_lock = True
         while try_to_lock:
-            my_lock = self.dlm.lock(lockname,1000)
+            # my_lock = self.dlm.lock(lockname,1000)
+            my_lock = self.dlm.lock("toto", 200)
             if my_lock is not False:
                 try_to_lock = False
             else:
@@ -109,7 +113,8 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         # startup_nodes = [{"host": "127.0.0.1", "port": "6379"}]
         startup_nodes = map(lambda x: {"host": x, "port": "%s" % (config.port())}, config.cluster_nodes())
         self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
-        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        # self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
         """"""

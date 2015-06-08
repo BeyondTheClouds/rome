@@ -36,17 +36,17 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    # create_mock_data(3, 2000)
+    create_mock_data(3, 2000)
 
-    from lib.rome.core.session.session import Session as Session
-    logging.getLogger().setLevel(logging.DEBUG)
-    session = Session()
-
-    with session.begin():
-        for i in range(1, 10):
-            network = models.Network()
-            network.id = i
-            network.save()
+    # from lib.rome.core.session.session import Session as Session
+    # logging.getLogger().setLevel(logging.DEBUG)
+    # session = Session()
+    #
+    # with session.begin():
+    #     for i in range(1, 10):
+    #         network = models.Network()
+    #         network.id = i
+    #         network.save()
     # for i in range(1, 5):
     #     query = Query(models.FixedIp.id, models.Network.id)\
     #         .join(models.FixedIp.network_id == models.Network.id)
