@@ -27,11 +27,11 @@ from lib.rome.core.utils import merge_dicts as merge_dicts
 class ClusterLock(object):
 
     def __init__(self, cluster_enabled=False):
-        self.retry_count = 10
+        self.retry_count = 3
         self.lock_labels = map(lambda x: "%i" % (x), range(1, 3))
         self.uuid = str(uuid.uuid1())
         config = get_config()
-        if cluster_enabled:
+        if config.redis_cluster_enabled():
             startup_nodes = map(lambda x: {"host": x, "port": "%s" % (config.port())}, config.cluster_nodes())
             self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
         else:

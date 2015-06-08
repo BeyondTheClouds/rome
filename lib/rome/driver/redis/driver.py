@@ -5,7 +5,7 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 # from redlock import RedLock as RedLock
 # import redis_lock
-# from redlock import Redlock as Redlock
+from redlock import Redlock as Redlock
 import time
 
 from lib.rome.driver.redis.lock import ClusterLock as ClusterLock
@@ -15,8 +15,8 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
     def __init__(self):
         config = get_config()
         self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
-        # self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
-        self.dlm = ClusterLock()
+        self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
+        # self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
         """"""
@@ -39,16 +39,16 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        # lockname = "lock-%s" % (tablename)
-        # my_lock = None
-        # try_to_lock = True
-        # while try_to_lock:
-        #     # my_lock = self.dlm.lock(lockname,1000)
-        #     my_lock = self.dlm.lock(lockname, 200)
-        #     if my_lock is not False:
-        #         try_to_lock = False
-        #     else:
-        #         time.sleep(0.2)
+        lockname = "lock-%s" % (tablename)
+        my_lock = None
+        try_to_lock = True
+        while try_to_lock:
+            # my_lock = self.dlm.lock(lockname,1000)
+            my_lock = self.dlm.lock(lockname, 200)
+            if my_lock is not False:
+                try_to_lock = False
+            else:
+                time.sleep(0.2)
         # json_value = json.dumps(value)
         json_value = value
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
@@ -58,6 +58,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             # fetched = self.redis_client.hset("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
         # self.dlm.unlock(lockname)
+        self.dlm.unlock(my_lock)
         return result
 
     def get(self, tablename, key, hint=None):
@@ -137,15 +138,15 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        # lockname = "lock-%s" % (tablename)
-        # my_lock = None
-        # try_to_lock = True
-        # while try_to_lock:
-        #     my_lock = self.dlm.lock(lockname, 200)
-        #     if my_lock is not False:
-        #         try_to_lock = False
-        #     else:
-        #         time.sleep(0.020)
+        lockname = "lock-%s" % (tablename)
+        my_lock = None
+        try_to_lock = True
+        while try_to_lock:
+            my_lock = self.dlm.lock(lockname, 200)
+            if my_lock is not False:
+                try_to_lock = False
+            else:
+                time.sleep(0.020)
         # json_value = json.dumps(value)
         json_value = value
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
@@ -154,6 +155,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             fetched = self.redis_client.sadd("sec_index:%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
             # fetched = self.redis_client.hset("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
+        self.dlm.unlock(my_lock)
         # self.dlm.unlock(lockname)
         return result
 
