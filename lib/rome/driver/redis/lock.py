@@ -38,11 +38,11 @@ class ClusterLock(object):
             self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
 
     def lock(self, name, ttl):
-        self.unlock(name)
+        self.unlock(name, only_expired=True)
         retry = 0
         request_uuid = ("%s_%s" % (self.uuid, name)).__hash__()
         while retry < self.retry_count:
-            now = int(time.time() * 1000)
+            now = time.time()
             failed = False
             keys = map(lambda x: "%s_%s" % (x, name), self.lock_labels)
             lock_value = {"host": self.uuid, "start_date": now, "ttl": ttl, "request_uuid": request_uuid}
@@ -63,9 +63,9 @@ class ClusterLock(object):
                 return True
         return False
 
-    def unlock(self, name):
+    def unlock(self, name, only_expired=False):
         request_uuid = ("%s_%s" % (self.uuid, name)).__hash__()
-        now = int(time.time() * 1000)
+        now = time.time()
         keys = map(lambda x: "%s_%s" % (x, name), self.lock_labels)
         data = self.redis_client.hmget("lock", keys)
         keys_to_delete = []
@@ -73,9 +73,10 @@ class ClusterLock(object):
             if each:
                 json_object = json.loads(each)
                 expiration_date = json_object["start_date"] + (json_object["ttl"] / 1000.0)
-                if json_object["request_uuid"] == request_uuid:
-                    keys_to_delete += [json_object["key"]]
-                elif expiration_date < now:
+                if not only_expired:
+                    if json_object["request_uuid"] == request_uuid:
+                        keys_to_delete += [json_object["key"]]
+                if expiration_date < now:
                     keys_to_delete += [json_object["key"]]
         for key in keys_to_delete:
             self.redis_client.hdel("lock", key)
