@@ -26,9 +26,9 @@ from lib.rome.core.utils import merge_dicts as merge_dicts
 
 class ClusterLock(object):
 
-    def __init__(self, cluster_enabled=False):
-        self.retry_count = 3
-        self.lock_labels = map(lambda x: "%i" % (x), range(1, 3))
+    def __init__(self):
+        self.retry_count = 1
+        self.lock_labels = map(lambda x: "%i" % (x), range(0, 1))
         self.uuid = str(uuid.uuid1())
         config = get_config()
         if config.redis_cluster_enabled():
@@ -78,6 +78,8 @@ class ClusterLock(object):
                         keys_to_delete += [json_object["key"]]
                 if expiration_date < now:
                     keys_to_delete += [json_object["key"]]
+                else:
+                    print("still %s ms to wait" % (expiration_date - now))
         for key in keys_to_delete:
             self.redis_client.hdel("lock", key)
         # self.redis_client.delete("lock", keys_to_delete)

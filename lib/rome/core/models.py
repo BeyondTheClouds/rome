@@ -224,8 +224,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
                 if existing_object is not None:
-                    version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                    print("check version: %i vs %i" % (version_number, existing_object["_version_number"]))
+                    # version_number = getattr(self, "_version_number", existing_object["_version_number"])
+                    version_number = current_object["_version_number"] if "_version_number" in current_object else 0
+                    # current_object
+                    print("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
                     if version_number < existing_object["_version_number"]:
                         continue
                 if not same_version(existing_object, current_object, model_class) or force_save:
