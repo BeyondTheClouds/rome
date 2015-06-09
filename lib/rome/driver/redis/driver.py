@@ -24,6 +24,8 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def remove_key(self, tablename, key):
         """"""
+        redis_key = "%s:id:%s" % (tablename, key)
+        self.redis_client.hdel(tablename, redis_key)
         pass
 
     def next_key(self, tablename):
@@ -123,6 +125,8 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def remove_key(self, tablename, key):
         """"""
+        redis_key = "%s:id:%s" % (tablename, key)
+        self.redis_client.hdel(tablename, redis_key)
         pass
 
     def next_key(self, tablename):

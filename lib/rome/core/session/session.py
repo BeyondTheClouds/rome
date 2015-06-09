@@ -74,7 +74,7 @@ class Session(object):
         for obj in self.session_objects_add + self.session_objects_delete:
             if obj.id is not None:
                 lock_name = "session_lock_%s_%s" % (obj.__tablename__, obj.id)
-                if self.dlm.lock(lock_name):
+                if self.dlm.lock(lock_name, 100):
                     locks += [lock_name]
                 else:
                     success = False

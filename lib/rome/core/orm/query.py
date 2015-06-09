@@ -36,7 +36,7 @@ class Query:
         if "session" in kwargs:
             self._session = kwargs.get("session")
         for arg in args:
-            if "count" in str(arg) or "sum" in str(arg):
+            if "functions.count" in str(arg) or "functions.sum" in str(arg):
                 function_name = re.sub("\(.*\)", "", str(arg))
                 field_id = re.sub("\)", "", re.sub(".*\(", "", str(arg)))
                 self._models += [Selection(None, None, is_function=True, function=Function(function_name, field_id))]
