@@ -37,6 +37,7 @@ class Session(object):
         self.session_objects_delete = []
         self.session_timeout = current_milli_time() + Session.max_duration
         self.dlm = ClusterLock()
+        self.acquired_locks = []
 
     def add(self, *objs):
         for obj in objs:
@@ -88,6 +89,8 @@ class Session(object):
             for lock in locks:
                 self.dlm.unlock(lock)
             raise SessionDeadlock()
+        else:
+            self.acquired_locks = locks
         return success
 
     def commit(self):
@@ -97,5 +100,8 @@ class Session(object):
         for obj in self.session_objects_delete:
             obj.soft_delete()
         logging.info("session %s committed" % (self.session_id))
+        for lock in self.acquired_locks:
+            self.dlm.unlock(lock)
+            self.acquired_locks.remove(lock)
         self.session_objects_add = []
         self.session_objects_delete = []
