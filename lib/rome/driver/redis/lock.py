@@ -5,18 +5,16 @@ __author__ = 'jonathan'
 # redis 3:
 #   https://github.com/SPSCommerce/redlock-py
 
-import string
-import random
 import time
-import rediscluster
-
-from lib.rome.conf.Configuration import get_config
-import redis
-
 import uuid
 import random
-
 import json
+import logging
+import rediscluster
+import redis
+
+from lib.rome.conf.Configuration import get_config
+
 
 # Python 3 compatibility
 string_type = getattr(__builtins__, 'basestring', str)
@@ -79,7 +77,7 @@ class ClusterLock(object):
                 if expiration_date < now:
                     keys_to_delete += [json_object["key"]]
                 else:
-                    print("still %s ms to wait" % (expiration_date - now))
+                    logging.debug("still %s ms to wait" % (expiration_date - now))
         for key in keys_to_delete:
             self.redis_client.hdel("lock", key)
         # self.redis_client.delete("lock", keys_to_delete)

@@ -3,6 +3,7 @@ __author__ = 'jonathan'
 import unittest
 import logging
 import time
+import functools
 
 from lib.rome.core.orm.query import Query
 from _fixtures import *
@@ -11,7 +12,7 @@ BASE = declarative_base()
 
 from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
-from lib.rome.core.session.session import Session
+from lib.rome.core.session.session import Session, SessionDeadlock
 
 BASE = declarative_base()
 
@@ -23,10 +24,25 @@ class BankAccount(BASE, Entity):
     __tablename__ = 'bank_account'
 
     id = Column(Integer, primary_key=True)
+    owner = Column(String)
     money = Column(Integer)
 
 
-cpt = 0
+
+def _retry_on_deadlock(f):
+    """Decorator to retry a DB API call if Deadlock was received."""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        while True:
+            try:
+                return f(*args, **kwargs)
+            except SessionDeadlock:
+                logging.warn(("Deadlock detected when running '%s': Retrying...") % (f.__name__))
+                # Retry!
+                time.sleep(0.5)
+                continue
+    functools.update_wrapper(wrapped, f)
+    return wrapped
 
 class TestSession(unittest.TestCase):
 
@@ -56,53 +72,56 @@ class TestSession(unittest.TestCase):
 
     def test_concurrent_update(self):
 
-        import threading
-        import time
+        for i in range(1, 20):
+            import threading
+            import time
 
-        print("cleaning existing accounts")
-        existing_accounts = Query(BankAccount).all()
-        for each in existing_accounts:
-            each.soft_delete()
+            # print("cleaning existing accounts")
+            existing_accounts = Query(BankAccount).all()
+            for each in existing_accounts:
+                each.soft_delete()
 
-        bob_account = BankAccount()
-        bob_account.money = 1000
-        bob_account.save()
+            bob_account = BankAccount()
+            bob_account.money = 1000
+            bob_account.owner = "bob"
+            bob_account.save()
 
-        alice_account = BankAccount()
-        alice_account.money = 1000
-        alice_account.save()
+            alice_account = BankAccount()
+            alice_account.money = 1000
+            alice_account.owner = "alice"
+            alice_account.save()
 
-        def transfer():
-            session = Session()
-            with session.begin():
+            @_retry_on_deadlock
+            def transfer():
+                session = Session()
+                with session.begin():
+                    # print("executing")
+                    accounts = Query(BankAccount, session=session).all()
 
-                accounts = Query(BankAccount, session=session).all()
+                    bob_account = accounts[0] if accounts[0].owner is "bob" else accounts[1]
+                    alice_account = accounts[0] if accounts[0].owner is "alice" else accounts[1]
 
-                global cpt
-                cpt += 1
+                    bob_account.money -= 100
+                    alice_account.money += 100
 
-                accounts[0].money -= 100
-                accounts[1].money += 100
+                    # bob_account.save()
+                    # alice_account.save()
 
-                # while(cpt < 2):
-                #     time.sleep(0.01)
+            a = threading.Thread(target=transfer)
+            b = threading.Thread(target=transfer)
+            a.start()
+            b.start()
 
-                accounts[0].save()
-                accounts[1].save()
+            time.sleep(1)
 
-        a = threading.Thread(target=transfer)
-        b = threading.Thread(target=transfer)
-        a.start()
-        b.start()
-
-        time.sleep(2)
-
-        existing_accounts = Query(BankAccount).all()
-        for each in existing_accounts:
-            print(each.money)
+            existing_accounts = Query(BankAccount).all()
+            for each in existing_accounts:
+                print(each.money)
+            print "____"
 
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.DEBUG)
+    # logging.getLogger().setLevel(logging.DEBUG)
+
     unittest.main()
 

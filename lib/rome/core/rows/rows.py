@@ -230,7 +230,6 @@ def construct_rows(models, criterions, hints, session=None):
     # construct the cartesian product
     # tuples = building_tuples(list_results, labels, criterions)
     tuples = building_tuples_experimental(list_results, labels, criterions, hints)
-    print("tuple.size: %i" % (len(tuples)))
     part4_starttime = current_milli_time()
 
     # filtering tuples (cartesian product)

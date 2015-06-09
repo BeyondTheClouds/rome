@@ -1,21 +1,22 @@
 __author__ = 'jonathan'
 
-from lib.rome.core.utils import merge_dicts
-from lib.rome.core.utils import current_milli_time
-from lib.rome.core.lazy_reference import LazyReference
-from lib.rome.driver.redis.lock import ClusterLock
-
 import logging
-
 import uuid
 
-class SessionException(Exception):
+from lib.rome.core.utils import merge_dicts
+from lib.rome.core.utils import current_milli_time
+from lib.rome.driver.redis.lock import ClusterLock
+
+
+class SessionDeadlock(Exception):
     pass
 
 class SessionControlledExecution():
 
-    def __init__(self, session):
+    def __init__(self, session, max_try=1):
         self.session = session
+        self.current_try_count = 0
+        self.max_try = max_try
 
     def __enter__(self):
         pass
@@ -38,10 +39,14 @@ class Session(object):
         self.dlm = ClusterLock()
 
     def add(self, *objs):
-        self.session_objects_add += objs
+        for obj in objs:
+            if obj not in self.session_objects_add:
+                self.session_objects_add += [obj]
 
     def delete(self, *objs):
-        self.session_objects_delete += objs
+        for obj in objs:
+            if obj not in self.session_objects_delete:
+                self.session_objects_delete += [obj]
 
     def query(self, *entities, **kwargs):
         from lib.rome.core.orm.query import Query
@@ -68,7 +73,6 @@ class Session(object):
         return False
 
     def can_commit_request(self):
-        # processed_objects = []
         locks = []
         success = True
         for obj in self.session_objects_add + self.session_objects_delete:
@@ -79,31 +83,19 @@ class Session(object):
                 else:
                     success = False
                     break
-                # recent_version = LazyReference(obj.__tablename__, obj.id, self.session_id, None).load()
-                # if self.can_be_used(recent_version):
-                #     session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
-                #     recent_version.update({"session": session_object})
-                #     recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
-                #     processed_objects += [recent_version]
-                # else:
-                #     success = False
         if not success:
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for lock in locks:
                 self.dlm.unlock(lock)
-            # for obj in processed_objects:
-            #     obj.session = None
-            #     obj.save(force=True, no_nested_save=True)
+            raise SessionDeadlock()
         return success
 
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
-            # obj.update({"session": None}, skip_session=True)
             obj.save(force=True)
         for obj in self.session_objects_delete:
-            # obj.update({"session": None}, skip_session=True)
-            obj.soft_delete(force=True)
+            obj.soft_delete()
         logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []
