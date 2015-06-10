@@ -6,7 +6,7 @@ import uuid
 from lib.rome.core.utils import merge_dicts
 from lib.rome.core.utils import current_milli_time
 from lib.rome.driver.redis.lock import ClusterLock
-
+from oslo.db.exception import DBDeadlock
 
 class SessionDeadlock(Exception):
     pass
@@ -88,7 +88,8 @@ class Session(object):
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for lock in locks:
                 self.dlm.unlock(lock)
-            raise SessionDeadlock()
+            raise DBDeadlock()
+            # raise SessionDeadlock()
         else:
             self.acquired_locks = locks
         return success
