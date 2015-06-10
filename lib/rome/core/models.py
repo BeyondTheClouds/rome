@@ -226,7 +226,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
                 if existing_object is not None:
                     # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
-                    version_number = getattr(target_object, "_version_number", 0)
+                    # version_number = getattr(target_object, "_version_number", 0)
+                    version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
+
                     # version_number = getattr(self, "_version_number", existing_object["_version_number"])
                     # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
                     # current_object

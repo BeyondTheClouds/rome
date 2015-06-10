@@ -13,6 +13,7 @@ BASE = declarative_base()
 from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
 from lib.rome.core.session.session import Session, SessionDeadlock
+from oslo.db.exception import DBDeadlock
 
 BASE = declarative_base()
 
@@ -36,7 +37,7 @@ def _retry_on_deadlock(f):
         while True:
             try:
                 return f(*args, **kwargs)
-            except SessionDeadlock:
+            except DBDeadlock:
                 logging.warn(("Deadlock detected when running '%s': Retrying...") % (f.__name__))
                 # Retry!
                 time.sleep(0.5)
@@ -101,8 +102,11 @@ class TestSession(unittest.TestCase):
                     bob_account = accounts[0] if accounts[0].owner is "bob" else accounts[1]
                     alice_account = accounts[0] if accounts[0].owner is "alice" else accounts[1]
 
-                    bob_account.money -= 100
-                    alice_account.money += 100
+                    # bob_account.money -= 100
+                    # alice_account.money += 100
+
+                    bob_account.update({"money": bob_account.money - 100})
+                    alice_account.update({"money": alice_account.money + 100})
 
                     # bob_account.save()
                     # alice_account.save()
@@ -121,7 +125,7 @@ class TestSession(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.DEBUG)
 
     unittest.main()
 
