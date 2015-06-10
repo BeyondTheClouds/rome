@@ -148,9 +148,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         if not skip_session and getattr(self, "_session", None) is not None:
             self._session.add(self)
         else:
-            if do_save:
-                print("saving")
-                self.save(request_uuid=request_uuid)
+            # if do_save:
+            print("saving")
+            self.save(request_uuid=request_uuid)
         return self
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
