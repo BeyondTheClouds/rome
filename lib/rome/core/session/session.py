@@ -89,8 +89,8 @@ class Session(object):
             logging.error("session %s encountered a conflict, aborting commit" % (self.session_id))
             for lock in locks:
                 self.dlm.unlock(lock)
-            # raise DBDeadlock()
-            raise SessionDeadlock()
+            raise DBDeadlock()
+            # raise SessionDeadlock()
         else:
             self.acquired_locks = locks
         return success
@@ -168,8 +168,8 @@ class OldSession(object):
                 obj.save(force=True, no_nested_save=True)
         else:
             # raise SessionDeadlock()
-            # raise DBDeadlock()
-            pass
+            raise DBDeadlock()
+            # pass
         return success
 
     def commit(self):
