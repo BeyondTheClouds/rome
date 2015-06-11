@@ -167,8 +167,9 @@ class OldSession(object):
                 obj.session = None
                 obj.save(force=True, no_nested_save=True)
         else:
-            raise SessionDeadlock()
+            # raise SessionDeadlock()
             # raise DBDeadlock()
+            pass
         return success
 
     def commit(self):
