@@ -148,8 +148,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         if not skip_session and getattr(self, "_session", None) is not None:
             self._session.add(self)
         else:
-            # if do_save:
-            print("saving")
             self.save(request_uuid=request_uuid)
         return self
 
@@ -225,17 +223,17 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
                 # force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
-                if existing_object is not None:
-                    # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
-                    # version_number = getattr(target_object, "_version_number", 0)
-                    version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
-
-                    # version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                    # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
-                    # current_object
-                    logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
-                    if version_number < existing_object["_version_number"]:
-                        continue
+                # if existing_object is not None:
+                #     # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
+                #     version_number = getattr(target_object, "_version_number", 0)
+                #     # version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
+                #
+                #     # version_number = getattr(self, "_version_number", existing_object["_version_number"])
+                #     # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
+                #     # current_object
+                #     logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
+                #     if version_number < existing_object["_version_number"]:
+                #         continue
                 if not same_version(existing_object, current_object, model_class):
                     current_object = merge_dict(existing_object, current_object)
                 else:

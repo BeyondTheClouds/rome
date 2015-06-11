@@ -12,7 +12,7 @@ BASE = declarative_base()
 
 from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
-from lib.rome.core.session.session import Session, SessionDeadlock
+from lib.rome.core.session.session import OldSession as Session
 from oslo.db.exception import DBDeadlock
 
 BASE = declarative_base()
@@ -72,8 +72,9 @@ class TestSession(unittest.TestCase):
     #         # raise Exception("toto")
 
     def test_concurrent_update(self):
+        logging.getLogger().setLevel(logging.DEBUG)
 
-        for i in range(1, 20):
+        for i in range(1, 2):
             import threading
             import time
 
@@ -125,7 +126,5 @@ class TestSession(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.DEBUG)
-
     unittest.main()
 
