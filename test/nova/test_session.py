@@ -15,6 +15,8 @@ from lib.rome.core.models import global_scope
 from lib.rome.core.session.session import OldSession as Session
 from oslo.db.exception import DBDeadlock
 
+import random
+
 BASE = declarative_base()
 
 
@@ -40,7 +42,7 @@ def _retry_on_deadlock(f):
             except DBDeadlock:
                 logging.warn(("Deadlock detected when running '%s': Retrying...") % (f.__name__))
                 # Retry!
-                time.sleep(0.5)
+                time.sleep(random.uniform(0.1, 0.5))
                 continue
     functools.update_wrapper(wrapped, f)
     return wrapped
@@ -108,6 +110,9 @@ class TestSession(unittest.TestCase):
 
                     bob_account.update({"money": bob_account.money - 100})
                     alice_account.update({"money": alice_account.money + 100})
+
+                    session.add(bob_account)
+                    session.add(alice_account)
 
                     # bob_account.save()
                     # alice_account.save()

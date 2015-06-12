@@ -157,7 +157,8 @@ class OldSession(object):
                 if self.can_be_used(recent_version):
                     session_object = {"session_id": str(self.session_id), "session_timeout": self.session_timeout}
                     recent_version.update({"session": session_object})
-                    recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
+                    # recent_version.save(force=True, session=self, no_nested_save=True, increase_version=False)
+                    recent_version.save(force=True, session=None, no_nested_save=True, increase_version=False)
                     processed_objects += [recent_version]
                 else:
                     success = False
@@ -168,18 +169,18 @@ class OldSession(object):
                 obj.save(force=True, no_nested_save=True)
         else:
             # raise SessionDeadlock()
-            raise DBDeadlock()
-            # pass
+            # raise DBDeadlock()
+            pass
         return success
 
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
             obj.update({"session": None}, skip_session=True)
-            obj.save(force=True)
+            obj.save()
         for obj in self.session_objects_delete:
             obj.update({"session": None}, skip_session=True)
-            obj.soft_delete(force=True)
+            obj.soft_delete()
         logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []

@@ -145,17 +145,20 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 logging.error(e)
                 pass
         self.update_foreign_keys()
-        if not skip_session and getattr(self, "_session", None) is not None:
-            self._session.add(self)
-        else:
-            self.save(request_uuid=request_uuid)
+        # if not skip_session and getattr(self, "_session", None) is not None:
+        #     self._session.add(self)
+        # else:
+        #     self.save(request_uuid=request_uuid)
         return self
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
 
-        if getattr(self, "_session", session) is not None:
-            if not force:
-                return
+        # if getattr(self, "_session", session) is not None:
+        #     if not force:
+        #         return
+
+        if session is not None:
+            return
 
         self.update_foreign_keys()
 
