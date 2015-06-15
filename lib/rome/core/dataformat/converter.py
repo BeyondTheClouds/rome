@@ -199,7 +199,7 @@ class JsonConverter(object):
         if do_deep_simplification and not is_basic_type:
 
             novabase_classname = str(obj.__class__.__name__)
-            if novabase_classname == "LazyReference":
+            if novabase_classname == "LazyReference" or novabase_classname == "LazyValue":
                 novabase_classname = obj.resolve_model_name()
             if isinstance(obj, dict) and "novabase_classname" in obj:
                 novabase_classname = obj["novabase_classname"]
