@@ -165,11 +165,15 @@ def _instance_update(instance_uuid, values, columns_to_join=None):
             raise Exception()
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG)
     # query = Query(models.Network).filter_by(id=1)
     # query = Query(models.Network).filter(models.Network.id==1)
     # result = query.all()
     # print(result)
 
-    service = models.Service()
-    service.update({'topic': 'conductor', 'binary': 'nova-conductor', 'host': 'petitprince-15', 'report_count': 0})
-    service.save()
+    query = Query(models.Instance, models.InstanceAction).filter(models.Instance.uuid==models.InstanceAction.instance_uuid)
+    results = query.all()
+
+    print(results[0][0].id)
+
+    print(len(results))

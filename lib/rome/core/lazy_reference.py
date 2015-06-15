@@ -45,9 +45,6 @@ class LazyAttribute(dict):
     def delete(self, *args, **kwargs):
         pass
 
-
-
-
 class LazyBackrefBuffer(object):
     """This class intercepts calls to emit_backref. This enables to have efficient lazy loading."""
     def __init__(self):
@@ -62,94 +59,29 @@ class LazyBackrefBuffer(object):
         return getattr(self, item)
 
 
-# class LazyRows(list):
-#     """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
-#     when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
-#     (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
-#
-#     def __init__(self):
-#         from lib.rome.core.dataformat.deconverter import JsonDeconverter
-#         self.deconverter = JsonDeconverter()
-#
-#     def wrap(self, existing_list):
-#         result = LazyRows()
-#         for each in existing_list:
-#             result += [each]
-#         return result
-#
-#     def transform(self, x):
-#         if type(x) is list:
-#             return self.wrap(x)
-#         if "KeyedTuple" in str(type(x)):
-#             return x
-#         else:
-#             return self.deconverter.desimplify(x)
-#
-#     def __getitem__(self, y):
-#         return self.transform(list.__getitem__(self, y))
-#
-#     def __iter__(self):
-#         return map(lambda x: self.transform(x), list.__iter__(self)).__iter__()
-#
-#     def __repr__(self):
-#         values = []
-#         for item in self.__iter__():
-#             values += [self.transform(item)]
-#         return str(values)
-#         return "Rows(...)"
+class LazyValue:
+    """Class that represents a "Lazyfied" value. The LazyValue wraps a value in a dict format, and
+    when an external object accesses one of the wrapped dict, content of the dict is "converted" in an object format
+    (models entities). In a few words LazyValue(dict).id <-> JsonDeconverter(dict).id ."""
 
-class LazyRows:
-    """Class that represents a list of "Lazyfied" rows. The LazyList wraps a list of rows that are in a dict format, and
-    when an external object accesses one of the wrapped rows, content of the row is "converted" in an object format
-    (models entities). In a few words LazyRows(wrapped_list)[i] <-> JsonDeconverter(wrapped_list[i])."""
-
-    def __init__(self, wrapped_list, request_uuid):
+    def __init__(self, wrapped_dict, request_uuid):
         from lib.rome.core.dataformat.deconverter import JsonDeconverter
         self.deconverter = JsonDeconverter(request_uuid=request_uuid)
-        self.wrapped_list = wrapped_list
-
-    def wrap(self, existing_list):
-        result = LazyRows()
-        for each in existing_list:
-            result += [each]
-        return result
+        self.wrapped_dict = wrapped_dict
+        self.wrapped_value = None
+        self.request_uuid = request_uuid
 
     def transform(self, x):
-        if type(x) is list:
-            return self.wrap(x)
-        if "KeyedTuple" in str(type(x)):
-            return x
-        elif hasattr(x, "__iter__") and type(x) is not dict:
-            return LazyRows(x)
-        else:
-            return self.deconverter.desimplify(x)
+        return self.deconverter.desimplify(x)
 
     def __repr__(self):
-        return "LazyRows(...)"
+        return "LazyValue(%s)" % (self.wrapped_dict)
 
     def __getattr__(self, attr):
-        ret = getattr(self.wrapped_list, attr)
-        if hasattr(ret, "__call__"):
-            callable_object = self.FunctionWrapper(ret, attr, self.transform)
-            return callable_object
-        return ret
+        if self.wrapped_value is None:
+            self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
+        return getattr(self.wrapped_value, attr)
 
-    class FunctionWrapper:
-
-        """Class that is used to "simulate" the call to a functions on two objects: it enables to measure the difference
-        between the two implementations. This class will target the creation of runnable objects."""
-
-        def __init__(self, callable, call_name, transform):
-            self.callable = callable
-            self.call_name = call_name
-            self.label = "LazyRows"
-            self.transform = transform
-
-        def __call__(self, *args, **kwargs):
-            result_callable = self.callable(*args, **kwargs)
-            pretty_print_callable = "%s.%s(args=%s, kwargs=%s) => [%s]" % (self.label, self.call_name, str(args), str(kwargs), str(result_callable))
-            # print(pretty_print_callable)
-            return self.transform(result_callable)
 
 class LazyReference:
     """Class that references a remote object stored in database. This aims

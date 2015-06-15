@@ -13,7 +13,7 @@ from lib.rome.core.utils import get_objects, is_novabase
 from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
 from lib.rome.core.rows.rows_experimental import building_tuples as building_tuples_experimental
 
-from lib.rome.core.lazy_reference import LazyRows
+from lib.rome.core.lazy_reference import LazyValue
 
 from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
@@ -283,15 +283,19 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-            final_row = map(lambda x: deconverter.desimplify(x), final_row)
+
+            # final_row = map(lambda x: deconverter.desimplify(x), final_row)
             # if session is not None:
             #     try:
             #         map(lambda x: x.set_session(session), final_row)
             #     except:
             #         pass
             if len(showable_selection) == 1:
-                final_rows += final_row
+                final_row = LazyValue(final_row[0], request_uuid)
+                final_rows += [final_row]
             else:
+                # final_row = LazyRows(final_row, request_uuid)
+                final_row = map(lambda x:LazyValue(x, request_uuid), final_row)
                 final_rows += [final_row]
     part7_starttime = current_milli_time()
 
