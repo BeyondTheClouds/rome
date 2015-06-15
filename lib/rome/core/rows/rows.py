@@ -290,12 +290,24 @@ def construct_rows(models, criterions, hints, session=None):
             #         map(lambda x: x.set_session(session), final_row)
             #     except:
             #         pass
+            
+            # if len(showable_selection) == 1:
+            #     final_row = LazyValue(final_row[0], request_uuid)
+            #     final_rows += [final_row]
+            # else:
+            #     # final_row = LazyRows(final_row, request_uuid)
+            #     final_row = map(lambda x:LazyValue(x, request_uuid), final_row)
+            #     final_rows += [final_row]
+
+            final_row = map(lambda x: deconverter.desimplify(x), final_row)
+            # if session is not None:
+            #     try:
+            #         map(lambda x: x.set_session(session), final_row)
+            #     except:
+            #         pass
             if len(showable_selection) == 1:
-                final_row = LazyValue(final_row[0], request_uuid)
-                final_rows += [final_row]
+                final_rows += final_row
             else:
-                # final_row = LazyRows(final_row, request_uuid)
-                final_row = map(lambda x:LazyValue(x, request_uuid), final_row)
                 final_rows += [final_row]
     part7_starttime = current_milli_time()
 
