@@ -171,9 +171,8 @@ if __name__ == '__main__':
     # result = query.all()
     # print(result)
 
-    query = Query(models.Instance, models.InstanceAction).filter(models.Instance.uuid==models.InstanceAction.instance_uuid)
+    query = Query(models.Instance)
     results = query.all()
 
-    print(results[0][0].id)
-
+    print(results[0].id)
     print(len(results))

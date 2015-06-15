@@ -77,6 +77,19 @@ class LazyValue:
     def __repr__(self):
         return "LazyValue(%s)" % (self.wrapped_dict)
 
+    def get_key(self):
+        """Returns a unique key for the current LazyReference."""
+        return "%s_%s" % (self.resolve_model_name(), str(self.id))
+
+    def resolve_model_name(self):
+        """Returns the model class corresponding to the remote object."""
+        if "metadata_novabase_classname" in self.wrapped_dict:
+            return self.wrapped_dict["metadata_novabase_classname"]
+        elif self.wrapped_value is not None:
+            return models.get_model_classname_from_tablename(self.wrapped_value.base)
+        else:
+            return "None"
+
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
