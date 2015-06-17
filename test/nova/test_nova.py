@@ -164,6 +164,21 @@ def _instance_update(instance_uuid, values, columns_to_join=None):
         if actual_state not in expected:
             raise Exception()
 
+def metadata_to_dict(metadata):
+    result = {}
+    for item in metadata:
+        if not item.get('deleted'):
+            result[item['key']] = item['value']
+    return result
+
+def instance_sys_meta(instance):
+    if not instance.get('system_metadata'):
+        return {}
+    if isinstance(instance['system_metadata'], dict):
+        return instance['system_metadata']
+    else:
+        return metadata_to_dict(instance['system_metadata'])
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
     # query = Query(models.Network).filter_by(id=1)
@@ -171,8 +186,12 @@ if __name__ == '__main__':
     # result = query.all()
     # print(result)
 
-    query = Query(models.Instance)
-    results = query.all()
+    from lib.rome.core.lazy import LazyReference
+    inst = LazyReference("instances", 372, None, None)
+    print(instance_sys_meta(inst))
 
-    print(results[0].id)
-    print(len(results))
+    # query = Query(models.Instance)
+    # results = query.all()
+    #
+    # print(results[0].id)
+    # print(len(results))

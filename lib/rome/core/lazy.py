@@ -139,10 +139,13 @@ class LazyReference:
         """Spawn an empty instance of the model class specified by the
         given object"""
         key = self.get_key()
-        if "novabase_classname" in obj:
-            model_class_name = obj["novabase_classname"]
-        elif "metadata_novabase_classname" in obj:
-            model_class_name = obj["metadata_novabase_classname"]
+        if obj is not None:
+            if"novabase_classname" in obj:
+                model_class_name = obj["novabase_classname"]
+            elif "metadata_novabase_classname" in obj:
+                model_class_name = obj["metadata_novabase_classname"]
+        else:
+            model_class_name = self.resolve_model_name()
         if model_class_name is not None:
             model = models.get_model_class_from_name(model_class_name)
             model_object = model()
@@ -156,6 +159,10 @@ class LazyReference:
         """Update the fields of the given object."""
         key = self.get_key()
         current_model = self.cache[key]
+
+        if obj is None:
+            return
+
         # Check if obj is simplified or not
         if "simplify_strategy" in obj:
             obj = database_driver.get_driver().get(obj["tablename"], obj["id"])

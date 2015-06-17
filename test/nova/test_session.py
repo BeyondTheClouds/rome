@@ -12,7 +12,8 @@ BASE = declarative_base()
 
 from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
-from lib.rome.core.session.session import OldSession as Session
+# from lib.rome.core.session.session import OldSession as Session
+from lib.rome.core.session.session import Session as Session
 from oslo.db.exception import DBDeadlock
 
 import random
@@ -112,6 +113,8 @@ class TestSession(unittest.TestCase):
                     alice_account.update({"money": alice_account.money + 100})
 
                     session.add(bob_account)
+
+                    session.flush()
                     session.add(alice_account)
 
                     # bob_account.save()

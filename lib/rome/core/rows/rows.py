@@ -13,7 +13,7 @@ from lib.rome.core.utils import get_objects, is_novabase
 from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
 from lib.rome.core.rows.rows_experimental import building_tuples as building_tuples_experimental
 
-from lib.rome.core.lazy_reference import LazyValue
+from lib.rome.core.lazy import LazyValue
 
 from lib.rome.core.dataformat.deconverter import JsonDeconverter
 
