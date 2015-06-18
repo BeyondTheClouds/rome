@@ -161,7 +161,7 @@ class LazyReference:
         current_model = self.cache[key]
 
         if obj is None:
-            return
+            return current_model
 
         # Check if obj is simplified or not
         if "simplify_strategy" in obj:
