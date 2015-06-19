@@ -281,8 +281,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                     else:
                         self._version_number = 0
                 corrected_object["_version_number"] = self._version_number
-                # database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
-                # database_driver.get_driver().add_key(table_name, current_object["id"])
+                database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
+                database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
                 import traceback
                 traceback.print_exc()
