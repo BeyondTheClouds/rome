@@ -111,10 +111,23 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         return hasattr(self, "id") and (self.id is not None)
 
     def soft_delete(self, session=None):
+        # <SOFT DELETE IMPLEMENTATION>
+        self.deleted = True
+        object_converter_datetime = converter.JsonConverter()
+        self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
         if session is not None:
-            session.delete(self)
+            session.add(self)
             return
-        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        else:
+            self.save()
+        # </SOFT DELETE IMPLEMENTATION>
+
+        # # <HARD DELETE IMPLEMENTATION>
+        # if session is not None:
+        #     session.delete(self)
+        #     return
+        # database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # # </HARD DELETE IMPLEMENTATION>
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
 
@@ -268,8 +281,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                     else:
                         self._version_number = 0
                 corrected_object["_version_number"] = self._version_number
-                database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
-                database_driver.get_driver().add_key(table_name, current_object["id"])
+                # database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
+                # database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
                 import traceback
                 traceback.print_exc()
