@@ -3,6 +3,7 @@ __author__ = 'jonathan'
 import datetime
 import pytz
 from lib.rome.core.dataformat.deconverter import JsonDeconverter
+import re
 
 from lib.rome.core.rows.rows import get_attribute, has_attribute
 
@@ -32,9 +33,27 @@ def get_attribute_reccursively(obj, attr, otherwise=None):
             else:
                 current_object = get_attribute(obj, current_key)
 
+            if type(obj) is dict and next_key in obj:
+                return obj[next_key]
+
             return get_attribute_reccursively(current_object, next_key, otherwise)
     except AttributeError:
         return otherwise
+
+class LazyDictionnary:
+    """This temporary class is used to make a dict acting like an object. This code can be found at:
+        http://stackoverflow.com/questions/1305532/convert-python-dict-to-object
+    """
+
+    def __init__(self, **entries):
+        self.entries = entries
+        self.deconverter = JsonDeconverter()
+
+    def __getattr__(self, item):
+        deconverted_value = self.deconverter.desimplify(self.entries[item])
+        return deconverted_value
+
+boolean_expression_str_memory = {}
 
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
@@ -42,10 +61,100 @@ class BooleanExpression(object):
         self.exps = exps
         self.deconverter = JsonDeconverter()
 
+    # def is_boolean_expression(self):
+    #     return True
+
     def is_boolean_expression(self):
         return True
 
     def evaluate_criterion(self, criterion, value):
+
+        # return True
+        criterion_str = criterion.__str__()
+
+        if criterion_str in boolean_expression_str_memory:
+            criterion_str = boolean_expression_str_memory[criterion_str]
+        else:
+            prev_criterion_str = criterion_str
+            # # replace equality operator
+            # criterion_str = criterion_str.replace(" = ", " == ")
+            # # remove prefix of arguments
+            # criterion_str = criterion_str.replace(":", "")
+            # # remove quotes arround attributes
+            # criterion_str = criterion_str.replace("\"", "")
+            # # replace "IN" operator by "in" operator
+            # criterion_str = criterion_str.replace(" IN ", " in ")
+            # # replace "IS" operator by "is" operator
+            # criterion_str = criterion_str.replace(" IS ", " is ")
+            # # replace "NOT" operator by "not" operator
+            # criterion_str = criterion_str.replace(" NOT ", " not ")
+            # # replace "NULL" operator by "None" operator
+            # criterion_str = criterion_str.replace("NULL", "None")
+            # # Format correctly lists
+            # criterion_str = criterion_str.replace("(", "[")
+            # criterion_str = criterion_str.replace(")", "]")
+
+            subs = {
+                " = ": " == ",
+                ":": "",
+                "\"": "",
+                "IN": " in ",
+                "IS": " is ",
+                "NOT": " not ",
+                "NULL": "None",
+                "(": "[",
+                ")": "]"
+            }
+            compiled = re.compile('|'.join(map(re.escape, subs)))
+
+            def lookup(match):
+                return subs[match.group(0)]
+            criterion_str = compiled.sub(lookup, criterion_str)
+
+            boolean_expression_str_memory[prev_criterion_str] = criterion_str
+
+        # return True
+        # construct a dict with the values involved in the expression
+        values_dict = {}
+        # return True
+        if type(value) is not dict:
+            for key in value.keys():
+                try:
+                    s = LazyDictionnary(**value[value.keys().index(key)])
+                    values_dict[key] = s
+                except:
+                    print("[BUG] evaluation failed: %s -> %s" % (key, value))
+                    return False
+        else:
+            values_dict = value
+        # check if right value is a named argument
+        expressions = []
+        # return True
+        from sqlalchemy.sql.expression import BinaryExpression
+        if type(criterion) is BooleanExpression:
+            if criterion.operator in ["AND", "OR"]:
+                return criterion.evaluate(value)
+            else:
+                expressions = criterion.exps
+        elif type(criterion) is BinaryExpression:
+            expressions = [criterion.expression]
+        for expression in expressions:
+            if ":" in str(expression.right):
+                # fix the prefix of the name argument
+                if " in " in criterion_str:
+                    count = 1
+                    for i in expression.right.element:
+                        values_dict["%s_%i" % (i._orig_key, count)] = i.value
+                        count += 1
+                else:
+                    corrected_label = str(expression.right).replace(":", "")
+                    values_dict[corrected_label] = expression.right.value
+        # evaluate the expression thanks to the 'eval' function
+        # return True
+        result = eval(criterion_str+" and "+criterion_str, values_dict)
+        return result
+
+    def evaluate_criterion_(self, criterion, value):
 
         criterion_str = criterion.__str__()
 
@@ -166,7 +275,6 @@ class BooleanExpression(object):
             else:
                 if comparator(left_value, right_value):
                     result = True
-
         if op == "IN":
             result = False
             right_terms = set(criterion.right.element)

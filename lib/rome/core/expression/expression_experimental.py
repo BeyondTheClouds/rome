@@ -27,6 +27,8 @@ class BooleanExpression(object):
         criterion_str = criterion_str.replace(" IN ", " in ")
         # replace "IS" operator by "is" operator
         criterion_str = criterion_str.replace(" IS ", " is ")
+        # replace "NOT" operator by "not" operator
+        criterion_str = criterion_str.replace(" NOT ", " not ")
         # replace "NULL" operator by "None" operator
         criterion_str = criterion_str.replace("NULL", "None")
         # Format correctly lists

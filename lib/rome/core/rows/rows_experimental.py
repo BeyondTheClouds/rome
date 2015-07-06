@@ -5,6 +5,7 @@ import itertools
 from lib.rome.core.expression.expression import *
 from sqlalchemy.sql.expression import BinaryExpression
 from lib.rome.core.utils import current_milli_time
+from sqlalchemy.util._collections import KeyedTuple
 
 from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
 
@@ -48,6 +49,7 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         candidates_values = {}
         candidates_per_table = {}
         joining_criterions = []
+        non_joining_criterions = {}
         # Initialising candidates per table
         for each in labels:
             candidates_per_table[each] = {}
@@ -59,8 +61,39 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                     foo = [x for x in joining_criterion if x is not None]
                     if len(foo) > 1:
                         joining_criterions += [foo]
-        done_index = {}
+                    else:
+                        # Extract here non joining criterions, and use it to filter objects
+                        # that are located in list_results
+                        exp_criterions = [x for x in joining_criterion if x is not None]
+                        for non_joining_criterion in exp_criterions:
+                            tablename = non_joining_criterion["table"]
+                            column = non_joining_criterion["column"]
+                            if not tablename in non_joining_criterions:
+                                non_joining_criterions[tablename] = []
+                            non_joining_criterions[tablename] += [{
+                                "tablename": tablename,
+                                "column": column,
+                                "exp": exp,
+                                "criterion": criterion
+                            }]
+        # Filtering list_of_results with non_joining_criterions
+        corrected_list_results = []
+        for results in list_results:
+            cresults = []
+            for each in results:
+                tablename = each["nova_classname"]
+                if tablename in non_joining_criterions:
+                    do_add = True
+                    for criterion in non_joining_criterions[tablename]:
+                        if not criterion["criterion"].evaluate(KeyedTuple([each], labels=[tablename])):
+                            do_add = False
+                            break
+                    if do_add:
+                        cresults += [each]
+            corrected_list_results += [cresults]
+        list_results = corrected_list_results
         # Consolidating joining criterions with data stored in relationships
+        done_index = {}
         for step in steps:
             tablename = step[1]
             model_classname = get_model_classname_from_tablename(tablename)
