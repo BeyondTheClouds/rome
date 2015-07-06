@@ -182,33 +182,20 @@ def instance_sys_meta(instance):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
-    query = Query(models.Network)
-    print(query.all())
-    # for each in query.first().system_metadata:
-    #     if each.key is None:
-    #         print(each.id)
 
-    # query = Query(models.InstanceSystemMetadata)
-    # for each in query.all():
-    #     if each.key is None:
-    #     # if each.id == 19841:
-    #         print(each.id)
-    #         print(each.key)
-    #         print(each.value)
-    #         print(each.instance_uuid)
-            # each.key = "clean_attempts"
-            # each.value = 1
-            # each.save()
-    # query = Query(models.Network).filter(models.Network.id==1)
-    # result = query.all()
-    # print(result)
+    host="econome-8"
+    fixed_host_filter = or_(models.FixedIp.host == host,
+            and_(models.FixedIp.instance_uuid != None,
+                 models.Instance.host == host))
+    fixed_ip_query = Query(models.FixedIp.network_id,
+                                 base_model=models.FixedIp).\
+                     outerjoin((models.Instance,
+                                models.Instance.uuid ==
+                                models.FixedIp.instance_uuid)).\
+                     filter(fixed_host_filter)
+    # NOTE(vish): return networks that have host set
+    #             or that have a fixed ip with host set
+    #             or that have an instance with host set
+    host_filter = or_(models.Network.host == host,
+                      models.Network.id.in_(fixed_ip_query.subquery()))
 
-    # from lib.rome.core.lazy import LazyReference
-    # inst = LazyReference("instances", 372, None, None)
-    # print(instance_sys_meta(inst))
-
-    # query = Query(models.Instance)
-    # results = query.all()
-    #
-    # print(results[0].id)
-    # print(len(results))

@@ -12,8 +12,18 @@ from lib.rome.core.models import get_model_classname_from_tablename, get_model_c
 def intersect(b1, b2):
     return [val for val in b1 if val in b2]
 
-def flatten(l):
-    return [item for sublist in l for item in sublist]
+def flatten(lis):
+    """Given a list, possibly nested to any level, return it flattened."""
+    new_lis = []
+    for item in lis:
+        if type(item) == type([]):
+            new_lis.extend(flatten(item))
+        else:
+            new_lis.append(item)
+    return new_lis
+
+# def flatten(l):
+#     return [item for sublist in l for item in sublist]
 
 def extract_table_data(term):
     term_value = str(term)
@@ -64,7 +74,7 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                     else:
                         # Extract here non joining criterions, and use it to filter objects
                         # that are located in list_results
-                        exp_criterions = [x for x in joining_criterion if x is not None]
+                        exp_criterions = ([x for x in flatten(joining_criterion) if x is not None])
                         for non_joining_criterion in exp_criterions:
                             tablename = non_joining_criterion["table"]
                             column = non_joining_criterion["column"]
