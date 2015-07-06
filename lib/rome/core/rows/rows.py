@@ -240,23 +240,23 @@ def construct_rows(models, criterions, hints, session=None):
     #     criterion
     #     pass
 
-    # indexed_rows = {}
-    # for product in tuples:
-    #     if len(product) > 0:
-    #         row = KeyedTuple(product, labels=labels)
-    #         row_index_key = "%s" % (str(row))
-    #
-    #         if row_index_key in indexed_rows:
-    #             continue
-    #
-    #         all_criterions_satisfied = True
-    #
-    #         for criterion in criterions:
-    #             if not criterion.evaluate(row):
-    #                 all_criterions_satisfied = False
-    #         if all_criterions_satisfied:
-    #             indexed_rows[row_index_key] = True
-    #             rows += [extract_sub_row(row, model_set)]
+    indexed_rows = {}
+    for product in tuples:
+        if len(product) > 0:
+            row = KeyedTuple(product, labels=labels)
+            row_index_key = "%s" % (str(row))
+
+            if row_index_key in indexed_rows:
+                continue
+
+            all_criterions_satisfied = True
+
+            # for criterion in criterions:
+            #     if not criterion.evaluate(row):
+            #         all_criterions_satisfied = False
+            if all_criterions_satisfied:
+                indexed_rows[row_index_key] = True
+                rows += [extract_sub_row(row, model_set)]
     part5_starttime = current_milli_time()
     deconverter = JsonDeconverter(request_uuid=request_uuid)
     # reordering tuples (+ selecting attributes)

@@ -182,10 +182,11 @@ def instance_sys_meta(instance):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
-    query = Query(models.Instance).filter(models.Instance.id==858)
-    for each in query.first().system_metadata:
-        if each.key is None:
-            print(each.id)
+    query = Query(models.Network)
+    print(query.all())
+    # for each in query.first().system_metadata:
+    #     if each.key is None:
+    #         print(each.id)
 
     # query = Query(models.InstanceSystemMetadata)
     # for each in query.all():
