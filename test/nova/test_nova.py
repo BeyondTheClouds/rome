@@ -184,18 +184,31 @@ if __name__ == '__main__':
 
 
     host="econome-8"
-    fixed_host_filter = or_(models.FixedIp.host == host,
-            and_(models.FixedIp.instance_uuid != None,
-                 models.Instance.host == host))
-    fixed_ip_query = Query(models.FixedIp.network_id,
-                                 base_model=models.FixedIp).\
-                     outerjoin((models.Instance,
-                                models.Instance.uuid ==
-                                models.FixedIp.instance_uuid)).\
-                     filter(fixed_host_filter)
-    # NOTE(vish): return networks that have host set
-    #             or that have a fixed ip with host set
-    #             or that have an instance with host set
-    host_filter = or_(models.Network.host == host,
-                      models.Network.id.in_(fixed_ip_query.subquery()))
+    # NOTE(vish): only update fixed ips that "belong" to this
+    #             host; i.e. the network host or the instance
+    #             host matches. Two queries necessary because
+    #             join with update doesn't work.
+    # with session.begin():
+    host_filter = or_(and_(models.Instance.host == host,
+                           models.Network.multi_host == True),
+                      models.Network.host == host)
+    fixed_ip_ref = Query(models.FixedIp.id,
+                         base_model=models.FixedIp, read_deleted="no").\
+            filter(models.FixedIp.leased == True).\
+            filter(models.FixedIp.allocated == False).\
+            join((models.Network,
+                  models.Network.id == models.FixedIp.network_id)).\
+            join((models.Instance,
+                  models.Instance.uuid == models.FixedIp.instance_uuid)).\
+            filter(host_filter).first()
+    if fixed_ip_ref is not None:
+        # TODO (Jonathan): add a "session.add" to ease the session management :)
+        result = fixed_ip_ref.update({'instance_uuid': None,
+                                 'leased': False,
+                                 'updated_at': None},
+                                synchronize_session='fetch')
+        session.add(fixed_ip_ref)
+    else:
+        result = False
+    # return result
 

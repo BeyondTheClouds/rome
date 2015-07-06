@@ -151,7 +151,11 @@ class BooleanExpression(object):
                     values_dict[corrected_label] = expression.right.value
         # evaluate the expression thanks to the 'eval' function
         # return True
-        result = eval(criterion_str+" and "+criterion_str, values_dict)
+        result = False
+        try:
+            result = eval(criterion_str+" and "+criterion_str, values_dict)
+        except:
+            pass
         return result
 
     def evaluate_criterion_(self, criterion, value):
