@@ -179,6 +179,56 @@ def instance_sys_meta(instance):
     else:
         return metadata_to_dict(instance['system_metadata'])
 
+def _security_group_ensure_default(session=None):
+    from lib.rome.core.session.session import Session as Session
+    session = Session()
+
+    with session.begin(subtransactions=True):
+        try:
+            default_group = _security_group_get_by_names(session,
+                                                         context.project_id,
+                                                         ['default'])[0]
+        except exception.NotFound:
+            values = {'name': 'default',
+                      'description': 'default',
+                      'user_id': context.user_id,
+                      'project_id': context.project_id}
+            default_group = _security_group_create(context, values,
+                                                   session=session)
+            usage = model_query(context, models.QuotaUsage,
+                                read_deleted="no", session=session).\
+                     filter_by(project_id=context.project_id).\
+                     filter_by(user_id=context.user_id).\
+                     filter_by(resource='security_groups')
+            # Create quota usage for auto created default security group
+            if not usage.first():
+                _quota_usage_create(context.project_id,
+                                    context.user_id,
+                                    'security_groups',
+                                    1, 0,
+                                    None,
+                                    session=session)
+            else:
+                usage.update({'in_use': int(usage.first().in_use) + 1})
+                # TODO (Jonathan): add a "session.add" to ease the session management :)
+                session.add(usage)
+
+            default_rules = _security_group_rule_get_default_query(context,
+                                session=session).all()
+            for default_rule in default_rules:
+                # This is suboptimal, it should be programmatic to know
+                # the values of the default_rule
+                rule_values = {'protocol': default_rule.protocol,
+                               'from_port': default_rule.from_port,
+                               'to_port': default_rule.to_port,
+                               'cidr': default_rule.cidr,
+                               'parent_group_id': default_group.id,
+                }
+                _security_group_rule_create(context,
+                                            rule_values,
+                                            session=session)
+        return default_group
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 

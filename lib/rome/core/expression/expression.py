@@ -67,7 +67,7 @@ class BooleanExpression(object):
     def is_boolean_expression(self):
         return True
 
-    def evaluate_criterion(self, criterion, value):
+    def evaluate_criterion_(self, criterion, value):
 
         # return True
         criterion_str = criterion.__str__()
@@ -158,7 +158,7 @@ class BooleanExpression(object):
             pass
         return result
 
-    def evaluate_criterion_(self, criterion, value):
+    def evaluate_criterion(self, criterion, value):
 
         criterion_str = criterion.__str__()
 
