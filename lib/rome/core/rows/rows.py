@@ -251,9 +251,9 @@ def construct_rows(models, criterions, hints, session=None):
 
             all_criterions_satisfied = True
 
-            # for criterion in criterions:
-            #     if not criterion.evaluate(row):
-            #         all_criterions_satisfied = False
+            for criterion in criterions:
+                if not criterion.evaluate(row):
+                    all_criterions_satisfied = False
             if all_criterions_satisfied:
                 indexed_rows[row_index_key] = True
                 rows += [extract_sub_row(row, model_set)]
