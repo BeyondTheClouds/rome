@@ -232,14 +232,14 @@ def construct_rows(models, criterions, hints, session=None):
     tuples = building_tuples_experimental(list_results, labels, criterions, hints)
     part4_starttime = current_milli_time()
 
-    # filtering tuples (cartesian product)
-
-    # aggregated_filters = {}
-    # for criterion in criterions:
-    #     for each in
-    #     criterion
-    #     pass
-
+    # # filtering tuples (cartesian product)
+    #
+    # # aggregated_filters = {}
+    # # for criterion in criterions:
+    # #     for each in
+    # #     criterion
+    # #     pass
+    #
     indexed_rows = {}
     for product in tuples:
         if len(product) > 0:
@@ -251,9 +251,9 @@ def construct_rows(models, criterions, hints, session=None):
 
             all_criterions_satisfied = True
 
-            for criterion in criterions:
-                if not criterion.evaluate(row):
-                    all_criterions_satisfied = False
+            # for criterion in criterions:
+            #     if not criterion.evaluate(row):
+            #         all_criterions_satisfied = False
             if all_criterions_satisfied:
                 indexed_rows[row_index_key] = True
                 rows += [extract_sub_row(row, model_set)]
