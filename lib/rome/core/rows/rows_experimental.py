@@ -86,22 +86,22 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                                 "exp": exp,
                                 "criterion": criterion
                             }]
-        # Filtering list_of_results with non_joining_criterions
-        corrected_list_results = []
-        for results in list_results:
-            cresults = []
-            for each in results:
-                tablename = each["nova_classname"]
-                if tablename in non_joining_criterions:
-                    do_add = True
-                    for criterion in non_joining_criterions[tablename]:
-                        if not criterion["criterion"].evaluate(KeyedTuple([each], labels=[tablename])):
-                            do_add = False
-                            break
-                    if do_add:
-                        cresults += [each]
-            corrected_list_results += [cresults]
-        list_results = corrected_list_results
+        # # Filtering list_of_results with non_joining_criterions
+        # corrected_list_results = []
+        # for results in list_results:
+        #     cresults = []
+        #     for each in results:
+        #         tablename = each["nova_classname"]
+        #         if tablename in non_joining_criterions:
+        #             do_add = True
+        #             for criterion in non_joining_criterions[tablename]:
+        #                 if not criterion["criterion"].evaluate(KeyedTuple([each], labels=[tablename])):
+        #                     do_add = False
+        #                     break
+        #             if do_add:
+        #                 cresults += [each]
+        #     corrected_list_results += [cresults]
+        # list_results = corrected_list_results
         # Consolidating joining criterions with data stored in relationships
         done_index = {}
         for step in steps:
