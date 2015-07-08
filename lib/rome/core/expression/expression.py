@@ -59,8 +59,13 @@ boolean_expression_str_memory = {}
 
 class BooleanExpression(object):
     def __init__(self, operator, *exps):
+        def transform_exp(exp):
+            if type(exp) is not BooleanExpression and self.operator != "NORMAL":
+                return BooleanExpression("NORMAL", exp)
+            else:
+                return exp
         self.operator = operator
-        self.exps = exps
+        self.exps = map(lambda x: transform_exp(x), exps)
         self.deconverter = JsonDeconverter()
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
@@ -398,6 +403,18 @@ class BooleanExpression(object):
         try:
             result = eval(self.compiled_expression, final_values_dict)
         except:
-            raise
+            if self.operator == "NORMAL":
+                return False
+            for exp in self.exps:
+                if exp.evaluate(value):
+                    if self.operator in ["OR"]:
+                        return True
+                else:
+                    if self.operator in ["AND"]:
+                        return False
+            if self.operator in ["NORMAL", "OR"]:
+                return False
+            else:
+                return True
             pass
         return result
