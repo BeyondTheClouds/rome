@@ -54,6 +54,13 @@ class TestDogs(unittest.TestCase):
         specy.save()
         self.assertEqual(True, True)
 
+        from lib.rome.core.dataformat.converter import JsonConverter
+        from lib.rome.core.lazy import LazyValue
+        converter = JsonConverter()
+        bobby_dict = converter.simplify(bobby)
+        toto = converter.simplify(LazyValue(bobby_dict, None))
+        print(toto)
+
     def test_selection(self):
         logging.getLogger().setLevel(logging.DEBUG)
         query = Query(Dog).filter(Dog.name=="Bobby").filter(Dog.specy=="Griffon")

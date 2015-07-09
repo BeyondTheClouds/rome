@@ -96,28 +96,36 @@ class Query:
         return self
 
     def update(self, values, synchronize_session='evaluate'):
-        try:
-            from lib.rome.core.dataformat.deconverter import JsonDeconverter
-        except:
-            pass
-        rows = self.all()
-        for row in rows:
-            tablename = find_table_name(row)
-            id = row.id
-            logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
-            data = database_driver.get_driver().get(tablename, id)
-            for key in values:
-                data[key] = values[key]
-            request_uuid = uuid.uuid1()
-            object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
+        # try:
+        #     from lib.rome.core.dataformat.deconverter import JsonDeconverter
+        # except:
+        #     pass
+        result = self.all()
+        for each in result:
             try:
-                desimplified_object = object_desimplifier.desimplify(data)
-                desimplified_object.save()
-            except Exception as e:
-                traceback.print_exc()
-                logging.error("could not save %s@%s" % (str(id), tablename))
-                return None
-        return len(rows)
+                each.update(values)
+                if self._session is not None:
+                    self._session.add(each)
+            except:
+                pass
+        # rows = self.all()
+        # for row in rows:
+        #     tablename = find_table_name(row)
+        #     id = row.id
+        #     logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
+        #     data = database_driver.get_driver().get(tablename, id)
+        #     for key in values:
+        #         data[key] = values[key]
+        #     request_uuid = uuid.uuid1()
+        #     object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
+        #     try:
+        #         desimplified_object = object_desimplifier.desimplify(data)
+        #         desimplified_object.save()
+        #     except Exception as e:
+        #         traceback.print_exc()
+        #         logging.error("could not save %s@%s" % (str(id), tablename))
+        #         return None
+        # return len(rows)
 
     def distinct(self):
         return list(set(self.all()))

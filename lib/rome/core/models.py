@@ -111,10 +111,23 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         return hasattr(self, "id") and (self.id is not None)
 
     def soft_delete(self, session=None):
+        # <SOFT DELETE IMPLEMENTATION>
+        self.deleted = True
+        object_converter_datetime = converter.JsonConverter()
+        self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
         if session is not None:
-            session.delete(self)
+            session.add(self)
             return
-        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        else:
+            self.save()
+        # </SOFT DELETE IMPLEMENTATION>
+
+        # # <HARD DELETE IMPLEMENTATION>
+        # if session is not None:
+        #     session.delete(self)
+        #     return
+        # database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # # </HARD DELETE IMPLEMENTATION>
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
 
@@ -145,19 +158,20 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 logging.error(e)
                 pass
         self.update_foreign_keys()
-        if not skip_session and getattr(self, "_session", None) is not None:
-            self._session.add(self)
-        else:
-            # if do_save:
-            print("saving")
-            self.save(request_uuid=request_uuid)
+        # if not skip_session and getattr(self, "_session", None) is not None:
+        #     self._session.add(self)
+        # else:
+        #     self.save(request_uuid=request_uuid)
         return self
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
 
-        if getattr(self, "_session", session) is not None:
-            if not force:
-                return
+        # if getattr(self, "_session", session) is not None:
+        #     if not force:
+        #         return
+
+        if session is not None:
+            return
 
         self.update_foreign_keys()
 
@@ -225,17 +239,17 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
                 # force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
-                if existing_object is not None:
-                    # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
-                    # version_number = getattr(target_object, "_version_number", 0)
-                    version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
-
-                    # version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                    # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
-                    # current_object
-                    logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
-                    if version_number < existing_object["_version_number"]:
-                        continue
+                # if existing_object is not None:
+                #     # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
+                #     version_number = getattr(target_object, "_version_number", 0)
+                #     # version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
+                #
+                #     # version_number = getattr(self, "_version_number", existing_object["_version_number"])
+                #     # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
+                #     # current_object
+                #     logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
+                #     if version_number < existing_object["_version_number"]:
+                #         continue
                 if not same_version(existing_object, current_object, model_class):
                     current_object = merge_dict(existing_object, current_object)
                 else:

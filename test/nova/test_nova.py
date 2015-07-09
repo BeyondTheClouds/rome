@@ -164,12 +164,101 @@ def _instance_update(instance_uuid, values, columns_to_join=None):
         if actual_state not in expected:
             raise Exception()
 
-if __name__ == '__main__':
-    # query = Query(models.Network).filter_by(id=1)
-    # query = Query(models.Network).filter(models.Network.id==1)
-    # result = query.all()
-    # print(result)
+def metadata_to_dict(metadata):
+    result = {}
+    for item in metadata:
+        if not item.get('deleted'):
+            result[item['key']] = item['value']
+    return result
 
-    service = models.Service()
-    service.update({'topic': 'conductor', 'binary': 'nova-conductor', 'host': 'petitprince-15', 'report_count': 0})
-    service.save()
+def instance_sys_meta(instance):
+    if not instance.get('system_metadata'):
+        return {}
+    if isinstance(instance['system_metadata'], dict):
+        return instance['system_metadata']
+    else:
+        return metadata_to_dict(instance['system_metadata'])
+
+def _security_group_ensure_default(session=None):
+    from lib.rome.core.session.session import Session as Session
+    session = Session()
+
+    with session.begin(subtransactions=True):
+        try:
+            default_group = _security_group_get_by_names(session,
+                                                         context.project_id,
+                                                         ['default'])[0]
+        except exception.NotFound:
+            values = {'name': 'default',
+                      'description': 'default',
+                      'user_id': context.user_id,
+                      'project_id': context.project_id}
+            default_group = _security_group_create(context, values,
+                                                   session=session)
+            usage = model_query(context, models.QuotaUsage,
+                                read_deleted="no", session=session).\
+                     filter_by(project_id=context.project_id).\
+                     filter_by(user_id=context.user_id).\
+                     filter_by(resource='security_groups')
+            # Create quota usage for auto created default security group
+            if not usage.first():
+                _quota_usage_create(context.project_id,
+                                    context.user_id,
+                                    'security_groups',
+                                    1, 0,
+                                    None,
+                                    session=session)
+            else:
+                usage.update({'in_use': int(usage.first().in_use) + 1})
+                # TODO (Jonathan): add a "session.add" to ease the session management :)
+                session.add(usage)
+
+            default_rules = _security_group_rule_get_default_query(context,
+                                session=session).all()
+            for default_rule in default_rules:
+                # This is suboptimal, it should be programmatic to know
+                # the values of the default_rule
+                rule_values = {'protocol': default_rule.protocol,
+                               'from_port': default_rule.from_port,
+                               'to_port': default_rule.to_port,
+                               'cidr': default_rule.cidr,
+                               'parent_group_id': default_group.id,
+                }
+                _security_group_rule_create(context,
+                                            rule_values,
+                                            session=session)
+        return default_group
+
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG)
+
+
+    host="econome-8"
+    # NOTE(vish): only update fixed ips that "belong" to this
+    #             host; i.e. the network host or the instance
+    #             host matches. Two queries necessary because
+    #             join with update doesn't work.
+    # with session.begin():
+    host_filter = or_(and_(models.Instance.host == host,
+                           models.Network.multi_host == True),
+                      models.Network.host == host)
+    fixed_ip_ref = Query(models.FixedIp.id,
+                         base_model=models.FixedIp, read_deleted="no").\
+            filter(models.FixedIp.leased == True).\
+            filter(models.FixedIp.allocated == False).\
+            join((models.Network,
+                  models.Network.id == models.FixedIp.network_id)).\
+            join((models.Instance,
+                  models.Instance.uuid == models.FixedIp.instance_uuid)).\
+            filter(host_filter).first()
+    if fixed_ip_ref is not None:
+        # TODO (Jonathan): add a "session.add" to ease the session management :)
+        result = fixed_ip_ref.update({'instance_uuid': None,
+                                 'leased': False,
+                                 'updated_at': None},
+                                synchronize_session='fetch')
+        session.add(fixed_ip_ref)
+    else:
+        result = False
+    # return result
+

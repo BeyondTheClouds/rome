@@ -10,7 +10,7 @@ import netaddr
 import uuid
 import pytz
 import lib.rome.core.models as models
-import lib.rome.core.lazy_reference as lazy_reference
+import lib.rome.core.lazy as lazy_reference
 from lib.rome.utils.LimitedSizeDictionnary import LimitedSizeDictionnary
 
 CACHES = LimitedSizeDictionnary(size_limit=20)

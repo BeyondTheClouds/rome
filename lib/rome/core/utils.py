@@ -229,7 +229,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
     def update_foreign_keys(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
 
-        from lazy_reference import LazyReference
+        from lazy import LazyReference
 
         if hasattr(self, "metadata"):
             metadata = self.metadata

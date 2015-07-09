@@ -55,7 +55,7 @@ class JsonConverter(object):
         when caching objects."""
 
         classname = obj.__class__.__name__
-        if classname == "LazyReference":
+        if classname == "LazyReference" or classname == "LazyValue":
             return obj.get_key()
 
         if hasattr(obj, "id") and getattr(obj, "id") is not None:
@@ -139,7 +139,7 @@ class JsonConverter(object):
                 simplified_object = self.simple_cache[key]
             else:
                 novabase_classname = str(obj.__class__.__name__)
-                if novabase_classname == "LazyReference":
+                if novabase_classname == "LazyReference" or novabase_classname == "LazyValue":
                     novabase_classname = obj.resolve_model_name()
                 if isinstance(obj, dict) and "novabase_classname" in obj:
                     novabase_classname = obj["novabase_classname"]
@@ -199,7 +199,7 @@ class JsonConverter(object):
         if do_deep_simplification and not is_basic_type:
 
             novabase_classname = str(obj.__class__.__name__)
-            if novabase_classname == "LazyReference":
+            if novabase_classname == "LazyReference" or novabase_classname == "LazyValue":
                 novabase_classname = obj.resolve_model_name()
             if isinstance(obj, dict) and "novabase_classname" in obj:
                 novabase_classname = obj["novabase_classname"]
@@ -255,7 +255,6 @@ class JsonConverter(object):
             result = obj
 
         return result
-
 
     def reset(self):
         """Reset the caches of the current instance of Simplifier."""

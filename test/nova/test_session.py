@@ -12,8 +12,11 @@ BASE = declarative_base()
 
 from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
-from lib.rome.core.session.session import Session, SessionDeadlock
+# from lib.rome.core.session.session import OldSession as Session
+from lib.rome.core.session.session import Session as Session
 from oslo.db.exception import DBDeadlock
+
+import random
 
 BASE = declarative_base()
 
@@ -40,7 +43,7 @@ def _retry_on_deadlock(f):
             except DBDeadlock:
                 logging.warn(("Deadlock detected when running '%s': Retrying...") % (f.__name__))
                 # Retry!
-                time.sleep(0.5)
+                time.sleep(random.uniform(0.1, 0.5))
                 continue
     functools.update_wrapper(wrapped, f)
     return wrapped
@@ -72,8 +75,9 @@ class TestSession(unittest.TestCase):
     #         # raise Exception("toto")
 
     def test_concurrent_update(self):
+        logging.getLogger().setLevel(logging.DEBUG)
 
-        for i in range(1, 20):
+        for i in range(1, 2):
             import threading
             import time
 
@@ -108,6 +112,11 @@ class TestSession(unittest.TestCase):
                     bob_account.update({"money": bob_account.money - 100})
                     alice_account.update({"money": alice_account.money + 100})
 
+                    session.add(bob_account)
+
+                    session.flush()
+                    session.add(alice_account)
+
                     # bob_account.save()
                     # alice_account.save()
 
@@ -125,7 +134,5 @@ class TestSession(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.DEBUG)
-
     unittest.main()
 

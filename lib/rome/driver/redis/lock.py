@@ -56,7 +56,7 @@ class ClusterLock(object):
             if failed:
                 self.redis_client.hdel("lock", processed_keys)
                 retry += 1
-                time.sleep(random.uniform(0.010, 0.015))
+                time.sleep(random.uniform(0.005, 0.010))
             else:
                 return True
         return False
