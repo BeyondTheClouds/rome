@@ -36,7 +36,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    # create_mock_data(3, 2000)
+    create_mock_data(3, 2000)
 
     fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
     # print(fixed_ips)

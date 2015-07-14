@@ -105,7 +105,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
         self._session = None
-        self._version_number = -1
+        self.rome_version_number = -1
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -240,15 +240,15 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 # force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
                 # if existing_object is not None:
-                #     # WARNING: check if the 0 is correct or if it should be existing_object["_version_number"] + 1
-                #     version_number = getattr(target_object, "_version_number", 0)
-                #     # version_number = getattr(target_object, "_version_number", existing_object["_version_number"])
+                #     # WARNING: check if the 0 is correct or if it should be existing_object["rome_version_number"] + 1
+                #     version_number = getattr(target_object, "rome_version_number", 0)
+                #     # version_number = getattr(target_object, "rome_version_number", existing_object["rome_version_number"])
                 #
-                #     # version_number = getattr(self, "_version_number", existing_object["_version_number"])
-                #     # version_number = current_object["_version_number"] if "_version_number" in current_object else 0
+                #     # version_number = getattr(self, "rome_version_number", existing_object["rome_version_number"])
+                #     # version_number = current_object["rome_version_number"] if "rome_version_number" in current_object else 0
                 #     # current_object
-                #     logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["_version_number"], table_name, current_object["id"]))
-                #     if version_number < existing_object["_version_number"]:
+                #     logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["rome_version_number"], table_name, current_object["id"]))
+                #     if version_number < existing_object["rome_version_number"]:
                 #         continue
                 if not same_version(existing_object, current_object, model_class):
                     current_object = merge_dict(existing_object, current_object)
@@ -274,13 +274,13 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
                     corrected_object["session"] = getattr(target, "session", None)
                 if increase_version:
-                    if "_version_number" in corrected_object:
-                        self._version_number = corrected_object["_version_number"]
-                    if hasattr(self, "_version_number"):
-                        self._version_number += 1
+                    if "rome_version_number" in corrected_object:
+                        self.rome_version_number = corrected_object["rome_version_number"]
+                    if hasattr(self, "rome_version_number"):
+                        self.rome_version_number += 1
                     else:
-                        self._version_number = 0
-                corrected_object["_version_number"] = self._version_number
+                        self.rome_version_number = 0
+                corrected_object["rome_version_number"] = self.rome_version_number
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:

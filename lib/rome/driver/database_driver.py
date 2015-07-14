@@ -36,6 +36,9 @@ def build_driver():
             return lib.rome.driver.redis.driver.RedisClusterDriver()
         else:
             return lib.rome.driver.redis.driver.RedisDriver()
+    if config.backend() == "cassandra":
+        import lib.rome.driver.cassandra.driver
+        return lib.rome.driver.cassandra.driver.CassandraDriver()
     else:
         import lib.rome.driver.riak.driver
         return lib.rome.driver.riak.driver.MapReduceRiakDriver()
