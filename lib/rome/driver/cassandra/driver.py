@@ -115,8 +115,6 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         if not self._table_exist(tablename):
             self._table_create(tablename)
-        fields = self._extract_fields(tablename)
-        formated_fields = ", ".join(fields)
-        cql_request = """select %s from %s""" % (formated_fields, tablename)
+        cql_request = """select * from %s""" % (tablename)
         result = self.session.execute(cql_request)
         return result
