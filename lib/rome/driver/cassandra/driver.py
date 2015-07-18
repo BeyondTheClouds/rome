@@ -34,7 +34,6 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         return next_key
 
     def keys(self, tablename):
-        """"""
         """Check if the current table contains keys."""
         keys = self.redis_client.hkeys(tablename)
         return sorted(keys)
@@ -46,6 +45,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         fields = map(lambda x: "%s" % (x), klass._sa_class_manager)
         fields += ["pid", "metadata_novabase_classname", "rid", "nova_classname", "rome_version_number"]
         fields = sorted(list(set(fields)))
+        print("fields@%s => %s" % (tablename, fields))
         return fields
 
     def _correct_badname(self, name):
@@ -81,7 +81,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        if not self._table_exist(tablename):
+        if not self._table_exist(tablename) or True:
             self._table_create(tablename)
         filtered_value = dict((k,v) for k,v in value.iteritems() if v is not None and k != "rome_version_number")
         columns = filtered_value.keys()
