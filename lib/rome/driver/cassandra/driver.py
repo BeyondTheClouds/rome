@@ -64,8 +64,6 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             self.session.execute(cql_request)
         except:
             return False
-
-        self._tables[tablename] = tablename
         return True
 
     def _table_create(self, tablename):
@@ -78,6 +76,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         cql_request = "create table %s (%s, PRIMARY KEY(id))" % (tablename, columns_name_str)
         print(cql_request)
         result = self.session.execute(cql_request)
+        self._tables[tablename] = tablename
         return result
 
     def put(self, tablename, key, value, secondary_indexes=[]):
