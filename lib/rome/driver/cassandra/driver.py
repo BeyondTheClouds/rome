@@ -46,7 +46,8 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         try:
             fields = map(lambda x: "%s" % (x.key), klass()._sa_instance_state.attrs)
         except:
-            fields += ["pid", "metadata_novabase_classname", "rid", "nova_classname", "rome_version_number"]
+            fields = map(lambda x: "%s" % (x), klass._sa_class_manager)
+        fields += ["pid", "metadata_novabase_classname", "rid", "nova_classname", "rome_version_number"]
         fields = sorted(list(set(fields)))
         print("fields@%s => %s" % (tablename, fields))
         return fields
