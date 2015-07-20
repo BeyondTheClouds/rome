@@ -14,26 +14,8 @@ from lib.rome.core.dataformat.string import Encoder as StringEncoder
 
 
 def decoded_dict_factory(colnames, rows):
-    """
-    Returns each row as a dict; each value of the dict has been processed by StringDecoder.
-
-    Example::
-
-        >>> from cassandra.query import dict_factory
-        >>> session = cluster.connect('mykeyspace')
-        >>> session.row_factory = dict_factory
-        >>> rows = session.execute("SELECT name, age FROM users LIMIT 1")
-        >>> print rows[0]
-        {u'age': 42, u'name': u'Bob'}
-
-    .. versionchanged:: 2.0.0
-        moved from ``cassandra.decoder`` to ``cassandra.query``
-    """
-    # json_decoder = JsonDecoder()
     string_decoder = StringDecoder()
-
     decoded_rows = map(lambda x: string_decoder.desimplify(x), rows)
-    # return [dict(zip(colnames, row)) for row in rows]
     return [dict(zip(colnames, row)) for row in decoded_rows]
 
 def process_column(column_name, klass):
@@ -42,8 +24,10 @@ def process_column(column_name, klass):
         column_type = "varchar"
     elif hasattr(klass, column_name):
         sql_type = "%s" % (getattr(klass, column_name).expression.type)
-        if sql_type in ["INTEGER", "BIGINT", "BOOLEAN"]:
+        if sql_type in ["INTEGER", "BIGINT"]:
             column_type = "int"
+        elif sql_type == "BOOLEAN":
+            column_type = "boolean"
         elif sql_type == "FLOAT":
             column_type = "float"
     return (column_name, column_type)
@@ -155,7 +139,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         def process_column(tablename, column, value):
             column_type = self.table_columns_metadata[tablename][column][1]
             if column_type is not "varchar":
-                return "%s" % (string_encoder.simplify(value[column]))
+                return ("%s" % (string_encoder.simplify(value[column]))).replace("True", "true").replace("False", "false")
             else:
                 return "'%s'" % (("%s" % (string_encoder.simplify(value[column]))).replace("'", "\""))
 
