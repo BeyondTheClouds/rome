@@ -127,8 +127,11 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         columns_name_str += ", rome_version_number int"
         cql_request = "create table %s (%s, PRIMARY KEY(id))" % (tablename, columns_name_str)
         print(cql_request)
-        result = self.session.execute(cql_request)
-        self._tables[tablename] = tablename
+        try:
+            result = self.session.execute(cql_request)
+            self._tables[tablename] = tablename
+        except:
+            pass
         return result
 
     def put(self, tablename, key, value, secondary_indexes=[]):
