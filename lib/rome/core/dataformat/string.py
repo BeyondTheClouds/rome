@@ -59,23 +59,42 @@ class Decoder(object):
         self.cache = self.json_decoder.cache
 
     def desimplify(self, obj):
-        result = self.json_decoder.desimplify(obj)
-        if "{separator}" in result:
-            tabs = result.split("{separator}")
-            if len(tabs) == 2:
-                string_strategy = tabs[0]
-                value = tabs[1]
-                obj = eval(value)
-                if string_strategy == "datetime":
-                    result = self.json_decoder.datetime_desimplify(obj)
-                elif string_strategy == "ipnetwork":
-                    result = self.json_decoder.ipnetwork_desimplify(obj)
-                elif string_strategy == "novabase":
-                    result = self.json_decoder.novabase_desimplify(obj)
-                elif string_strategy == "list":
-                    result = self.json_decoder.desimplify(obj)
-                elif string_strategy == "dict":
-                    result = self.json_decoder.desimplify(obj)
-                else:
-                    result = self.json_decoder.desimplify(obj)
+        is_dict = isinstance(obj, dict)
+        is_list = isinstance(obj, list)
+        is_tuple = isinstance(obj, tuple)
+        if is_list:
+            result = []
+            for item in obj:
+                result += [self.desimplify(item)]
+        elif is_tuple:
+            result = map(lambda x: self.desimplify(x), obj)
+        elif is_dict and obj.has_key("novabase_classname"):
+            result = self.json_decoder.novabase_desimplify(obj)
+        elif is_dict and obj.has_key("metadata_novabase_classname"):
+            result = self.json_decoder.novabase_desimplify(obj)
+        elif is_dict:
+            result = {}
+            for item in obj:
+                result[item] = self.desimplify(obj[item])
+        else:
+            if (isinstance(obj, str) or isinstance(obj, unicode) )and "{separator}" in obj:
+                tabs = obj.split("{separator}")
+                if len(tabs) == 2:
+                    string_strategy = tabs[0]
+                    value = tabs[1]
+                    obj = eval(value)
+                    if "datetime" in string_strategy:
+                        result = self.json_decoder.datetime_desimplify(obj)
+                    elif "ipnetwork" in string_strategy:
+                        result = self.json_decoder.ipnetwork_desimplify(obj)
+                    elif "novabase" in string_strategy:
+                        result = self.json_decoder.novabase_desimplify(obj)
+                    elif "list" in string_strategy:
+                        result = self.json_decoder.desimplify(obj)
+                    elif "dict" in string_strategy:
+                        result = self.json_decoder.desimplify(obj)
+                    else:
+                        result = self.json_decoder.desimplify(obj)
+            else:
+                result = self.json_decoder.desimplify(obj)
         return result

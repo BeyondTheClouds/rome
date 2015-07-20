@@ -20,6 +20,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
         network = models.Network()
         network.id = i
         network.fixed_ips = []
+        network.cidr = IP
         network.save()
 
     # for i in range(1, network_count):
