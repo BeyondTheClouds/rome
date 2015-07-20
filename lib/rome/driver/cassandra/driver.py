@@ -131,6 +131,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             result = self.session.execute(cql_request)
             self._tables[tablename] = tablename
         except:
+            result = False
             pass
         return result
 
