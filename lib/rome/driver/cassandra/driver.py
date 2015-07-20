@@ -36,6 +36,18 @@ def decoded_dict_factory(colnames, rows):
     # return [dict(zip(colnames, row)) for row in rows]
     return [dict(zip(colnames, row)) for row in decoded_rows]
 
+def process_column(column_name, klass):
+    column_type = "varchar"
+    if hasattr(getattr(klass, column_name, None), "impl") and getattr(klass, column_name).impl.collection:
+        column_type = "varchar"
+    elif hasattr(klass, column_name):
+        sql_type = "%s" % (getattr(klass, column_name).expression.type)
+        if sql_type in ["INTEGER", "BIGINT", "BOOLEAN"]:
+            column_type = "int"
+        elif sql_type == "FLOAT":
+            column_type = "float"
+    return (column_name, column_type)
+
 class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
@@ -45,6 +57,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         self.session = self.cluster.connect('mykeyspace')
         self.session.row_factory = decoded_dict_factory
         self._tables = {}
+        self.table_columns_metadata = {}
         # self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
@@ -99,21 +112,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             return False
         return True
 
-    def process_column(column_name, klass):
-        column_name_and_type = ""
-        if hasattr(getattr(klass, column_name, None), "impl") and getattr(klass, column_name).impl.collection:
-            column_name_and_type = "%s VARCHAR" % (column_name)
-        elif hasattr(klass, column_name):
-            column_type = "%s" % (getattr(klass, column_name).expression.type)
-            if column_type == "DATETIME" or "VARCHAR" in column_type:
-                column_name_and_type = "%s varchar" % (column_name)
-            elif column_type == "INTEGER":
-                column_name_and_type = "%s int" % (column_name)
-            else:
-                column_name_and_type = "%s %s" % (column_name, column_type)
-        return column_name_and_type
-
-    def _table_create(self, tablename):
+    def _extract_table_metadata(self, tablename):
         from lib.rome.core.models import get_model_class_from_name, get_model_classname_from_tablename
         modelclass_name = get_model_classname_from_tablename(tablename)
         klass = get_model_class_from_name(modelclass_name)
@@ -121,8 +120,20 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         fields = self._extract_fields(tablename)
         corrected_columns = map(lambda x: self._correct_badname(x), fields)
         corrected_columns = filter(lambda x: x!="rome_version_number", corrected_columns)
-        columns_name_str = ", ".join(map(lambda x: "%s varchar" % (x), corrected_columns))
-        # columns_name_str = ", ".join(map(lambda x: process_column(x, klass), corrected_columns))
+        # columns_name_str = ", ".join(map(lambda x: "%s varchar" % (x), corrected_columns))
+        columns_associated_with_types_list = map(lambda x: process_column(x, klass), corrected_columns)
+        columns_associated_with_types = {}
+        for each in columns_associated_with_types_list:
+            columns_associated_with_types[each[0]] = each
+        self.table_columns_metadata[tablename] = columns_associated_with_types
+
+    def _table_create(self, tablename):
+
+        if not tablename in self.table_columns_metadata:
+            self._extract_table_metadata(tablename)
+
+        columns_associated_with_types = self.table_columns_metadata[tablename]
+        columns_name_str = ", ".join(map(lambda x: "%s %s" % (x[0], x[1]), columns_associated_with_types.values()))
 
         columns_name_str += ", rome_version_number int"
         cql_request = "create table %s (%s, PRIMARY KEY(id))" % (tablename, columns_name_str)
@@ -137,6 +148,17 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
+
+        if not tablename in self.table_columns_metadata:
+            self._extract_table_metadata(tablename)
+
+        def process_column(tablename, column, value):
+            column_type = self.table_columns_metadata[tablename][column][1]
+            if column_type is not "varchar":
+                return "%s" % (string_encoder.simplify(value[column]))
+            else:
+                return "'%s'" % (("%s" % (string_encoder.simplify(value[column]))).replace("'", "\""))
+
         if not self._table_exist(tablename):
             self._table_create(tablename)
         filtered_value = dict((k,v) for k,v in value.iteritems() if v is not None and k != "rome_version_number")
@@ -147,7 +169,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
         columns_name_str = ", ".join(map(lambda x: "%s" % (x), corrected_columns))
         # columns_value_str = ", ".join(map(lambda x: ("%s" % ((("%s") % (value[x])).replace("'", "\""))), corrected_columns))
-        encoded_values = map(lambda x: "\'%s\'" % (("%s" % (string_encoder.simplify(value[x]))).replace("'", "\"")), corrected_columns)
+        encoded_values = map(lambda x: process_column(tablename, x, value), corrected_columns)
         columns_value_str = ", ".join(encoded_values)
 
         columns_name_str += ", rome_version_number"
@@ -163,8 +185,9 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         """"""
         if not self._table_exist(tablename):
             self._table_create(tablename)
-        cql_request = """select * from %s where id='%s'""" % (tablename, key)
+        cql_request = """select * from %s where id=%s""" % (tablename, key)
         result = self.session.execute(cql_request)
+        print(cql_request)
         if len(result) > 0:
             return result[0]
         else:
@@ -175,5 +198,6 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         if not self._table_exist(tablename):
             self._table_create(tablename)
         cql_request = """select * from %s""" % (tablename)
+        print(cql_request)
         result = self.session.execute(cql_request)
         return result

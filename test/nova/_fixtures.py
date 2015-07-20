@@ -865,6 +865,11 @@ class Network(BASE, NovaBase):
     cidr_v6 = Column(MediumText())
     multi_host = Column(Boolean, default=False)
 
+    toto1 = Column(BigInteger)
+    toto2 = Column(Enum)
+    toto3 = Column(Boolean)
+    toto4 = Column(Float)
+
     gateway_v6 = Column(MediumText())
     netmask_v6 = Column(MediumText())
     netmask = Column(MediumText())
