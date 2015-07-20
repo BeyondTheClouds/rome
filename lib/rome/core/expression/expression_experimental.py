@@ -2,7 +2,7 @@ __author__ = 'jonathan'
 
 
 from sqlalchemy.sql.expression import BinaryExpression
-from lib.rome.core.dataformat.deconverter import JsonDeconverter
+from lib.rome.core.dataformat import get_decoder
 
 class BooleanExpression(object):
     """This class represents expressions as encountered in SQL "where clauses"."""
@@ -45,7 +45,7 @@ class BooleanExpression(object):
 
             def __init__(self, **entries):
                 self.entries = entries
-                self.deconverter = JsonDeconverter()
+                self.deconverter = get_decoder()
 
             def __getattr__(self, item):
                 deconverted_value = self.deconverter.desimplify(self.entries[item])

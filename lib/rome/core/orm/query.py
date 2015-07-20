@@ -15,8 +15,8 @@ import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
 
 try:
-    from lib.rome.core.dataformat.deconverter import JsonDeconverter
-    from lib.rome.core.dataformat.deconverter import find_table_name
+    from lib.rome.core.dataformat import get_decoder
+    from lib.rome.core.dataformat.json import find_table_name
 except:
     pass
 import uuid
@@ -96,10 +96,6 @@ class Query:
         return self
 
     def update(self, values, synchronize_session='evaluate'):
-        # try:
-        #     from lib.rome.core.dataformat.deconverter import JsonDeconverter
-        # except:
-        #     pass
         result = self.all()
         for each in result:
             try:
@@ -108,24 +104,6 @@ class Query:
                     self._session.add(each)
             except:
                 pass
-        # rows = self.all()
-        # for row in rows:
-        #     tablename = find_table_name(row)
-        #     id = row.id
-        #     logging.debug("may need to update %s@%s with %s" % (str(id), tablename, values))
-        #     data = database_driver.get_driver().get(tablename, id)
-        #     for key in values:
-        #         data[key] = values[key]
-        #     request_uuid = uuid.uuid1()
-        #     object_desimplifier = JsonDeconverter(request_uuid=request_uuid)
-        #     try:
-        #         desimplified_object = object_desimplifier.desimplify(data)
-        #         desimplified_object.save()
-        #     except Exception as e:
-        #         traceback.print_exc()
-        #         logging.error("could not save %s@%s" % (str(id), tablename))
-        #         return None
-        # return len(rows)
 
     def distinct(self):
         return list(set(self.all()))

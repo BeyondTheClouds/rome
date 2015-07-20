@@ -15,7 +15,7 @@ from lib.rome.core.rows.rows_experimental import building_tuples as building_tup
 
 from lib.rome.core.lazy import LazyValue
 
-from lib.rome.core.dataformat.deconverter import JsonDeconverter
+from lib.rome.core.dataformat import get_decoder
 
 file_logger_enabled = False
 try:
@@ -258,7 +258,7 @@ def construct_rows(models, criterions, hints, session=None):
                 indexed_rows[row_index_key] = True
                 rows += [extract_sub_row(row, model_set)]
     part5_starttime = current_milli_time()
-    deconverter = JsonDeconverter(request_uuid=request_uuid)
+    deconverter = get_decoder(request_uuid=request_uuid)
     # reordering tuples (+ selecting attributes)
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]

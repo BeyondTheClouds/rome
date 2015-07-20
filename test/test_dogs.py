@@ -54,9 +54,9 @@ class TestDogs(unittest.TestCase):
         specy.save()
         self.assertEqual(True, True)
 
-        from lib.rome.core.dataformat.converter import JsonConverter
+        from lib.rome.core.dataformat import get_encoder
         from lib.rome.core.lazy import LazyValue
-        converter = JsonConverter()
+        converter = get_encoder()
         bobby_dict = converter.simplify(bobby)
         toto = converter.simplify(LazyValue(bobby_dict, None))
         print(toto)

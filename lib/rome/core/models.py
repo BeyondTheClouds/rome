@@ -10,10 +10,12 @@ import sys
 import datetime
 import logging
 
-from lib.rome.core.dataformat import converter
+from lib.rome.core.dataformat import get_decoder, get_encoder
 import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
+
+
 
 def starts_with_uppercase(name):
     if name is None or len(name) == 0:
@@ -113,7 +115,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def soft_delete(self, session=None):
         # <SOFT DELETE IMPLEMENTATION>
         self.deleted = True
-        object_converter_datetime = converter.JsonConverter()
+        object_converter_datetime = get_encoder()
         self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
         if session is not None:
             session.add(self)
@@ -189,7 +191,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         converted into "JSON like" representation, and nested objects are
         extracted. It results in a list of object that will be stored in the
         database."""
-        object_converter = converter.JsonConverter(request_uuid)
+        object_converter = get_encoder(request_uuid)
         object_converter.simplify(self)
 
         saving_candidates = object_converter.complex_cache
@@ -259,7 +261,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 logging.debug("skipping the storage of object %s" % (current_object["id"]))
                 continue
 
-            object_converter_datetime = converter.JsonConverter(request_uuid)
+            object_converter_datetime = get_encoder(request_uuid)
 
             if (current_object.has_key("created_at") and current_object[
                 "created_at"] is None) or not current_object.has_key("created_at"):
@@ -269,7 +271,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             logging.debug("starting the storage of %s" % (current_object))
 
             try:
-                local_object_converter = converter.JsonConverter(request_uuid)
+                local_object_converter = get_encoder(request_uuid)
                 corrected_object = local_object_converter.simplify(current_object)
                 if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
                     corrected_object["session"] = getattr(target, "session", None)

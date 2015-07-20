@@ -65,8 +65,8 @@ class LazyValue:
     (models entities). In a few words LazyValue(dict).id <-> JsonDeconverter(dict).id ."""
 
     def __init__(self, wrapped_dict, request_uuid):
-        from lib.rome.core.dataformat.deconverter import JsonDeconverter
-        self.deconverter = JsonDeconverter(request_uuid=request_uuid)
+        from lib.rome.core.dataformat import get_decoder
+        self.deconverter = get_decoder(request_uuid=request_uuid)
         self.wrapped_dict = wrapped_dict
         self.wrapped_value = None
         self.request_uuid = request_uuid
@@ -104,8 +104,8 @@ class LazyReference:
 
     def __init__(self, base, id, request_uuid, deconverter):
         """Constructor"""
-        from lib.rome.core.dataformat import deconverter as deconverter_module
-        caches = deconverter_module.CACHES
+        from lib.rome.core.dataformat import json as json_module
+        caches = json_module.CACHES
         self.base = base
         self.id = id
         self.version = -1
@@ -115,8 +115,8 @@ class LazyReference:
             caches[self.request_uuid] = {}
         self.cache = caches[self.request_uuid]
         if deconverter is None:
-            from lib.rome.core.dataformat.deconverter import JsonDeconverter
-            self.deconverter = JsonDeconverter(request_uuid=request_uuid)
+            from lib.rome.core.dataformat import get_decoder
+            self.deconverter = get_decoder(request_uuid=request_uuid)
         else:
             self.deconverter = deconverter
         self._session = None

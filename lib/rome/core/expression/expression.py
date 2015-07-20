@@ -2,7 +2,7 @@ __author__ = 'jonathan'
 
 import datetime
 import pytz
-from lib.rome.core.dataformat.deconverter import JsonDeconverter
+from lib.rome.core.dataformat import get_decoder
 import re
 import uuid
 from sqlalchemy.sql.expression import BinaryExpression
@@ -49,7 +49,7 @@ class LazyDictionnary:
 
     def __init__(self, **entries):
         self.entries = entries
-        self.deconverter = JsonDeconverter()
+        self.deconverter = get_decoder()
 
     def __getattr__(self, item):
         deconverted_value = self.deconverter.desimplify(self.entries[item])
@@ -66,7 +66,7 @@ class BooleanExpression(object):
                 return exp
         self.operator = operator
         self.exps = map(lambda x: transform_exp(x), exps)
-        self.deconverter = JsonDeconverter()
+        self.deconverter = get_decoder()
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
         # prepare the expression

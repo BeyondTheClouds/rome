@@ -73,10 +73,10 @@ def is_novabase(obj):
 
 
 def get_single_object(tablename, id, desimplify=True, request_uuid=None, skip_loading=False):
-    from lib.rome.core.dataformat.deconverter import JsonDeconverter
+    from lib.rome.core.dataformat import get_decoder
 
     if isinstance(id, int):
-        object_deconverter = JsonDeconverter(request_uuid=request_uuid)
+        object_deconverter = get_decoder(request_uuid=request_uuid)
         data = database_driver.get_driver().get(tablename, id)
         if desimplify:
             try:
@@ -258,11 +258,11 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                     except Exception as e:
                         pass
         try:
-            from lib.rome.core.dataformat.deconverter import JsonDeconverter
+            from lib.rome.core.dataformat import get_decoder
         except:
             pass
 
-        object_deconverter = JsonDeconverter(request_uuid=request_uuid)
+        object_deconverter = get_decoder(request_uuid=request_uuid)
         for each in self.get_relationships():
             if each.local_fk_value is None and each.local_object_value is None:
                 continue

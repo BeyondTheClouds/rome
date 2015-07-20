@@ -21,7 +21,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
         network.id = i
         network.fixed_ips = []
         network.save()
-    return
+
     for i in range(1, network_count):
         for j in range(1, fixed_ip_count):
             fixed_ip = models.FixedIp()
@@ -29,7 +29,6 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
             fixed_ip.network_id = i
             fixed_ip.address = compute_ip(i, j)
             fixed_ip.save()
-
     pass
 
 
