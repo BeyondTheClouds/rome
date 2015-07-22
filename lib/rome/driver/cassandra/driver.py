@@ -1,3 +1,5 @@
+
+import rediscluster
 import redis
 
 import lib.rome.driver.database_driver
@@ -36,7 +38,11 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
         config = get_config()
-        self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
+        if config.redis_cluster_enabled():
+            startup_nodes = map(lambda x: {"host": x, "port": "%s" % (config.port())}, config.cluster_nodes())
+            self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
+        else:
+            self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
         self.cluster = Cluster()
         self.session = self.cluster.connect('mykeyspace')
         self.session.row_factory = decoded_dict_factory
