@@ -20,16 +20,16 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
         network = models.Network()
         network.id = i
         network.fixed_ips = []
-        network.cidr = IP
+        # network.cidr = IP
         network.save()
 
-    # for i in range(1, network_count):
-    #     for j in range(1, fixed_ip_count):
-    #         fixed_ip = models.FixedIp()
-    #         fixed_ip.id = i * fixed_ip_count + j
-    #         fixed_ip.network_id = i
-    #         fixed_ip.address = compute_ip(i, j)
-    #         fixed_ip.save()
+    for i in range(1, network_count):
+        for j in range(1, fixed_ip_count):
+            fixed_ip = models.FixedIp()
+            fixed_ip.id = i * fixed_ip_count + j
+            fixed_ip.network_id = i
+            fixed_ip.address = compute_ip(i, j)
+            fixed_ip.save()
     pass
 
 
@@ -37,7 +37,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    create_mock_data(3, 2000)
+    create_mock_data(2, 5)
 
     # fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
     # print(fixed_ips)

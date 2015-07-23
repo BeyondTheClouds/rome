@@ -22,7 +22,7 @@ def decoded_dict_factory(colnames, rows):
 
 def process_column(column_name, klass):
     column_type = "varchar"
-    if hasattr(getattr(klass, column_name, None), "impl") and getattr(klass, column_name).impl.collection:
+    if hasattr(klass, column_name) and "sqlalchemy.orm.relationships.Comparator object" in "%s" % (getattr(klass, column_name).comparator):
         column_type = "varchar"
     elif hasattr(klass, column_name):
         sql_type = "%s" % (getattr(klass, column_name).expression.type)
