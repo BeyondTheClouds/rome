@@ -43,7 +43,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
         else:
             self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
-        self.cluster = Cluster(contact_points=config.cluster_nodes())
+        self.cluster = Cluster(contact_points=config.cluster_nodes(), protocol_version=3)
         self.session = self.cluster.connect('mykeyspace')
         self.session.row_factory = decoded_dict_factory
         self._tables = {}
