@@ -37,30 +37,37 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    create_mock_data(2, 5)
-
-    # fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
-    # print(fixed_ips)
-
-    network = Query(models.Network).filter_by(id=1).all()
-    print(network)
-
-    # from lib.rome.core.session.session import Session as Session
-    # logging.getLogger().setLevel(logging.DEBUG)
-    # session = Session()
+    # create_mock_data(2, 5)
     #
-    # with session.begin():
-    #     for i in range(1, 10):
-    #         network = models.Network()
-    #         network.id = i
-    #         network.save()
-    # for i in range(1, 5):
-    #     query = Query(models.FixedIp.id, models.Network.id)\
-    #         .join(models.FixedIp.network_id == models.Network.id)
-    #     # query.filter(models.FixedIp.address == "172.1.1.13")
-    #     result = query.all()
+    # # fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
+    # # print(fixed_ips)
+    #
+    # network = Query(models.Network).filter_by(id=1).all()
+    # print(network)
 
-    # print(len(result))
 
-    # for each in result:
-    #     print(each)
+    def _aggregate_get_query(context, model_class, id_field=None, id=None,
+                             session=None, read_deleted=None):
+        columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
+
+        query = Query(model_class, session=session,
+                            read_deleted=read_deleted)
+
+        # for c in columns_to_join.get(model_class, []):
+        #     query = query.options(joinedload(c))
+
+        if id and id_field:
+            query = query.filter(id_field == id)
+
+        return query
+
+
+    aggregate_id = 1
+
+    print("[aggregate_get] id:%s" % (aggregate_id))
+    query = _aggregate_get_query(None,
+                                 models.Aggregate,
+                                 models.Aggregate.id,
+                                 aggregate_id)
+    aggregate = query.first()
+    print(aggregate)

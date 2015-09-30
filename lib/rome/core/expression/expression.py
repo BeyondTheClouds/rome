@@ -88,7 +88,6 @@ class BooleanExpression(object):
                 return exp
 
         compiled_expressions = map(lambda x: "(%s)" % (collect_expressions(x)), self.exps)
-        # compiled_expressions = map(lambda x: self.prepare_criterion(x), compiled_expressions)
 
         joined_compiled_expressions = []
         if self.operator == "AND":
@@ -100,16 +99,6 @@ class BooleanExpression(object):
 
         self.compiled_expression = joined_compiled_expressions
 
-        # #check if right value is a named argument
-        # expressions = []
-        # if type(criterion) is BooleanExpression:
-        #     if criterion.operator in ["AND", "OR"]:
-        #         return criterion.evaluate(value)
-        #     else:
-        #         expressions = criterion.exps
-        # elif type(criterion) is BinaryExpression:
-        #     expressions = [criterion.expression]
-
         for criterion_str in compiled_expressions:
             for expression in self.exps:
                 if type(expression) is BinaryExpression:
@@ -119,26 +108,15 @@ class BooleanExpression(object):
                             count = 1
                             for i in expression.right.element:
                                 corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
-                                # key = str(i)
                                 key = ":%s_%i" % (i._orig_key, count)
                                 self.variable_substitution_dict[key] = corrected_label
                                 self.default_value_dict[corrected_label] = i.value
                                 count += 1
                         elif not "." in str(expression.right):
-                            # original_label = str(expression.right).replace(":", "")
                             original_label = str(expression.right)
-                            # corrected_label = str(expression.right).replace(":", "")
                             corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
                             self.variable_substitution_dict[original_label] = corrected_label
-                            # count += 1
                             self.default_value_dict[corrected_label] = expression.right.value
-
-                        # handle left part of the expression
-                        # variable_name = str(expression.left)
-                        # if "." in variable_name:
-                        #     variable_name = variable_name.split(".")[0]
-                        # corrected_variable_name = ("%s_%s" % (variable_name, self.uuid))
-                        # self.variable_substitution_dict[variable_name] = corrected_variable_name
 
         for sub in self.variable_substitution_dict:
             joined_compiled_expressions = joined_compiled_expressions.replace(sub, self.variable_substitution_dict[sub])
@@ -151,28 +129,6 @@ class BooleanExpression(object):
 
         self.compiled_expression = joined_compiled_expressions
         return self.compiled_expression
-
-        # for exp in self.exps:
-        #
-        # if self.operator == "AND":
-        #     if len(self.exps) <= 0:
-        #         return False
-        #     for exp in self.exps:
-        #         if hasattr(exp, "evaluate") and not exp.evaluate(value):
-        #             return False
-        #         else:
-        #             if not self.prepare_criterion(exp):
-        #                 return False
-        #     return True
-        #
-        # if self.operator == "OR" or self.operator == "NORMAL":
-        #     for exp in self.exps:
-        #         if hasattr(exp, "evaluate") and exp.evaluate(value):
-        #             return True
-        #         else:
-        #             if self.evaluate_criterion(exp, value):
-        #                 return True
-        #     return False
 
     def prepare_criterion(self, criterion):
         criterion_str = criterion.__str__()
@@ -199,9 +155,6 @@ class BooleanExpression(object):
             for sub in self.variable_substitution_dict:
                 criterion_str = criterion_str.replace(sub, self.variable_substitution_dict[sub])
 
-            # compiled = re.compile('|'.join(map(re.escape, self.variable_substitution_dict)))
-            # criterion_str = compiled.sub(lambda x: subs[x.group(0)], criterion_str)
-
             # handle regex
             if "REGEXP" in criterion_str:
                 tab = criterion_str.split("REGEXP")
@@ -211,147 +164,9 @@ class BooleanExpression(object):
 
             boolean_expression_str_memory[prev_criterion_str] = criterion_str
 
-        # self.criterion_commands += [criterion_str]
         return criterion_str
-        # # construct a dict with the values involved in the expression
-        # values_dict = {}
-        # # return True
-        # if type(value) is not dict:
-        #     for key in value.keys():
-        #         try:
-        #             s = LazyDictionnary(**value[value.keys().index(key)])
-        #             values_dict[key] = s
-        #         except:
-        #             print("[BUG] evaluation failed: %s -> %s" % (key, value))
-        #             return False
-        # else:
-        #     values_dict = value
-        #
-        # # check if right value is a named argument
-        # expressions = []
-        # if type(criterion) is BooleanExpression:
-        #     if criterion.operator in ["AND", "OR"]:
-        #         return criterion.evaluate(value)
-        #     else:
-        #         expressions = criterion.exps
-        # elif type(criterion) is BinaryExpression:
-        #     expressions = [criterion.expression]
-        # for expression in expressions:
-        #     if ":" in str(expression.right):
-        #         # fix the prefix of the name argument
-        #         if " in " in criterion_str:
-        #             count = 1
-        #             for i in expression.right.element:
-        #                 values_dict["%s_%i" % (i._orig_key, count)] = i.value
-        #                 count += 1
-        #         else:
-        #             corrected_label = str(expression.right).replace(":", "")
-        #             values_dict[corrected_label] = expression.right.value
-        # # evaluate the expression thanks to the 'eval' function
-        # result = False
-        # try:
-        #     result = eval(criterion_str, values_dict)
-        # except:
-        #     pass
-        # return result
-
-    # def evaluate_criterion(self, criterion, value):
-    #
-    #     criterion_str = criterion.__str__()
-    #
-    #     if criterion_str in boolean_expression_str_memory:
-    #         criterion_str = boolean_expression_str_memory[criterion_str]
-    #     else:
-    #         prev_criterion_str = criterion_str
-    #
-    #         subs = {
-    #             " = ": " == ",
-    #             ":": "",
-    #             "\"": "",
-    #             "IN": " in ",
-    #             "IS": " is ",
-    #             "NOT": " not ",
-    #             "NULL": "None",
-    #             "(": "[",
-    #             ")": "]"
-    #         }
-    #         compiled = re.compile('|'.join(map(re.escape, subs)))
-    #         criterion_str = compiled.sub(lambda x: subs[x.group(0)], criterion_str)
-    #
-    #         # handle regex
-    #         if "REGEXP" in criterion_str:
-    #             tab = criterion_str.split("REGEXP")
-    #             a = tab[0]
-    #             b = tab[1]
-    #             criterion_str = ("""__import__('re').search(%s, %s) is not None\n""" % (b, a))
-    #
-    #         boolean_expression_str_memory[prev_criterion_str] = criterion_str
-    #
-    #     # construct a dict with the values involved in the expression
-    #     values_dict = {}
-    #     # return True
-    #     if type(value) is not dict:
-    #         for key in value.keys():
-    #             try:
-    #                 s = LazyDictionnary(**value[value.keys().index(key)])
-    #                 values_dict[key] = s
-    #             except:
-    #                 print("[BUG] evaluation failed: %s -> %s" % (key, value))
-    #                 return False
-    #     else:
-    #         values_dict = value
-    #
-    #     # check if right value is a named argument
-    #     expressions = []
-    #     if type(criterion) is BooleanExpression:
-    #         if criterion.operator in ["AND", "OR"]:
-    #             return criterion.evaluate(value)
-    #         else:
-    #             expressions = criterion.exps
-    #     elif type(criterion) is BinaryExpression:
-    #         expressions = [criterion.expression]
-    #     for expression in expressions:
-    #         if ":" in str(expression.right):
-    #             # fix the prefix of the name argument
-    #             if " in " in criterion_str:
-    #                 count = 1
-    #                 for i in expression.right.element:
-    #                     values_dict["%s_%i" % (i._orig_key, count)] = i.value
-    #                     count += 1
-    #             else:
-    #                 corrected_label = str(expression.right).replace(":", "")
-    #                 values_dict[corrected_label] = expression.right.value
-    #     # evaluate the expression thanks to the 'eval' function
-    #     result = False
-    #     try:
-    #         result = eval(criterion_str, values_dict)
-    #     except:
-    #         pass
-    #     return result
 
     def evaluate(self, value):
-
-        # if self.operator == "AND":
-        #     if len(self.exps) <= 0:
-        #         return False
-        #     for exp in self.exps:
-        #         if hasattr(exp, "evaluate") and not exp.evaluate(value):
-        #             return False
-        #         else:
-        #             if not self.evaluate_criterion(exp, value):
-        #                 return False
-        #     return True
-        #
-        # if self.operator == "OR" or self.operator == "NORMAL":
-        #     for exp in self.exps:
-        #         if hasattr(exp, "evaluate") and exp.evaluate(value):
-        #             return True
-        #         else:
-        #             if self.evaluate_criterion(exp, value):
-        #                 return True
-        #     return False
-        #
-        # return True
 
         # construct a dict with the values involved in the expression
         values_dict = {}
@@ -366,40 +181,20 @@ class BooleanExpression(object):
         else:
             values_dict = value
 
-        # check if right value is a named argument
-        # expressions = []
-        # if type(criterion) is BooleanExpression:
-        #     if criterion.operator in ["AND", "OR"]:
-        #         return criterion.evaluate(value)
-        #     else:
-        #         expressions = criterion.exps
-        # elif type(criterion) is BinaryExpression:
-        #     expressions = [criterion.expression]
-
-        # for expression in self.exps:
-        #     if ":" in str(expression.right):
-        #         # fix the prefix of the name argument
-        #         if " in " in criterion_str:
-        #             count = 1
-        #             for i in expression.right.element:
-        #                 values_dict["%s_%i" % (i._orig_key, count)] = i.value
-        #                 count += 1
-        #         else:
-        #             corrected_label = str(expression.right).replace(":", "")
-        #             values_dict[corrected_label] = expression.right.value
-        # #evaluate the expression thanks to the 'eval' function
-        # result = False
-        # merged_value = {}
-        # for key in value.keys():
-        #     merged_value[key] = value[value.keys().index(key)]
         for key in self.default_value_dict:
             values_dict[key] = self.default_value_dict[key]
         final_values_dict = {}
         for key in values_dict:
-            final_values_dict[key] = values_dict[key]
+            value = values_dict[key]
+            if key.startswith("id_"):
+                value = int(value)
+            final_values_dict[key] = value
         for key in values_dict:
             if key in self.variable_substitution_dict:
-                final_values_dict[self.variable_substitution_dict[key]] = values_dict[key]
+                value = values_dict[key]
+                if key.startswith("id_"):
+                    value = int(value)
+                final_values_dict[self.variable_substitution_dict[key]] = value
         try:
             result = eval(self.compiled_expression, final_values_dict)
         except:
