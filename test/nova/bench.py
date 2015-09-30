@@ -70,4 +70,5 @@ if __name__ == '__main__':
                                  models.Aggregate.id,
                                  aggregate_id)
     aggregate = query.first()
-    print(aggregate)
+    aggregate.update_foreign_keys()
+    print(aggregate.hosts)
