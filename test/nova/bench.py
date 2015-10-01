@@ -62,7 +62,7 @@ if __name__ == '__main__':
         return query
 
 
-    aggregate_id = 1
+    aggregate_id = "1"
 
     print("[aggregate_get] id:%s" % (aggregate_id))
     query = _aggregate_get_query(None,
@@ -70,5 +70,4 @@ if __name__ == '__main__':
                                  models.Aggregate.id,
                                  aggregate_id)
     aggregate = query.first()
-    aggregate.update_foreign_keys()
-    print(aggregate.hosts)
+    print(aggregate)

@@ -279,10 +279,10 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                     setattr(self, each.local_object_field, remote_ref)
                 else:
                     # dirty fix (grid'5000 debugging)
-                    # if self.__tablename__ == "services":
-                    #     pass
-                    # else:
-                    #     continue
+                    if self.__tablename__ == "services":
+                        pass
+                    else:
+                        continue
                     candidates = get_models_satisfying(
                         each.remote_object_tablename,
                         each.remote_object_field,
