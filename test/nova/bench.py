@@ -71,3 +71,4 @@ if __name__ == '__main__':
                                  aggregate_id)
     aggregate = query.first()
     print(aggregate)
+    print(aggregate.hosts)

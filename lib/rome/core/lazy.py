@@ -218,6 +218,12 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
+        relationships_name = map(lambda x: x.local_object_field, self.get_complex_ref().get_relationships())
+        not_attribute = item not in self.get_complex_ref()._sa_class_manager
+        if item in relationships_name or not_attribute:
+            self.get_complex_ref().load_relationships()
+            # toto = getattr(self.get_complex_ref(), item)
+            # print(toto)
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):

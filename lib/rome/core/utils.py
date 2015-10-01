@@ -322,3 +322,93 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         )
                         pass
 
+    def load_relationships(self, request_uuid=uuid.uuid1()):
+        """Update foreign keys according to local fields' values."""
+
+        from lazy import LazyReference
+
+        if hasattr(self, "metadata"):
+            metadata = self.metadata
+            tablename = self.__tablename__
+
+            if metadata and tablename in metadata.tables:
+                for fk in metadata.tables[tablename].foreign_keys:
+                    local_field_name = str(fk.parent).split(".")[-1]
+                    remote_table_name = fk._colspec.split(".")[-2]
+                    remote_field_name = fk._colspec.split(".")[-1]
+
+                    if hasattr(self, remote_table_name):
+                        pass
+                    else:
+                        """Remove the "s" at the end of the tablename"""
+                        remote_table_name = remote_table_name[:-1]
+                        pass
+
+                    try:
+                        remote_object = getattr(self, remote_table_name)
+                        remote_field_value = getattr(
+                            remote_object,
+                            remote_field_name
+                        )
+                        setattr(self, local_field_name, remote_field_value)
+                    except Exception as e:
+                        pass
+        try:
+            from lib.rome.core.dataformat import get_decoder
+        except:
+            pass
+
+        object_deconverter = get_decoder(request_uuid=request_uuid)
+        for each in self.get_relationships():
+            if each.local_fk_value is None and each.local_object_value is None:
+                continue
+
+            if not each.local_fk_value is None:
+                if each.remote_object_field is "id":
+
+                    remote_ref = LazyReference(
+                        each.remote_object_tablename,
+                        each.local_fk_value,
+                        request_uuid,
+                        object_deconverter
+                    )
+                    setattr(self, each.local_object_field, remote_ref)
+                else:
+                    candidates = get_models_satisfying(
+                        each.remote_object_tablename,
+                        each.remote_object_field,
+                        each.local_fk_value,
+                        request_uuid=request_uuid
+                    )
+
+                    lazy_candidates = []
+                    for cand in candidates:
+                        ref = LazyReference(
+                            cand["nova_classname"],
+                            cand["id"],
+                            request_uuid,
+                            object_deconverter
+                        )
+                        lazy_candidates += [ref]
+                    if not each.is_list:
+                        if len(lazy_candidates) is 0:
+                            logging.error(("could not find an accurate candidate"
+                               " for (%s, %s) in %s") % (
+                                  each.remote_object_tablename,
+                                  each.remote_object_field,
+                                  each.local_fk_value
+                              ))
+                        else:
+                            setattr(
+                                self,
+                                each.local_object_field,
+                                lazy_candidates[0]
+                            )
+                            pass
+                    else:
+                        setattr(
+                            self,
+                            each.local_object_field,
+                            lazy_candidates
+                        )
+                        pass
