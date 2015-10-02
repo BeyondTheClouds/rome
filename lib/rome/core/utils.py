@@ -346,6 +346,9 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                 self.__dict__[rel.local_object_field] = None
         pass
 
+    def get_relationship_fields(self):
+        return map(lambda x:x.local_object_field, self.get_relationships())
+
 class LazyRelationshipList():
     def __init__(self, rel):
         self.rel = rel
