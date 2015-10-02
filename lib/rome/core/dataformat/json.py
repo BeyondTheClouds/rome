@@ -340,7 +340,7 @@ class Decoder(object):
                 request_uuid=self.request_uuid
             )
             # TODO: check if loading relationships is an accurate action here?
-            self.cache[key].load_relationships()
+            # self.cache[key].load_relationships()
             if can_load:
                 self.cache[key].load(obj)
         return self.cache[key]

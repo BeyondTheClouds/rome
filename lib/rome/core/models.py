@@ -157,7 +157,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 logging.error(e)
                 pass
         self.update_foreign_keys()
-        self.load_relationships()
+        # self.load_relationships()
         return self
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
@@ -275,5 +275,5 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 pass
             logging.debug("finished the storage of %s" % (current_object))
 
-        self.load_relationships()
+        # self.load_relationships()
         return self
