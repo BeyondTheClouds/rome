@@ -192,10 +192,13 @@ class LazyReference:
         cached, so that next call will not create any database request."""
         self.version = 0
         key = self.get_key()
-        if data is None:
+        first_load = data is None
+        if first_load:
             data = database_driver.get_driver().get(self.base, self.id)
         self.spawn_empty_model(data)
         self.update_nova_model(data)
+        if first_load:
+            self.load_relationships()
         if self._session is not None:
             self.cache[key]._session = self._session
         return self.cache[key]
@@ -218,11 +221,6 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
-        relationships_name = map(lambda x: x.local_object_field, self.get_complex_ref().get_relationships())
-        not_attribute = item not in self.get_complex_ref()._sa_class_manager
-        if item in relationships_name or not_attribute:
-            self.get_complex_ref().load_relationships()
-            # toto = getattr(self.get_complex_ref(), item)
             # print(toto)
         return getattr(self.get_complex_ref(), item)
 

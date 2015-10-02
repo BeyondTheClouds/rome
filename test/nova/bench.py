@@ -37,7 +37,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    # create_mock_data(2, 5)
+    create_mock_data(2, 50)
     #
     # # fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
     # # print(fixed_ips)
@@ -46,29 +46,48 @@ if __name__ == '__main__':
     # print(network)
 
 
-    def _aggregate_get_query(context, model_class, id_field=None, id=None,
-                             session=None, read_deleted=None):
-        columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
 
-        query = Query(model_class, session=session,
-                            read_deleted=read_deleted)
+    # TEST1
 
-        # for c in columns_to_join.get(model_class, []):
-        #     query = query.options(joinedload(c))
+    # def _aggregate_get_query(context, model_class, id_field=None, id=None,
+    #                          session=None, read_deleted=None):
+    #     columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
+    #
+    #     query = Query(model_class, session=session,
+    #                         read_deleted=read_deleted)
+    #
+    #     # for c in columns_to_join.get(model_class, []):
+    #     #     query = query.options(joinedload(c))
+    #
+    #     if id and id_field:
+    #         query = query.filter(id_field == id)
+    #
+    #     return query
+    #
+    #
+    # aggregate_id = "1"
+    #
+    # print("[aggregate_get] id:%s" % (aggregate_id))
+    # query = _aggregate_get_query(None,
+    #                              models.Aggregate,
+    #                              models.Aggregate.id,
+    #                              aggregate_id)
+    # # aggregate = query.first()
+    # from lib.rome.core.lazy import LazyReference
+    # aggregate = LazyReference("aggregates", 1, None, None)
+    # print(aggregate)
+    # print(aggregate.hosts)
 
-        if id and id_field:
-            query = query.filter(id_field == id)
 
-        return query
+    # TEST2
 
-
-    aggregate_id = "1"
-
-    print("[aggregate_get] id:%s" % (aggregate_id))
-    query = _aggregate_get_query(None,
-                                 models.Aggregate,
-                                 models.Aggregate.id,
-                                 aggregate_id)
-    aggregate = query.first()
-    print(aggregate)
-    print(aggregate.hosts)
+    fixed_ip = models.FixedIp()
+    fixed_ip.network_id = 1
+    fixed_ip.address = "172.%d.%d.%d" % (255, 255, 3)
+    fixed_ip.save()
+    # fixed_ip.load_relationships()
+    # fixed_ip.network.load_relationships()
+    toto = fixed_ip.network.fixed_ips
+    # toto.__str__()
+    print(fixed_ip.network.fixed_ips)
+    print(fixed_ip.network.fixed_ips[0].network.fixed_ips)

@@ -58,6 +58,11 @@ def is_lazyreference(obj):
 def is_novabase(obj):
     """Check if the given object is an instance of a NovaBase."""
 
+    if hasattr(obj, "is_relationship_list"):
+        return False
+    # if "LazyRelationshipList" in str(obj):
+    #     return False
+
     if hasattr(obj, "__tablename__") or hasattr(obj, "lazy_backref_buffer"):
         return True
     # elif isinstance(obj, dict) and "nova_classname" in obj:
@@ -228,7 +233,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
 
     def update_foreign_keys(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
-
+        # return
         from lazy import LazyReference
 
         if hasattr(self, "metadata"):
@@ -276,7 +281,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         request_uuid,
                         object_deconverter
                     )
-                    setattr(self, each.local_object_field, remote_ref)
+                    self.__dict__[each.local_object_field] = remote_ref
+                    # setattr(self, each.local_object_field, remote_ref)
                 else:
                     # dirty fix (grid'5000 debugging)
                     if self.__tablename__ == "services":
@@ -324,91 +330,146 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
 
     def load_relationships(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
+        for rel in self.get_relationships():
+            if rel.is_list:
+                self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
+            else:
+                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+        pass
 
+    def unload_relationships(self, request_uuid=uuid.uuid1()):
+        """Update foreign keys according to local fields' values."""
+        for rel in self.get_relationships():
+            if rel.is_list:
+                self.__dict__[rel.local_object_field] = []
+            else:
+                self.__dict__[rel.local_object_field] = None
+        pass
+
+class LazyRelationshipList():
+    def __init__(self, rel):
+        self.rel = rel
+        self.data = None
+        self.__emulates__ = list
+        self._sa_adapter = None
+        self.is_relationship_list = True
+        self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+
+    def reload(self):
+
+        if self.data is not None:
+            return
+
+        # CODE THIS!
         from lazy import LazyReference
 
-        if hasattr(self, "metadata"):
-            metadata = self.metadata
-            tablename = self.__tablename__
+        request_uuid=uuid.uuid1()
 
-            if metadata and tablename in metadata.tables:
-                for fk in metadata.tables[tablename].foreign_keys:
-                    local_field_name = str(fk.parent).split(".")[-1]
-                    remote_table_name = fk._colspec.split(".")[-2]
-                    remote_field_name = fk._colspec.split(".")[-1]
-
-                    if hasattr(self, remote_table_name):
-                        pass
-                    else:
-                        """Remove the "s" at the end of the tablename"""
-                        remote_table_name = remote_table_name[:-1]
-                        pass
-
-                    try:
-                        remote_object = getattr(self, remote_table_name)
-                        remote_field_value = getattr(
-                            remote_object,
-                            remote_field_name
-                        )
-                        setattr(self, local_field_name, remote_field_value)
-                    except Exception as e:
-                        pass
         try:
             from lib.rome.core.dataformat import get_decoder
         except:
             pass
 
         object_deconverter = get_decoder(request_uuid=request_uuid)
-        for each in self.get_relationships():
-            if each.local_fk_value is None and each.local_object_value is None:
-                continue
 
-            if not each.local_fk_value is None:
-                if each.remote_object_field is "id":
+        candidates = get_models_satisfying(
+            self.rel.remote_object_tablename,
+            self.rel.remote_object_field,
+            self.rel.local_fk_value,
+            request_uuid=request_uuid
+        )
 
-                    remote_ref = LazyReference(
-                        each.remote_object_tablename,
-                        each.local_fk_value,
-                        request_uuid,
-                        object_deconverter
-                    )
-                    setattr(self, each.local_object_field, remote_ref)
-                else:
-                    candidates = get_models_satisfying(
-                        each.remote_object_tablename,
-                        each.remote_object_field,
-                        each.local_fk_value,
-                        request_uuid=request_uuid
-                    )
+        lazy_candidates = []
+        for cand in candidates:
+            ref = LazyReference(
+                cand["nova_classname"],
+                cand["id"],
+                request_uuid,
+                object_deconverter
+            )
+            lazy_candidates += [ref]
+        self.data = lazy_candidates
+        # print("reload")
 
-                    lazy_candidates = []
-                    for cand in candidates:
-                        ref = LazyReference(
-                            cand["nova_classname"],
-                            cand["id"],
-                            request_uuid,
-                            object_deconverter
-                        )
-                        lazy_candidates += [ref]
-                    if not each.is_list:
-                        if len(lazy_candidates) is 0:
-                            logging.error(("could not find an accurate candidate"
-                               " for (%s, %s) in %s") % (
-                                  each.remote_object_tablename,
-                                  each.remote_object_field,
-                                  each.local_fk_value
-                              ))
-                        else:
-                            setattr(
-                                self,
-                                each.local_object_field,
-                                lazy_candidates[0]
-                            )
-                            pass
-                    else:
-                        setattr(
-                            self,
-                            each.local_object_field,
-                            lazy_candidates
-                        )
-                        pass
+    def __getattr__(self, item):
+        self.reload()
+        return getattr(self.data, item)
+
+    def __setattr__(self, name, value):
+        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list"]:
+            self.__dict__[name] = value
+        else:
+            self.reload()
+            setattr(self.data, name, value)
+            return self
+
+    # def __str__(self):
+    #     return "%s" % (self.id)
+    #
+    # def __repr__(self):
+    #     return "%s" % (self.id)
+    #
+    # def __hash__(self):
+    #     return self.__str__().__hash__()
+
+class LazyRelationshipSingleObject():
+    def __init__(self, rel):
+        self.rel = rel
+        self.data = None
+        self.__emulates__ = list
+        self._sa_adapter = None
+        self.is_relationship_list = True
+        self.id = "LazyRelationshipSingleObject(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+
+    def reload(self):
+
+        if self.data is not None:
+            return
+
+        # CODE THIS!
+        from lazy import LazyReference
+
+        request_uuid=uuid.uuid1()
+
+        try:
+            from lib.rome.core.dataformat import get_decoder
+        except:
+            pass
+
+        object_deconverter = get_decoder(request_uuid=request_uuid)
+
+        remote_ref = LazyReference(
+            self.rel.remote_object_tablename,
+            self.rel.local_fk_value,
+            request_uuid,
+            object_deconverter
+        )
+        self.data = remote_ref
+
+
+        # print("reload")
+
+    def __getattr__(self, item):
+        self.reload()
+        return getattr(self.data, item)
+
+    def __setattr__(self, name, value):
+        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list"]:
+            self.__dict__[name] = value
+        else:
+            self.reload()
+            setattr(self.data, name, value)
+            return self
+
+    # def __str__(self):
+    #     return "%s" % (self.id)
+    #
+    # def __repr__(self):
+    #     return "%s" % (self.id)
+    #
+    # def __hash__(self):
+    #     return self.__str__().__hash__()
+
+
+
+

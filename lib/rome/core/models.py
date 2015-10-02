@@ -176,6 +176,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             return
 
         self.update_foreign_keys()
+        # self.load_relationships()
 
         target = self
         table_name = self.__tablename__
