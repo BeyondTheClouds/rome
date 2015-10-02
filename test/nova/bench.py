@@ -90,4 +90,4 @@ if __name__ == '__main__':
     toto = fixed_ip.network.fixed_ips
     # toto.__str__()
     print(fixed_ip.network.fixed_ips)
-    print(fixed_ip.network.fixed_ips[0].network.fixed_ips)
+    # print(fixed_ip.network.fixed_ips[0].network.fixed_ips)

@@ -132,9 +132,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         # # </HARD DELETE IMPLEMENTATION>
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
-
-        primitive = (int, str, bool)
-
         """Set default values"""
         try:
             for field in self._sa_class_manager:
@@ -160,10 +157,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 logging.error(e)
                 pass
         self.update_foreign_keys()
-        # if not skip_session and getattr(self, "_session", None) is not None:
-        #     self._session.add(self)
-        # else:
-        #     self.save(request_uuid=request_uuid)
+        self.load_relationships()
         return self
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
@@ -231,7 +225,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             table_name = get_model_tablename_from_classname(classname)
 
             current_object = object_converter.complex_cache[key]
-            target_object = object_converter.target_cache[key]
 
             current_object["nova_classname"] = table_name
 
@@ -240,19 +233,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             else:
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
-                # force_save = force and self.__tablename__ == current_object["nova_classname"] and self.id == current_object["id"]
 
-                # if existing_object is not None:
-                #     # WARNING: check if the 0 is correct or if it should be existing_object["rome_version_number"] + 1
-                #     version_number = getattr(target_object, "rome_version_number", 0)
-                #     # version_number = getattr(target_object, "rome_version_number", existing_object["rome_version_number"])
-                #
-                #     # version_number = getattr(self, "rome_version_number", existing_object["rome_version_number"])
-                #     # version_number = current_object["rome_version_number"] if "rome_version_number" in current_object else 0
-                #     # current_object
-                #     logging.info("check version: current:%i vs existing:%i (classname:%s, id:%s)" % (version_number, existing_object["rome_version_number"], table_name, current_object["id"]))
-                #     if version_number < existing_object["rome_version_number"]:
-                #         continue
                 if not same_version(existing_object, current_object, model_class):
                     current_object = merge_dict(existing_object, current_object)
                 else:
@@ -294,4 +275,5 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 pass
             logging.debug("finished the storage of %s" % (current_object))
 
+        self.load_relationships()
         return self
