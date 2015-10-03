@@ -281,8 +281,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         request_uuid,
                         object_deconverter
                     )
-                    # self.__dict__[each.local_object_field] = remote_ref
-                    setattr(self, each.local_object_field, remote_ref)
+                    self.__dict__[each.local_object_field] = remote_ref
+                    # setattr(self, each.local_object_field, remote_ref)
                 else:
                     # dirty fix (grid'5000 debugging)
                     if self.__tablename__ == "services":
