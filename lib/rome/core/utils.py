@@ -334,7 +334,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
             else:
-                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+                # self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+                pass
         pass
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
@@ -343,7 +344,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = []
             else:
-                self.__dict__[rel.local_object_field] = None
+                # self.__dict__[rel.local_object_field] = None
+            pass
         pass
 
     def get_relationship_fields(self):
@@ -406,15 +408,6 @@ class LazyRelationshipList():
             setattr(self.data, name, value)
             return self
 
-    # def __str__(self):
-    #     return "%s" % (self.id)
-    #
-    # def __repr__(self):
-    #     return "%s" % (self.id)
-    #
-    # def __hash__(self):
-    #     return self.__str__().__hash__()
-
 class LazyRelationshipSingleObject():
     def __init__(self, rel):
         self.rel = rel
@@ -449,9 +442,6 @@ class LazyRelationshipSingleObject():
         )
         self.data = remote_ref
 
-
-        # print("reload")
-
     def __getattr__(self, item):
         self.reload()
         return getattr(self.data, item)
@@ -463,15 +453,6 @@ class LazyRelationshipSingleObject():
             self.reload()
             setattr(self.data, name, value)
             return self
-
-    # def __str__(self):
-    #     return "%s" % (self.id)
-    #
-    # def __repr__(self):
-    #     return "%s" % (self.id)
-    #
-    # def __hash__(self):
-    #     return self.__str__().__hash__()
 
 
 
