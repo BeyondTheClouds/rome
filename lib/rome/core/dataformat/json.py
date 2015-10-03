@@ -122,8 +122,6 @@ class Encoder(object):
         complex_object = {}
         if fields_iterator is not None:
             for field in fields_iterator:
-                # if field in obj.get_relationship_fields():
-                #     continue
                 field_value = getattr(obj, field)
 
                 if utils.is_novabase(field_value):
@@ -131,9 +129,17 @@ class Encoder(object):
                 elif isinstance(field_value, list):
                     field_list = []
                     for item in field_value:
-                        field_list += [self.process_field(item)]
+                        v = self.process_field(item)
+                        if v in obj.get_relationship_fields():
+                            continue
+                        field_list += [v]
+
+                    if field in obj.get_relationship_fields():
+                        continue
                     complex_object[field] = field_list
                 else:
+                    if field in obj.get_relationship_fields():
+                        continue
                     complex_object[field] = self.process_field(field_value)
         return complex_object
 
