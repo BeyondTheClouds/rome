@@ -345,7 +345,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                 self.__dict__[rel.local_object_field] = []
             else:
                 # self.__dict__[rel.local_object_field] = None
-            pass
+                pass
         pass
 
     def get_relationship_fields(self):
