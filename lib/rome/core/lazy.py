@@ -72,7 +72,12 @@ class LazyValue:
         self.request_uuid = request_uuid
 
     def transform(self, x):
-        return self.deconverter.desimplify(x)
+        v = self.deconverter.desimplify(x)
+        try:
+            v.load_relationships()
+        except:
+            pass
+        return v
 
     def __repr__(self):
         return "LazyValue(%s)" % (self.wrapped_dict)
@@ -197,8 +202,6 @@ class LazyReference:
             data = database_driver.get_driver().get(self.base, self.id)
         self.spawn_empty_model(data)
         self.update_nova_model(data)
-        # if first_load:
-        #     self.load_relationships()
         if self._session is not None:
             self.cache[key]._session = self._session
         return self.cache[key]
