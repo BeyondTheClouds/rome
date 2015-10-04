@@ -72,12 +72,56 @@ class LazyValue:
         self.request_uuid = request_uuid
 
     def transform(self, x):
-        v = self.deconverter.desimplify(x)
-        try:
-            v.load_relationships()
-        except:
-            pass
-        return v
+        return self.deconverter.desimplify(x)
+
+    def get_relationships(self):
+        from utils import RelationshipModel
+        result = []
+
+        obj = self.wrapped_value.get_complex_ref()
+
+        state = obj._sa_instance_state
+
+        for field in obj._sa_class_manager:
+            field_object = obj._sa_class_manager[field]
+            field_column = state.mapper._props[field]
+
+            contain_comparator = hasattr(field_object, "comparator")
+            is_relationship = ("relationship" in str(field_object.comparator)
+                               if contain_comparator else False
+                               )
+            if is_relationship:
+                remote_local_pair = field_object.property.local_remote_pairs[0]
+
+                local_fk_field = remote_local_pair[0].name
+                local_fk_value = getattr(obj, local_fk_field)
+                local_object_field = field
+                local_object_value = getattr(obj, local_object_field)
+                remote_object_field = remote_local_pair[1].name
+                remote_object_tablename = str(remote_local_pair[1].table)
+                is_list = field_object.property.uselist
+
+                result += [RelationshipModel(
+                    local_fk_field,
+                    local_fk_value,
+                    local_object_field,
+                    local_object_value,
+                    remote_object_field,
+                    remote_object_tablename,
+                    is_list
+                )]
+
+        return result
+
+    def load_relationships(self, request_uuid=uuid.uuid1()):
+        """Update foreign keys according to local fields' values."""
+        from utils import LazyRelationshipList, LazyRelationshipSingleObject
+        for rel in self.get_relationships():
+            if rel.is_list:
+                self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
+            else:
+                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+        pass
 
     def __repr__(self):
         return "LazyValue(%s)" % (self.wrapped_dict)
@@ -98,6 +142,7 @@ class LazyValue:
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
+            self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
 

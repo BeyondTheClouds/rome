@@ -37,7 +37,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    create_mock_data(2, 50)
+    # create_mock_data(2, 50)
     #
     # # fixed_ips = Query(models.FixedIp).filter(models.FixedIp.deleted==None).filter(models.FixedIp.deleted==None).filter(models.FixedIp.updated_at!=None).all()
     # # print(fixed_ips)
@@ -81,24 +81,24 @@ if __name__ == '__main__':
 
     # TEST2
 
-    fixed_ip = models.FixedIp()
-    fixed_ip.network_id = 1
-    fixed_ip.address = "172.%d.%d.%d" % (255, 255, 3)
-    fixed_ip.save()
-    # fixed_ip.load_relationships()
-    # fixed_ip.network.load_relationships()
-    toto = fixed_ip.network.fixed_ips
-    # toto.__str__()
-    print(fixed_ip.network.fixed_ips)
+    # fixed_ip = models.FixedIp()
+    # fixed_ip.network_id = 1
+    # fixed_ip.address = "172.%d.%d.%d" % (255, 255, 3)
+    # fixed_ip.save()
+    # # fixed_ip.load_relationships()
+    # # fixed_ip.network.load_relationships()
+    # toto = fixed_ip.network.fixed_ips
+    # # toto.__str__()
+    # print(fixed_ip.network.fixed_ips)
     # print(fixed_ip.network.fixed_ips[0].network.fixed_ips)
 
     query = Query(models.Network)
     network = query.first()
     print(network.created_at)
-    network.load_relationships()
+    # network.load_relationships()
     print(network.fixed_ips)
-    network.share_address = "toto"
-    network.save()
+    # network.share_address = "toto"
+    # network.save()
     print("toto")
 
     from lib.rome.core.dataformat import get_decoder, get_encoder
