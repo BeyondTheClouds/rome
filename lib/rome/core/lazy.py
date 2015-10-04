@@ -119,8 +119,8 @@ class LazyValue:
         for rel in self.get_relationships():
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
-            else:
-                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+            # else:
+                # self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def __repr__(self):
