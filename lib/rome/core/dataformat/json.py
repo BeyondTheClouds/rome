@@ -125,7 +125,7 @@ class Encoder(object):
                 field_value = getattr(obj, field)
                 if utils.is_novabase(field_value):
                     complex_object[field] = self.process_field(field_value)
-                elif isinstance(field_value, list):
+                elif isinstance(field_value, list) or hasattr(field_value, "is_relationship_list"):
                     field_list = []
                     for item in field_value:
                         field_list += [self.process_field(item)]

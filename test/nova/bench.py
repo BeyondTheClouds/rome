@@ -95,4 +95,13 @@ if __name__ == '__main__':
     query = Query(models.Network)
     network = query.first()
     print(network.created_at)
+    network.load_relationships()
     print(network.fixed_ips)
+    network.share_address = "toto"
+    network.save()
+    print("toto")
+
+    from lib.rome.core.dataformat import get_decoder, get_encoder
+
+    object_converter = get_encoder()
+    print(object_converter.simplify(network))
