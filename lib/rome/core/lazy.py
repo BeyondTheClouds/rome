@@ -118,9 +118,9 @@ class LazyValue:
         from utils import LazyRelationshipList, LazyRelationshipSingleObject
         for rel in self.get_relationships():
             if rel.is_list:
-                self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
+                self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipList(rel)
             else:
-                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+                self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def __repr__(self):
@@ -142,7 +142,8 @@ class LazyValue:
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
-            # self.load_relationships()
+        if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
+            self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
 
@@ -247,6 +248,8 @@ class LazyReference:
             data = database_driver.get_driver().get(self.base, self.id)
         self.spawn_empty_model(data)
         self.update_nova_model(data)
+        if first_load and "aggregate" in self.base:
+            self.load_relationships()
         if self._session is not None:
             self.cache[key]._session = self._session
         return self.cache[key]

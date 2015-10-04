@@ -49,59 +49,63 @@ if __name__ == '__main__':
 
     # TEST1
 
-    # def _aggregate_get_query(context, model_class, id_field=None, id=None,
-    #                          session=None, read_deleted=None):
-    #     columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
-    #
-    #     query = Query(model_class, session=session,
-    #                         read_deleted=read_deleted)
-    #
-    #     # for c in columns_to_join.get(model_class, []):
-    #     #     query = query.options(joinedload(c))
-    #
-    #     if id and id_field:
-    #         query = query.filter(id_field == id)
-    #
-    #     return query
-    #
-    #
-    # aggregate_id = "1"
-    #
-    # print("[aggregate_get] id:%s" % (aggregate_id))
-    # query = _aggregate_get_query(None,
-    #                              models.Aggregate,
-    #                              models.Aggregate.id,
-    #                              aggregate_id)
-    # # aggregate = query.first()
-    # from lib.rome.core.lazy import LazyReference
-    # aggregate = LazyReference("aggregates", 1, None, None)
-    # print(aggregate)
-    # print(aggregate.hosts)
+    def _aggregate_get_query(context, model_class, id_field=None, id=None,
+                             session=None, read_deleted=None):
+        columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
+
+        query = Query(model_class, session=session,
+                            read_deleted=read_deleted)
+
+        # for c in columns_to_join.get(model_class, []):
+        #     query = query.options(joinedload(c))
+
+        if id and id_field:
+            query = query.filter(id_field == id)
+
+        return query
 
 
-    # TEST2
+    aggregate_id = "1"
 
-    # fixed_ip = models.FixedIp()
-    # fixed_ip.network_id = 1
-    # fixed_ip.address = "172.%d.%d.%d" % (255, 255, 3)
-    # fixed_ip.save()
-    # # fixed_ip.load_relationships()
-    # # fixed_ip.network.load_relationships()
-    # toto = fixed_ip.network.fixed_ips
-    # # toto.__str__()
-    # print(fixed_ip.network.fixed_ips)
-    # print(fixed_ip.network.fixed_ips[0].network.fixed_ips)
+    print("[aggregate_get] id:%s" % (aggregate_id))
+    query = _aggregate_get_query(None,
+                                 models.Aggregate,
+                                 models.Aggregate.id,
+                                 aggregate_id)
+    # aggregate = query.first()
+    from lib.rome.core.lazy import LazyReference
+    aggregate = LazyReference("aggregates", 1, None, None)
+    # aggregate.load_relationships()
+    print(aggregate)
+    print(aggregate.hosts)
 
-    query = Query(models.Network)
-    network = query.first()
-    print(network.created_at)
-    # network.load_relationships()
-    print(network.fixed_ips)
-    # network.share_address = "toto"
-    # network.save()
-    print("toto")
+    aggregate = Query(models.Aggregate).first()
+    print(aggregate)
+    print(aggregate.hosts)
 
-    from lib.rome.core.dataformat import get_decoder, get_encoder
-
-    object_converter = get_encoder()
-    print(object_converter.simplify(network))
+    # # TEST2
+    #
+    # # fixed_ip = models.FixedIp()
+    # # fixed_ip.network_id = 1
+    # # fixed_ip.address = "172.%d.%d.%d" % (255, 255, 3)
+    # # fixed_ip.save()
+    # # # fixed_ip.load_relationships()
+    # # # fixed_ip.network.load_relationships()
+    # # toto = fixed_ip.network.fixed_ips
+    # # # toto.__str__()
+    # # print(fixed_ip.network.fixed_ips)
+    # # print(fixed_ip.network.fixed_ips[0].network.fixed_ips)
+    #
+    # query = Query(models.Network)
+    # network = query.first()
+    # print(network.created_at)
+    # # network.load_relationships()
+    # print(network.fixed_ips)
+    # # network.share_address = "toto"
+    # # network.save()
+    # print("toto")
+    #
+    # from lib.rome.core.dataformat import get_decoder, get_encoder
+    #
+    # object_converter = get_encoder()
+    # print(object_converter.simplify(network))
