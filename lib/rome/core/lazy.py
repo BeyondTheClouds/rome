@@ -197,8 +197,8 @@ class LazyReference:
             data = database_driver.get_driver().get(self.base, self.id)
         self.spawn_empty_model(data)
         self.update_nova_model(data)
-        if first_load:
-            self.load_relationships()
+        # if first_load:
+        #     self.load_relationships()
         if self._session is not None:
             self.cache[key]._session = self._session
         return self.cache[key]
@@ -221,7 +221,6 @@ class LazyReference:
             key = self.get_key()
             if not self.cache.has_key(key):
                 return self.lazy_backref_buffer
-            # print(toto)
         return getattr(self.get_complex_ref(), item)
 
     def __setattr__(self, name, value):
@@ -235,7 +234,6 @@ class LazyReference:
             setattr(self.get_complex_ref(), name, value)
             if self._session is not None:
                 self._session.add(self)
-            # self.version += 1
             return self
 
     def __str__(self):

@@ -334,8 +334,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
             else:
-                # self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
-                pass
+                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
@@ -344,7 +343,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = []
             else:
-                # self.__dict__[rel.local_object_field] = None
+                self.__dict__[rel.local_object_field] = None
                 pass
         pass
 
