@@ -91,3 +91,8 @@ if __name__ == '__main__':
     # toto.__str__()
     print(fixed_ip.network.fixed_ips)
     # print(fixed_ip.network.fixed_ips[0].network.fixed_ips)
+
+    query = Query(models.Network)
+    network = query.first()
+    print(network.created_at)
+    print(network.fixed_ips)

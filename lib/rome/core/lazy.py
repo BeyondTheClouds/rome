@@ -197,8 +197,8 @@ class LazyReference:
             data = database_driver.get_driver().get(self.base, self.id)
         self.spawn_empty_model(data)
         self.update_nova_model(data)
-        if first_load:
-            self.load_relationships()
+        # if first_load:
+        #     self.load_relationships()
         if self._session is not None:
             self.cache[key]._session = self._session
         return self.cache[key]
