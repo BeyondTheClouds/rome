@@ -119,8 +119,8 @@ class LazyValue:
         for rel in self.get_relationships():
             if rel.is_list:
                 self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
-            # else:
-                # self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+            else:
+                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def __repr__(self):
@@ -142,7 +142,7 @@ class LazyValue:
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
-            self.load_relationships()
+            # self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
 
