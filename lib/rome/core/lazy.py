@@ -142,8 +142,8 @@ class LazyValue:
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
-        if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
-            self.load_relationships()
+        # if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
+        #     self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
 
