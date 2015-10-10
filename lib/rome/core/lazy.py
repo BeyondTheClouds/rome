@@ -118,9 +118,25 @@ class LazyValue:
         from utils import LazyRelationshipList, LazyRelationshipSingleObject
         for rel in self.get_relationships():
             if rel.is_list:
-                self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipList(rel)
+                do_update = True
+                if rel.local_object_field in self.wrapped_value.get_complex_ref().__dict__:
+                    try:
+                        if len(self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field]) > 0:
+                            do_update = False
+                    except:
+                        pass
+                if do_update:
+                    self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipList(rel)
             else:
-                self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+                do_update = True
+                if rel.local_object_field in self.wrapped_value.get_complex_ref().__dict__:
+                    try:
+                        if self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] is not None:
+                            do_update = False
+                    except:
+                        pass
+                if do_update:
+                    self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def __repr__(self):
@@ -142,8 +158,8 @@ class LazyValue:
     def __getattr__(self, attr):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
-        # if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
-        #     self.load_relationships()
+        if True or ("nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]):
+            self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
 

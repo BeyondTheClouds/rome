@@ -332,9 +332,25 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
         """Update foreign keys according to local fields' values."""
         for rel in self.get_relationships():
             if rel.is_list:
-                self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
+                do_update = True
+                if rel.local_object_field in self.__dict__:
+                    try:
+                        if len(self.__dict__[rel.local_object_field]) > 0:
+                            do_update = False
+                    except:
+                        pass
+                if do_update:
+                    self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
             else:
-                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+                do_update = True
+                if rel.local_object_field in self.__dict__:
+                    try:
+                        if self.__dict__[rel.local_object_field] is not None:
+                            do_update = False
+                    except:
+                        pass
+                if do_update:
+                    self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
         pass
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
