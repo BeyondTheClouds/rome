@@ -108,6 +108,6 @@ if __name__ == '__main__':
     #     print(len(n.fixed_ips))
     #     print(n.fixed_ips[0].network)
 
-    query = Query(models.Instance)
-    for i in query.all():
-        print(i)
+    query = Query(models.Service)
+    service = query.first()
+    print(service.compute_node)
