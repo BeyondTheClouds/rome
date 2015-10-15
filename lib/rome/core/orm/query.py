@@ -10,7 +10,7 @@ import re
 import logging
 
 from lib.rome.core.terms.terms import *
-from sqlalchemy.sql.expression import BinaryExpression
+from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
 import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
 
@@ -60,6 +60,10 @@ class Query:
             elif isinstance(arg, Function):
                 self._models += [Selection(None, None, True, arg)]
                 self._funcs += [arg]
+            elif isinstance(arg, BooleanClauseList) or type(arg) == list:
+                for clause in arg:
+                    if type(clause) == BinaryExpression:
+                        self._criterions += [BooleanExpression("NORMAL", clause)]
             elif isinstance(arg, BinaryExpression):
                 self._criterions += [BooleanExpression("NORMAL", arg)]
             elif hasattr(arg, "is_boolean_expression"):

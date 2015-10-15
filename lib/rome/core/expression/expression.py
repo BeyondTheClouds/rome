@@ -102,21 +102,25 @@ class BooleanExpression(object):
         for criterion_str in compiled_expressions:
             for expression in self.exps:
                 if type(expression) is BinaryExpression:
-                    if ":" in str(expression.right):
-                        # handle right part of the expression
-                        if " in " in criterion_str:
-                            count = 1
-                            for i in expression.right.element:
-                                corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
-                                key = ":%s_%i" % (i._orig_key, count)
-                                self.variable_substitution_dict[key] = corrected_label
-                                self.default_value_dict[corrected_label] = i.value
-                                count += 1
-                        elif not "." in str(expression.right):
-                            original_label = str(expression.right)
-                            corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
-                            self.variable_substitution_dict[original_label] = corrected_label
-                            self.default_value_dict[corrected_label] = expression.right.value
+                    expression_parts = [expression.right, expression.left]
+                    for expression_part in expression_parts:
+                        if hasattr(expression_part, "default") and expression_part.bind is None and expression_part.default is not None:
+                            expression_part.bind = expression_part.default.arg
+                        if ":" in str(expression_part):
+                            # handle right part of the expression
+                            if " in " in criterion_str:
+                                count = 1
+                                for i in expression_part.element:
+                                    corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
+                                    key = ":%s_%i" % (i._orig_key, count)
+                                    self.variable_substitution_dict[key] = corrected_label
+                                    self.default_value_dict[corrected_label] = i.value
+                                    count += 1
+                            elif not "." in str(expression_part):
+                                original_label = str(expression_part)
+                                corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
+                                self.variable_substitution_dict[original_label] = corrected_label
+                                self.default_value_dict[corrected_label] = expression_part.value
 
         for sub in self.variable_substitution_dict:
             joined_compiled_expressions = joined_compiled_expressions.replace(sub, self.variable_substitution_dict[sub])
@@ -195,9 +199,21 @@ class BooleanExpression(object):
                 if key.startswith("id_"):
                     value = int(value)
                 final_values_dict[self.variable_substitution_dict[key]] = value
+        for expression in self.exps:
+            if type(expression) is BinaryExpression:
+                expression_parts = [expression.right, expression.left]
+                for expression_part in expression_parts:
+                    if hasattr(expression_part, "default") and expression_part.default is not None:
+                        key = str(expression_part).split(".")[0]
+                        attr = str(expression_part).split(".")[1]
+                        if getattr(final_values_dict[key], attr, None) is None:
+                            value = expression_part.default.arg
+                            setattr(final_values_dict[key], attr, value)
         try:
             result = eval(self.compiled_expression, final_values_dict)
         except:
+            import traceback
+            traceback.print_exc()
             if self.operator == "NORMAL":
                 return False
             for exp in self.exps:
@@ -212,4 +228,6 @@ class BooleanExpression(object):
             else:
                 return True
             pass
+        if result is False:
+            toto = 1
         return result

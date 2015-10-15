@@ -109,6 +109,16 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         self._session = None
         self.rome_version_number = -1
 
+    def __setitem__(self, key, value):
+        """ This function overrides the default __setitem_ provided by sqlalchemy model class, in order to prevent
+        triggering of events that loads relationships, when a relationship field is set.
+
+        :param key: a string value representing the key
+        :param value: an object
+        :return: nothing
+        """
+        self.__dict__[key] = value
+
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 

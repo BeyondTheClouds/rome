@@ -131,7 +131,7 @@ class RelationshipModel(object):
     object."""
 
     def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, remote_object_field,
-                 remote_object_tablename, is_list):
+                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False):
         """Constructor"""
 
         self.local_fk_field = local_fk_field
@@ -141,6 +141,10 @@ class RelationshipModel(object):
         self.local_object_value = local_object_value
         self.remote_object_tablename = remote_object_tablename
         self.is_list = is_list
+
+        self.remote_class = remote_class
+        self.expression = expression
+        self.to_many = to_many
 
     def __repr__(self):
         return "{local_fk_field: %s, local_fk_value: %s} <--> {local_object_field:%s, remote_object_field:%s, local_object_value:%s, remote_object_tablename:%s, is_list:%s}" % (
@@ -195,41 +199,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                 except:
                     pass
 
-    def get_relationships(obj):
-        result = []
-
-        state = obj._sa_instance_state
-
-        for field in obj._sa_class_manager:
-            field_object = obj._sa_class_manager[field]
-            field_column = state.mapper._props[field]
-
-            contain_comparator = hasattr(field_object, "comparator")
-            is_relationship = ("relationship" in str(field_object.comparator)
-                               if contain_comparator else False
-                               )
-            if is_relationship:
-                remote_local_pair = field_object.property.local_remote_pairs[0]
-
-                local_fk_field = remote_local_pair[0].name
-                local_fk_value = getattr(obj, local_fk_field)
-                local_object_field = field
-                local_object_value = getattr(obj, local_object_field)
-                remote_object_field = remote_local_pair[1].name
-                remote_object_tablename = str(remote_local_pair[1].table)
-                is_list = field_object.property.uselist
-
-                result += [RelationshipModel(
-                    local_fk_field,
-                    local_fk_value,
-                    local_object_field,
-                    local_object_value,
-                    remote_object_field,
-                    remote_object_tablename,
-                    is_list
-                )]
-
-        return result
+    def get_relationships(self, foreignkey_mode=False):
+        return get_relationships(self, foreignkey_mode=foreignkey_mode)
 
     def update_foreign_keys(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
@@ -330,34 +301,126 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
 
     def load_relationships(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
-        for rel in self.get_relationships():
-            if rel.is_list:
-                self.__dict__[rel.local_object_field] = LazyRelationshipList(rel)
-            else:
-                self.__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
-        pass
+        for rel in self.get_relationships(foreignkey_mode=True):
+            self.__dict__[rel.local_object_field] = LazyRelationship(rel)
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
-        for rel in self.get_relationships():
-            if rel.is_list:
-                self.__dict__[rel.local_object_field] = []
-            else:
-                self.__dict__[rel.local_object_field] = None
-                pass
+        # for rel in self.get_relationships():
+        #     if rel.is_list:
+        #         self.__dict__[rel.local_object_field] = []
+        #     else:
+        #         self.__dict__[rel.local_object_field] = None
+        #         pass
         pass
 
     def get_relationship_fields(self):
         return map(lambda x:x.local_object_field, self.get_relationships())
 
+def get_relationships(obj, foreignkey_mode=False):
+
+    def filter_matching_column(clause, tablename):
+        from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
+        if tablename in str(clause.left):
+            value = getattr(obj, clause.left.description)
+            if value is None and clause.left.default is not None:
+                value = clause.left.default.arg
+            clause.left = BindParameter(key="toto", value=value)
+            pass
+        if tablename in str(clause.right):
+            value = getattr(obj, clause.right.description)
+            if value is None and clause.right.default is not None:
+                value = clause.right.default.arg
+            clause.right = BindParameter(key="toto", value=value)
+            print("toto")
+            pass
+        return clause
+
+    import models
+
+    result = []
+
+    state = obj._sa_instance_state
+
+    for field in obj._sa_class_manager:
+        field_object = obj._sa_class_manager[field]
+        field_column = state.mapper._props[field]
+
+        contain_comparator = hasattr(field_object, "comparator")
+        is_relationship = ("relationship" in str(field_object.comparator)
+                           if contain_comparator else False
+                           )
+        if is_relationship:
+            remote_local_pair = field_object.property.local_remote_pairs[0]
+
+            local_fk_field = remote_local_pair[0].name
+            local_fk_value = getattr(obj, local_fk_field)
+            local_object_field = field
+            local_object_value = getattr(obj, local_object_field)
+            remote_object_field = remote_local_pair[1].name
+            remote_object_tablename = str(remote_local_pair[1].table)
+            is_list = field_object.property.uselist
+
+            local_table_name = obj.__tablename__
+
+            remote_class=models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
+            expression=field_object.property.primaryjoin
+
+            if foreignkey_mode:
+                corrected_expression = map(lambda  x: filter_matching_column(x, local_table_name), expression)
+                expression = corrected_expression
+
+            to_many="TOMANY" in str(field_object.property.direction)
+
+            result += [RelationshipModel(
+                local_fk_field,
+                local_fk_value,
+                local_object_field,
+                local_object_value,
+                remote_object_field,
+                remote_object_tablename,
+                is_list,
+                remote_class=remote_class,
+                expression=expression,
+                to_many=to_many
+            )]
+
+    return result
+
+class LazyRelationship():
+    def __init__(self, rel):
+        from lib.rome.core.orm.query import Query
+        self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+        self.data = None
+        self.rel = rel
+        self.query = Query(rel.remote_class, rel.expression)
+
+    def reload(self):
+        self.data = self.query.all() if self.rel.to_many else self.query.first()
+
+    def __getattr__(self, item):
+        self.reload()
+        return getattr(self.data, item)
+
+    def __setattr__(self, name, value):
+        if name in ["id", "data", "rel", "query"]:
+            self.__dict__[name] = value
+        else:
+            self.reload()
+            setattr(self.data, name, value)
+            return self
+
 class LazyRelationshipList():
     def __init__(self, rel):
+        from lib.rome.core.orm.query import Query
         self.rel = rel
         self.data = None
         self.__emulates__ = list
         self._sa_adapter = None
         self.is_relationship_list = True
         self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+        self.query = Query(rel.remote_class, rel.expression)
+        print(self.query.all())
 
     def reload(self):
 
@@ -400,7 +463,7 @@ class LazyRelationshipList():
         return getattr(self.data, item)
 
     def __setattr__(self, name, value):
-        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list"]:
+        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list", "query"]:
             self.__dict__[name] = value
         else:
             self.reload()
