@@ -318,22 +318,19 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
         return map(lambda x:x.local_object_field, self.get_relationships())
 
 def get_relationships(obj, foreignkey_mode=False):
+    from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
 
     def filter_matching_column(clause, tablename):
-        from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
         if tablename in str(clause.left):
             value = getattr(obj, clause.left.description)
             if value is None and clause.left.default is not None:
                 value = clause.left.default.arg
             clause.left = BindParameter(key="toto", value=value)
-            pass
         if tablename in str(clause.right):
             value = getattr(obj, clause.right.description)
             if value is None and clause.right.default is not None:
                 value = clause.right.default.arg
             clause.right = BindParameter(key="toto", value=value)
-            print("toto")
-            pass
         return clause
 
     import models
@@ -365,6 +362,9 @@ def get_relationships(obj, foreignkey_mode=False):
 
             remote_class=models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
             expression=field_object.property.primaryjoin
+
+            if type(expression) == BinaryExpression:
+                expression = [expression]
 
             if foreignkey_mode:
                 corrected_expression = map(lambda  x: filter_matching_column(x, local_table_name), expression)
