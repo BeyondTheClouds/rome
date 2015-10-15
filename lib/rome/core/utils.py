@@ -393,6 +393,7 @@ class LazyRelationship():
         self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
         self.data = None
         self.rel = rel
+        self.is_relationship_list = self.rel.to_many
         self.query = Query(rel.remote_class, rel.expression)
 
     def reload(self):
@@ -403,7 +404,7 @@ class LazyRelationship():
         return getattr(self.data, item)
 
     def __setattr__(self, name, value):
-        if name in ["id", "data", "rel", "query"]:
+        if name in ["id", "data", "rel", "query", "is_relationship_list"]:
             self.__dict__[name] = value
         else:
             self.reload()
