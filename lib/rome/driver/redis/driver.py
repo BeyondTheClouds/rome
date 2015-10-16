@@ -99,7 +99,11 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             python_toto = """{u'reserved': None, u'pid': u'%s', u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'Jun 01 2015 14:49:31'}, u'session': None, u'virtual_interface': None, u'allocated': None, u'deleted_at': None, u'id': 2001, u'network': {u'tablename': u'networks', u'simplify_strategy': u'novabase', u'pid': u'0x10e783758', u'id': 1, u'novabase_classname': u'Network'}, u'virtual_interface_id': None, u'floating_ips': [], u'instance': None, u'metadata_novabase_classname': u'FixedIp', u'rid': u'68b90a35-086d-11e5-830e-b8e8563ae48c', u'deleted': None, u'leased': None, u'host': None, u'address': u'172.1.0.1', u'nova_classname': u'fixed_ips', u'instance_uuid': None, u'network_id': 1, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'Jun 01 2015 14:49:31'}, u'rome_version_number': 0}"""
             # print(json.loads(toto))
             # for x in str_result:
-            #     result += [eval(x)]
+            #     try:
+            #         result += [eval(x)]
+            #     except:
+            #         print(x)
+            #         pass
             #     pass
                 # result.append(eval(python_toto % ("cuicui")))
             result = map(lambda x: eval(x), str_result)

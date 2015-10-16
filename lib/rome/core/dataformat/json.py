@@ -120,8 +120,11 @@ class Encoder(object):
             fields_iterator = obj
 
         complex_object = {}
+        relationships_fields = map(lambda x: x.local_object_field, obj.get_relationships())
         if fields_iterator is not None:
             for field in fields_iterator:
+                if field in relationships_fields:
+                    continue
                 field_value = getattr(obj, field)
                 if utils.is_novabase(field_value):
                     complex_object[field] = self.process_field(field_value)

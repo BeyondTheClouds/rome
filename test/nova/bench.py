@@ -5,6 +5,7 @@ from lib.rome.core.orm.query import Query
 import collections
 import logging
 import time
+from lib.rome.core.lazy import LazyReference, LazyValue
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -108,6 +109,15 @@ if __name__ == '__main__':
     #     print(len(n.fixed_ips))
     #     print(n.fixed_ips[0].network)
 
-    query = Query(models.Service)
-    service = query.first()
-    print(service.compute_node)
+    query = Query(models.Instance)
+    instances = query.all()
+    print(instances)
+
+    for instance in instances:
+        info_cache = instance.info_cache
+        for field in info_cache.fields:
+            # info_cache[field] = db_obj[field]
+            # info_cache.obj_reset_changes()
+            # info_cache._context = context
+            # return info_cache
+            print(field)

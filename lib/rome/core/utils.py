@@ -370,7 +370,8 @@ def get_relationships(obj, foreignkey_mode=False):
                 corrected_expression = map(lambda  x: filter_matching_column(x, local_table_name), expression)
                 expression = corrected_expression
 
-            to_many="TOMANY" in str(field_object.property.direction)
+            # to_many="TOMANY" in str(field_object.property.direction)
+            to_many = is_list
 
             result += [RelationshipModel(
                 local_fk_field,
