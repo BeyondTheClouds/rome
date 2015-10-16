@@ -123,9 +123,10 @@ class Encoder(object):
         relationships_fields = map(lambda x: x.local_object_field, obj.get_relationships())
         if fields_iterator is not None:
             for field in fields_iterator:
-                if field in relationships_fields:
-                    continue
                 field_value = getattr(obj, field)
+                if field in relationships_fields:
+                    self.process_field(field_value)
+                    continue
                 if utils.is_novabase(field_value):
                     complex_object[field] = self.process_field(field_value)
                 elif isinstance(field_value, list): #or hasattr(field_value, "is_relationship_list"):
