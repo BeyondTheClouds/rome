@@ -131,7 +131,8 @@ class RelationshipModel(object):
     object."""
 
     def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, remote_object_field,
-                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False, obj=None):
+                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False, obj=None,
+                 direction=""):
         """Constructor"""
 
         self.local_fk_field = local_fk_field
@@ -146,6 +147,7 @@ class RelationshipModel(object):
         self.expression = expression
         self.to_many = to_many
         self.obj = obj
+        self.direction = direction
 
     def __repr__(self):
         return "{local_fk_field: %s, local_fk_value: %s} <--> {local_object_field:%s, remote_object_field:%s, local_object_value:%s, remote_object_tablename:%s, is_list:%s}" % (
@@ -202,6 +204,14 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
 
     def get_relationships(self, foreignkey_mode=False):
         return get_relationships(self, foreignkey_mode=foreignkey_mode)
+
+    def get_relationship_fields(self, foreignkey_mode=False, with_indirect_field=True):
+        relationships = get_relationships(self, foreignkey_mode=foreignkey_mode)
+        results = map(lambda x: x.local_object_field, relationships)
+        if with_indirect_field:
+            many_to_one_relationships = filter(lambda x: "MANYTOONE" in x.direction, relationships)
+            results += map(lambda x: x.local_fk_field, many_to_one_relationships)
+        return list(set(results))
 
     def update_foreign_keys(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
@@ -300,20 +310,18 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
                         )
                         pass
 
-    def load_relationships(self, request_uuid=uuid.uuid1()):
+    def load_relationships(self, filter_keys=[], request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
         # for rel in self.get_relationships(foreignkey_mode=True):
         #     self.__dict__[rel.local_object_field] = LazyRelationship(rel)
         attrs = self.__dict__
         for rel in self.get_relationships(foreignkey_mode=True):
             key = rel.local_object_field
-            # print(key)
+            if len(filter_keys) > 0 and key not in filter_keys:
+                continue
             if key in attrs and attrs[key] is not None:
                 continue
-            if key is "info_cache":
-                print("toto2")
             attrs[key] = LazyRelationship(rel)
-        print("  ")
         pass
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
@@ -326,8 +334,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
         #         pass
         pass
 
-    def get_relationship_fields(self):
-        return map(lambda x:x.local_object_field, self.get_relationships())
+    # def get_relationship_fields(self):
+    #     return map(lambda x:x.local_object_field, self.get_relationships())
 
 def get_relationships(obj, foreignkey_mode=False):
     from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
@@ -373,8 +381,9 @@ def get_relationships(obj, foreignkey_mode=False):
 
             local_table_name = obj.__tablename__
 
-            remote_class=models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
-            expression=field_object.property.primaryjoin
+            remote_class = models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
+            expression = field_object.property.primaryjoin
+            direction = str(field_object.property.direction).split("'")[1]
 
             if type(expression) == BinaryExpression:
                 expression = [expression]
@@ -397,7 +406,8 @@ def get_relationships(obj, foreignkey_mode=False):
                 remote_class=remote_class,
                 expression=expression,
                 to_many=to_many,
-                obj=obj
+                obj=obj,
+                direction=direction
             )]
 
     return result
@@ -414,16 +424,19 @@ class LazyRelationship():
 
     def reload(self):
         def match(x, rel):
-            x_value = getattr(x, rel.remote_object_field, "None")
+            field_name = rel.remote_object_field
+            x_value = getattr(x, field_name, "None")
             return  x_value == rel.local_fk_value
         if self.data is not None:
             return
-        self.data = self.query.all()
         data = self.query.all() #if self.rel.to_many else self.query.first()data
         self.__dict__["data"] = data
         self.data = filter(lambda x: match(x, self.rel), self.data)
-        if not self.rel.to_many and len(self.data) > 0:
-            self.data = self.data[0]
+        if not self.rel.to_many:
+            if len(self.data) > 0:
+                self.data = self.data[0]
+            else:
+                self.data = None
         self.is_loaded = True
 
     def __getattr__(self, item):

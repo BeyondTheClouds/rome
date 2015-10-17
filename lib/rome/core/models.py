@@ -137,28 +137,32 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def is_relationship_field(self, key):
         if not hasattr(self, "_relation_str"):
-            fields = map(lambda x: x.local_object_field, self.get_relationships())
+            # fields = map(lambda x: x.local_object_field, self.get_relationships())
+            fields = self.get_relationship_fields(with_indirect_field=True)
             self.__dict__["_relation_str"] = fields
         return key in self.__dict__["_relation_str"]
 
     def handle_relationship_change_event(self, key, value):
-        relationships = filter(lambda x: x.local_object_field==key, self.get_relationships())
+        relationships = filter(lambda x: key in [x.local_object_field, x.local_fk_field], self.get_relationships())
         for r in relationships:
             old_value = getattr(self, key, None)
-            if old_value is not None:
-                # value.__dict__[r.remote_object_field] = None
-                if r.is_list:
-                    for o in value:
-                        setattr(o, r.remote_object_field, None)
-                else:
-                    setattr(value, r.remote_object_field, None)
-            if value is not None:
-                if r.is_list:
-                    for o in value:
-                        setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
-                else:
-                    setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
-                # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
+            if key == r.local_fk_field:
+                self.load_relationships(filter_keys=[r.local_object_field])
+            else:
+                if old_value is not None:
+                    # value.__dict__[r.remote_object_field] = None
+                    if r.is_list:
+                        for o in value:
+                            setattr(o, r.remote_object_field, None)
+                    else:
+                        setattr(value, r.remote_object_field, None)
+                if value is not None:
+                    if r.is_list:
+                        for o in value:
+                            setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
+                    else:
+                        setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
+                    # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)

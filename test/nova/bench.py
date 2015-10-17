@@ -116,8 +116,12 @@ if __name__ == '__main__':
     info_caches = Query(models.InstanceInfoCache).all()
     instances = Query(models.Instance).all()
 
+    i = 3
 
-
+    info_caches[i].instance = instances[i]
+    info_caches[i].save()
+    # print(info_caches[0].instance)
+    print(instances[i].info_cache)
 
     # info_cache = info_caches[0]
     # print(info_cache.instance_uuid)
@@ -129,19 +133,18 @@ if __name__ == '__main__':
     # print(info_cache.instance.uuid)
     # # i = 0
 
-
-
-    for i in range(0, 2):
-        instance = instances[i]
-        # instance.info_cache = info_caches[i]
-        info_cache = info_caches[i]
-        instance.info_cache = info_cache
-        instance.save()
-        info_cache.save()
-        # info_cache.save()
-        # # instance.save()
-        # print("> %s" % (info_cache.instance_uuid))
-        # info_cache.load_relationships(debug=True)
-        # print(">> %s" % (info_cache.instance))
-        i += 1
-        print(info_cache)
+    # for i in range(0, 2):
+    #     instance = instances[i]
+    #     print(instance.info_cache)
+    #     # instance.info_cache = info_caches[i]
+    #     info_cache = info_caches[i]
+    #     instance.info_cache = info_cache
+    #     instance.save()
+    #     info_cache.save()
+    #     # info_cache.save()
+    #     # # instance.save()
+    #     # print("> %s" % (info_cache.instance_uuid))
+    #     # info_cache.load_relationships(debug=True)
+    #     # print(">> %s" % (info_cache.instance))
+    #     i += 1
+    #     print(info_cache)

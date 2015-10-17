@@ -134,14 +134,14 @@ class LazyValue:
             key = rel.local_object_field
             if key in attrs and attrs[key] is not None:
                 continue
-            if key is "info_cache" and debug:
-                print("toto")
+            # if key is "info_cache" and debug:
+                # print("toto")
             attrs[key] = LazyRelationship(rel)
         pass
 
     def __repr__(self):
-        return "LazyValue(%s)" % (self.wrapped_dict)
-        # return "LazyValue()" % (self.wrapped_dict)
+        # return "LazyValue(%s)" % (self.wrapped_dict)
+        return "LazyValue()" % (self.wrapped_dict)
 
     def get_key(self):
         """Returns a unique key for the current LazyReference."""
