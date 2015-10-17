@@ -210,7 +210,6 @@ class BooleanExpression(object):
                             value = expression_part.default.arg
                             setattr(final_values_dict[key], attr, value)
         try:
-            print("eval with value %s" % (value))
             result = eval(self.compiled_expression, final_values_dict)
         except:
             import traceback

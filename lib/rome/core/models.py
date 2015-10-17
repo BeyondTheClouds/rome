@@ -147,9 +147,17 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             old_value = getattr(self, key, None)
             if old_value is not None:
                 # value.__dict__[r.remote_object_field] = None
-                setattr(value, r.remote_object_field, None)
+                if r.is_list:
+                    for o in value:
+                        setattr(o, r.remote_object_field, None)
+                else:
+                    setattr(value, r.remote_object_field, None)
             if value is not None:
-                setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
+                if r.is_list:
+                    for o in value:
+                        setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
+                else:
+                    setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
                 # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
 
     def already_in_database(self):
