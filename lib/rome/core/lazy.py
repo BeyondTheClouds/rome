@@ -125,21 +125,23 @@ class LazyValue:
         obj = self.wrapped_value.get_complex_ref()
         return get_relationships(obj, foreignkey_mode=foreignkey_mode)
 
-    def load_relationships(self, request_uuid=uuid.uuid1()):
+    def load_relationships(self, request_uuid=uuid.uuid1(), debug=True):
         """Update foreign keys according to local fields' values."""
-        from utils import LazyRelationshipList, LazyRelationshipSingleObject, LazyRelationship
-        # for rel in self.get_relationships():
-        #     if rel.is_list:
-        #         self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipList(rel)
-        #     else:
-        #         self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationshipSingleObject(rel)
+        from utils import LazyRelationship
+        attrs = self.wrapped_value.get_complex_ref().__dict__
+        relations = self.get_relationships(foreignkey_mode=True)
         for rel in self.get_relationships(foreignkey_mode=True):
-            self.wrapped_value.get_complex_ref().__dict__[rel.local_object_field] = LazyRelationship(rel)
+            key = rel.local_object_field
+            if key in attrs and attrs[key] is not None:
+                continue
+            if key is "info_cache" and debug:
+                print("toto")
+            attrs[key] = LazyRelationship(rel)
         pass
 
     def __repr__(self):
-        # return "LazyValue(%s)" % (self.wrapped_dict)
-        return "LazyValue()" % (self.wrapped_dict)
+        return "LazyValue(%s)" % (self.wrapped_dict)
+        # return "LazyValue()" % (self.wrapped_dict)
 
     def get_key(self):
         """Returns a unique key for the current LazyReference."""
@@ -154,12 +156,27 @@ class LazyValue:
         else:
             return "None"
 
-    def __getattr__(self, attr):
+    def lazy_load(self):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
+
+    def __getattr__(self, attr):
+        self.lazy_load()
         # if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
         self.load_relationships()
         return getattr(self.wrapped_value, attr)
+
+    def __setattr__(self, key, value):
+        if key in ["deconverter", "wrapped_dict", "wrapped_value", "request_uuid"]:
+            self.__dict__[key] = value
+        else:
+            self.lazy_load()
+            obj = self.__dict__["wrapped_value"].get_complex_ref()
+            self.__dict__["wrapped_dict"][key] = value
+            obj.__dict__[key] = value
+            if obj.is_relationship_field(key):
+                obj.handle_relationship_change_event(key, value)
+        pass
 
 
 class LazyReference:

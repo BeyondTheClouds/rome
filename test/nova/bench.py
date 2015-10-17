@@ -109,15 +109,39 @@ if __name__ == '__main__':
     #     print(len(n.fixed_ips))
     #     print(n.fixed_ips[0].network)
 
-    query = Query(models.Instance)
-    instances = query.all()
-    print(instances)
+    # query = Query(models.Instance)
+    # instances = query.all()
+    # print(instances)
 
-    for instance in instances:
-        info_cache = instance.info_cache
-        for field in info_cache.fields:
-            # info_cache[field] = db_obj[field]
-            # info_cache.obj_reset_changes()
-            # info_cache._context = context
-            # return info_cache
-            print(field)
+    info_caches = Query(models.InstanceInfoCache).all()
+    instances = Query(models.Instance).all()
+
+
+
+
+    # info_cache = info_caches[0]
+    # print(info_cache.instance_uuid)
+    # # info_cache = info_caches[5]
+    # print(info_cache.instance.uuid)
+    # info_cache = info_caches[1]
+    # print(info_cache.instance_uuid)
+    # # info_cache = info_caches[5]
+    # print(info_cache.instance.uuid)
+    # # i = 0
+
+
+
+    for i in range(0, 2):
+        instance = instances[i]
+        # instance.info_cache = info_caches[i]
+        info_cache = info_caches[i]
+        instance.info_cache = info_cache
+        instance.save()
+        info_cache.save()
+        # info_cache.save()
+        # # instance.save()
+        # print("> %s" % (info_cache.instance_uuid))
+        # info_cache.load_relationships(debug=True)
+        # print(">> %s" % (info_cache.instance))
+        i += 1
+        print(info_cache)

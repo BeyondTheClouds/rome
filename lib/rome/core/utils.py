@@ -131,7 +131,7 @@ class RelationshipModel(object):
     object."""
 
     def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, remote_object_field,
-                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False):
+                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False, obj=None):
         """Constructor"""
 
         self.local_fk_field = local_fk_field
@@ -145,6 +145,7 @@ class RelationshipModel(object):
         self.remote_class = remote_class
         self.expression = expression
         self.to_many = to_many
+        self.obj = obj
 
     def __repr__(self):
         return "{local_fk_field: %s, local_fk_value: %s} <--> {local_object_field:%s, remote_object_field:%s, local_object_value:%s, remote_object_tablename:%s, is_list:%s}" % (
@@ -301,8 +302,19 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
 
     def load_relationships(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
+        # for rel in self.get_relationships(foreignkey_mode=True):
+        #     self.__dict__[rel.local_object_field] = LazyRelationship(rel)
+        attrs = self.__dict__
         for rel in self.get_relationships(foreignkey_mode=True):
-            self.__dict__[rel.local_object_field] = LazyRelationship(rel)
+            key = rel.local_object_field
+            # print(key)
+            if key in attrs and attrs[key] is not None:
+                continue
+            if key is "info_cache":
+                print("toto2")
+            attrs[key] = LazyRelationship(rel)
+        print("  ")
+        pass
 
     def unload_relationships(self, request_uuid=uuid.uuid1()):
         """Update foreign keys according to local fields' values."""
@@ -321,16 +333,17 @@ def get_relationships(obj, foreignkey_mode=False):
     from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
 
     def filter_matching_column(clause, tablename):
+        # return clause
         if tablename in str(clause.left):
             value = getattr(obj, clause.left.description)
             if value is None and clause.left.default is not None:
                 value = clause.left.default.arg
-            clause.left = BindParameter(key="toto", value=value)
+            clause.left = BindParameter(key="totoo", value=value)
         if tablename in str(clause.right):
             value = getattr(obj, clause.right.description)
             if value is None and clause.right.default is not None:
                 value = clause.right.default.arg
-            clause.right = BindParameter(key="toto", value=value)
+            clause.right = BindParameter(key="totoo", value=value)
         return clause
 
     import models
@@ -383,7 +396,8 @@ def get_relationships(obj, foreignkey_mode=False):
                 is_list,
                 remote_class=remote_class,
                 expression=expression,
-                to_many=to_many
+                to_many=to_many,
+                obj=obj
             )]
 
     return result
@@ -391,21 +405,33 @@ def get_relationships(obj, foreignkey_mode=False):
 class LazyRelationship():
     def __init__(self, rel):
         from lib.rome.core.orm.query import Query
-        self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+        self.id = "LazyRelationship(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
         self.data = None
         self.rel = rel
+        self.is_loaded = False
         self.is_relationship_list = self.rel.to_many
-        self.query = Query(rel.remote_class, rel.expression)
+        self.query = Query(rel.remote_class)
 
     def reload(self):
-        self.data = self.query.all() if self.rel.to_many else self.query.first()
+        def match(x, rel):
+            x_value = getattr(x, rel.remote_object_field, "None")
+            return  x_value == rel.local_fk_value
+        if self.data is not None:
+            return
+        self.data = self.query.all()
+        data = self.query.all() #if self.rel.to_many else self.query.first()data
+        self.__dict__["data"] = data
+        self.data = filter(lambda x: match(x, self.rel), self.data)
+        if not self.rel.to_many:
+            self.data = self.data[0]
+        self.is_loaded = True
 
     def __getattr__(self, item):
         self.reload()
         return getattr(self.data, item)
 
     def __setattr__(self, name, value):
-        if name in ["id", "data", "rel", "query", "is_relationship_list"]:
+        if name in ["id", "data", "rel", "query", "is_relationship_list", "is_loaded"]:
             self.__dict__[name] = value
         else:
             self.reload()

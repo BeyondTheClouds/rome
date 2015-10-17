@@ -111,13 +111,46 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __setitem__(self, key, value):
         """ This function overrides the default __setitem_ provided by sqlalchemy model class, in order to prevent
-        triggering of events that loads relationships, when a relationship field is set.
+        triggering of events that loads relationships, when a relationship field is set. Instead, the relationship
+        is handle by this method.
 
         :param key: a string value representing the key
         :param value: an object
         :return: nothing
         """
         self.__dict__[key] = value
+        if self.is_relationship_field(key):
+            self.handle_relationship_change_event(key, value)
+
+    def __setattr__(self, key, value):
+        """ This function overrides the default __setattr_ provided by sqlalchemy model class, in order to prevent
+        triggering of events that loads relationships, when a relationship field is set. Instead, the relationship
+        is handle by this method.
+
+        :param key: a string value representing the key
+        :param value: an object
+        :return: nothing
+        """
+        self.__dict__[key] = value
+        if self.is_relationship_field(key):
+            self.handle_relationship_change_event(key, value)
+
+    def is_relationship_field(self, key):
+        if not hasattr(self, "_relation_str"):
+            fields = map(lambda x: x.local_object_field, self.get_relationships())
+            self.__dict__["_relation_str"] = fields
+        return key in self.__dict__["_relation_str"]
+
+    def handle_relationship_change_event(self, key, value):
+        relationships = filter(lambda x: x.local_object_field==key, self.get_relationships())
+        for r in relationships:
+            old_value = getattr(self, key, None)
+            if old_value is not None:
+                # value.__dict__[r.remote_object_field] = None
+                setattr(value, r.remote_object_field, None)
+            if value is not None:
+                setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
+                # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -197,6 +230,26 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         database."""
         object_converter = get_encoder(request_uuid)
         object_converter.simplify(self)
+
+        from utils import LazyRelationship
+        from lazy import LazyValue
+        for rel_field in self.get_relationship_fields():
+            attr = getattr(self, rel_field)
+            candidates = []
+            # if "InstrumentedList" in str(type(attr)):
+            #     candidates = attr
+            # elif type(attr) is LazyRelationship and attr.is_loaded():
+            #     # candidates += attr.data if attr.is_relationship_list else [attr.data]
+            # elif type(attr) is Entity: #is not None:
+            #     candidates = [attr]
+            if hasattr(attr, "wrapped_value"):
+                candidates = attr.wrapped_value
+
+            for c in candidates:
+                o = c
+                if hasattr(o, "wrapped_value"):
+                    o = o.wrapped_value
+                object_converter.simplify(o)
 
         saving_candidates = object_converter.complex_cache
 
