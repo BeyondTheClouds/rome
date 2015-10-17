@@ -422,7 +422,7 @@ class LazyRelationship():
         data = self.query.all() #if self.rel.to_many else self.query.first()data
         self.__dict__["data"] = data
         self.data = filter(lambda x: match(x, self.rel), self.data)
-        if not self.rel.to_many:
+        if not self.rel.to_many and len(self.data) > 0:
             self.data = self.data[0]
         self.is_loaded = True
 
