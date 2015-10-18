@@ -116,11 +116,32 @@ if __name__ == '__main__':
     info_caches = Query(models.InstanceInfoCache).all()
     instances = Query(models.Instance).all()
 
-    i = 3
-
+    i = 6
     info_caches[i].instance = instances[i]
     info_caches[i].save()
-    # print(info_caches[0].instance)
+    print(info_caches[i].instance_uuid)
+    print(info_caches[i].instance)
+    print(instances[i].info_cache)
+
+    i += 1
+    info_caches[i].instance_uuid = instances[i].uuid
+    info_caches[i].save()
+    print(info_caches[i].instance_uuid)
+    print(info_caches[i].instance)
+    print(instances[i].info_cache)
+
+    i += 1
+    instances[i].info_cache = info_caches[i]
+    instances[i].save()
+    print(info_caches[i].instance_uuid)
+    print(info_caches[i].instance)
+    print(instances[i].info_cache)
+
+    i += 1
+    instances[i].info_cache = info_caches[i]
+    info_caches[i].save()
+    print(info_caches[i].instance_uuid)
+    print(info_caches[i].instance)
     print(instances[i].info_cache)
 
     # info_cache = info_caches[0]

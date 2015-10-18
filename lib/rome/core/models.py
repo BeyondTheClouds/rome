@@ -147,7 +147,18 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         for r in relationships:
             old_value = getattr(self, key, None)
             if key == r.local_fk_field:
-                self.load_relationships(filter_keys=[r.local_object_field])
+                # if value is None:
+                    try:
+                        v = getattr(getattr(self, r.local_object_field), r.remote_object_field)
+                        self.__dict__[key] = v
+                    except:
+                        pass
+                    # toto = self.__dict__
+                    # toto[key] = value
+                    # v =
+                    # models.ModelBase.__setattr__(self, key, value)
+                # else:
+                    self.load_relationships(filter_keys=[r.local_object_field])
             else:
                 if old_value is not None:
                     # value.__dict__[r.remote_object_field] = None
