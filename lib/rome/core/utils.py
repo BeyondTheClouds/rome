@@ -441,7 +441,7 @@ class LazyRelationship():
 
     def __getattr__(self, item):
         self.reload()
-        return getattr(self.data, item)
+        return getattr(self.data, item) if self.data is not None else None
 
     def __setattr__(self, name, value):
         if name in ["id", "data", "rel", "query", "is_relationship_list", "is_loaded"]:
