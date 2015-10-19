@@ -4,9 +4,10 @@ import _fixtures as models
 from lib.rome.core.orm.query import Query
 import collections
 import logging
+import sys
 
-def test_relationships_single_str(save_instance=True, save_info_cache=True):
-    print("Ensure that foreign keys are working (test 1, save_instance=%s, save_info_cache=%s)" % (save_instance, save_info_cache))
+def test_relationships_single_str(save_instance=True, save_info_cache=True, use_update=False):
+    print("Ensure that foreign keys are working (test 1, save_instance=%s, save_info_cache=%s, use_update=%s)" % (save_instance, save_info_cache, use_update))
 
     instance_count = Query(models.Instance).count()
 
@@ -16,7 +17,12 @@ def test_relationships_single_str(save_instance=True, save_info_cache=True):
         instance.save()
 
     instance_info_cache = models.InstanceInfoCache()
-    instance_info_cache.instance_uuid = instance.uuid
+
+    if not use_update:
+        instance_info_cache.instance_uuid = instance.uuid
+    else:
+        instance_info_cache.update({"instance_uuid": instance.uuid})
+
     if not save_info_cache:
         instance.save()
     else:
@@ -36,8 +42,8 @@ def test_relationships_single_str(save_instance=True, save_info_cache=True):
     assert instance_info_cache_from_db.instance_uuid == instance.uuid
 
 
-def test_relationships_single_object(save_instance=True, save_info_cache=True):
-    print("Ensure that foreign keys are working (test 2, save_instance=%s, save_info_cache=%s)" % (save_instance, save_info_cache))
+def test_relationships_single_object(save_instance=True, save_info_cache=True, use_update=False, update_instance=False):
+    print("Ensure that foreign keys are working (test 2, save_instance=%s, save_info_cache=%s, use_update=%s, update_instance=%s)" % (save_instance, save_info_cache, use_update, update_instance))
 
     instance_count = Query(models.Instance).count()
 
@@ -47,11 +53,24 @@ def test_relationships_single_object(save_instance=True, save_info_cache=True):
         instance.save()
 
     instance_info_cache = models.InstanceInfoCache()
-    instance_info_cache.instance = instance
-    if not save_info_cache:
-        instance.save()
+    if update_instance:
+        if not use_update:
+            instance.info_cache = instance_info_cache
+        else:
+            instance.update({"info_cache": instance_info_cache})
+        if not save_info_cache:
+            instance.save()
+        else:
+            instance_info_cache.save()
     else:
-        instance_info_cache.save()
+        if not use_update:
+            instance_info_cache.instance = instance
+        else:
+            instance_info_cache.update({"instance": instance})
+        if not save_info_cache:
+            instance.save()
+        else:
+            instance_info_cache.save()
 
     instance_from_db = Query(models.Instance, models.Instance.id==instance.id).first()
     instance_info_cache_from_db = Query(models.InstanceInfoCache, models.InstanceInfoCache.id==instance_info_cache.id).first()
@@ -110,15 +129,27 @@ if __name__ == '__main__':
     # Instance/InfoCache #
     ######################
 
-    test_relationships_single_str()
-    test_relationships_single_object()
+    # test_relationships_single_str()
+    # test_relationships_single_str(use_update=True)
 
-    # test_relationships_single_str(save_instance=False) # this test is non-sense!
-    test_relationships_single_object(save_instance=False)
+    ## test_relationships_single_str(save_instance=False) # this test is non-sense!
+    ## test_relationships_single_str(save_info_cache=False) # this test is non-sense!
 
-    # test_relationships_single_str(save_info_cache=False) # this test is non-sense!
-    test_relationships_single_object(save_info_cache=False)
-    test_relationships_single_object(save_instance=False, save_info_cache=False)
+    test_relationships_single_object(save_instance=True, save_info_cache=True, use_update=True, update_instance=True)
+
+    for use_update in [True, False]:
+        for update_instance in [True, False]:
+            test_relationships_single_object(use_update=use_update, update_instance=update_instance)
+            test_relationships_single_object(save_instance=False, use_update=use_update, update_instance=update_instance)
+
+            test_relationships_single_object(save_info_cache=False, use_update=use_update, update_instance=update_instance)
+            test_relationships_single_object(save_instance=False, save_info_cache=False, use_update=use_update, update_instance=update_instance)
+
+    # test_relationships_single_object(use_update=True)
+    # test_relationships_single_object(save_instance=False, use_update=True)
+    #
+    # test_relationships_single_object(save_info_cache=False, use_update=True)
+    # test_relationships_single_object(save_instance=False, save_info_cache=False, use_update=True)
 
     ######################
     # Network/FixedIp    #
