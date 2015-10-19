@@ -169,13 +169,23 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                             for r2 in value.get_relationships():
                                 if r2.remote_object_tablename == self.__tablename__:
                                     if r2.direction in ["ONETOMANY"]:
-                                        setattr(value, r2.local_object_field, self)
+                                        existing_value = getattr(value, r2.local_object_field, None)
+                                        if existing_value is None or hasattr(existing_value, "is_list"):
+                                            setattr(value, r2.local_object_field, self)
                 if r.direction in ["ONETOMANY"]:
                     if key == r.local_object_field and not r.is_list:
                         if hasattr(value, "get_relationships"):
                             for r2 in value.get_relationships():
                                 if r2.direction in ["MANYTOONE"]:
                                     setattr(value, r2.local_fk_field, getattr(self, r2.remote_object_field))
+                                    existing_value = getattr(value, r2.local_object_field, None)
+                                    if existing_value is not None:
+                                        if hasattr(existing_value, "is_list"):
+                                            setattr(value, r2.local_object_field, self)
+                                        else:
+                                            pass
+                                    else:
+                                        setattr(value, r2.local_object_field, self)
                                     # print(r2)
                 #
                 # if old_value is not None and r.direction != "MANYTOONE":
