@@ -415,7 +415,7 @@ def get_relationships(obj, foreignkey_mode=False):
 class LazyRelationship():
     def __init__(self, rel):
         from lib.rome.core.orm.query import Query
-        self.id = "LazyRelationship(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
+        # self.id = "LazyRelationship(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
         self.data = None
         self.rel = rel
         self.is_loaded = False
@@ -444,7 +444,7 @@ class LazyRelationship():
         return getattr(self.data, item) if self.data is not None else None
 
     def __setattr__(self, name, value):
-        if name in ["id", "data", "rel", "query", "is_relationship_list", "is_loaded"]:
+        if name in ["data", "rel", "query", "is_relationship_list", "is_loaded"]:
             self.__dict__[name] = value
         else:
             self.reload()

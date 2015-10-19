@@ -16,7 +16,6 @@ from oslo.db.sqlalchemy import models
 import utils
 
 
-
 def starts_with_uppercase(name):
     if name is None or len(name) == 0:
         return False
@@ -147,6 +146,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         for r in relationships:
             old_value = getattr(self, key, None)
             if key == r.local_fk_field:
+                if r.direction in ["MANYTOONE"]:
+                    self.load_relationships(filter_keys=[r.local_object_field])
+                else:
                 # if value is None:
                     try:
                         v = getattr(getattr(self, r.local_object_field), r.remote_object_field)
@@ -160,20 +162,29 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 # else:
                     self.load_relationships(filter_keys=[r.local_object_field])
             else:
-                if old_value is not None:
-                    # value.__dict__[r.remote_object_field] = None
-                    if r.is_list:
-                        for o in value:
-                            setattr(o, r.remote_object_field, None)
-                    else:
-                        setattr(value, r.remote_object_field, None)
-                if value is not None:
-                    if r.is_list:
-                        for o in value:
-                            setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
-                    else:
-                        setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
-                    # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
+                if r.direction in ["MANYTOONE"]:
+                    if key == r.local_object_field and not r.is_list:
+                        self.__dict__[r.local_fk_field] = getattr(value, r.remote_object_field, None)
+                        if hasattr(value, "get_relationships"):
+                            for r2 in value.get_relationships():
+                                if r2.remote_object_tablename == self.__tablename__:
+                                    if r2.direction in ["ONETOMANY"]:
+                                        setattr(value, r2.local_object_field, self)
+
+                # if old_value is not None and r.direction != "MANYTOONE":
+                #     # value.__dict__[r.remote_object_field] = None
+                #     if r.is_list:
+                #         for o in value:
+                #             setattr(o, r.remote_object_field, None)
+                #     else:
+                #         setattr(value, r.remote_object_field, None)
+                # if value is not None and r.direction != "MANYTOONE":
+                #     if r.is_list:
+                #         for o in value:
+                #             setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
+                #     else:
+                #         setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
+                #     # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -268,11 +279,15 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             if hasattr(attr, "wrapped_value"):
                 candidates = attr.wrapped_value
 
-            for c in candidates:
-                o = c
-                if hasattr(o, "wrapped_value"):
-                    o = o.wrapped_value
-                object_converter.simplify(o)
+            try:
+                for c in candidates:
+                    o = c
+                    if hasattr(o, "wrapped_value"):
+                        o = o.wrapped_value
+                    object_converter.simplify(o)
+            except:
+                print(candidates)
+                pass
 
         saving_candidates = object_converter.complex_cache
 

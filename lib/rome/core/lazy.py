@@ -132,7 +132,9 @@ class LazyValue:
         relations = self.get_relationships(foreignkey_mode=True)
         for rel in self.get_relationships(foreignkey_mode=True):
             key = rel.local_object_field
-            if key in attrs and attrs[key] is not None:
+            if not rel.is_list and key in attrs and attrs[key] is not None:
+                continue
+            if rel.is_list and key in attrs and "InstrumentedList" not in str(type(attrs[key])):
                 continue
             # if key is "info_cache" and debug:
                 # print("toto")
