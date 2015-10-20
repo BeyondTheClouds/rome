@@ -367,7 +367,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
             current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
 
-            logging.debug("starting the storage of %s" % (current_object))
+            logging.debug("starting the storage of %s (uuid=%s, session=%s)" % (current_object, request_uuid, session))
 
             try:
                 local_object_converter = get_encoder(request_uuid)
