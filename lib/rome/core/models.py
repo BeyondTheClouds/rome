@@ -254,6 +254,19 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         # self.load_relationships()
         return self
 
+    def register_associated_object(self, obj):
+        if not hasattr(self, "_associated_objects"):
+            setattr(self, "_associated_objects", [])
+        associated_objects = getattr(self, "_associated_objects")
+        associated_objects = [obj] + associated_objects
+        setattr(self, "_associated_objects", associated_objects)
+
+    def get_associated_objects(self):
+        return getattr(self, "_associated_objects", [])
+
+    def reset_associated_objects(self):
+        return setattr(self, "_associated_objects", [])
+
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
 
         # if getattr(self, "_session", session) is not None:
@@ -261,6 +274,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         #         return
 
         if session is not None:
+            session.add(self)
             return
 
         self.update_foreign_keys()
@@ -268,7 +282,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         target = self
         table_name = self.__tablename__
 
-        """Check if the current object has an value associated with the "id" 
+        """Check if the current object has an value associated with the "id"
         field. If this is not the case, following code will generate an unique
         value, and store it in the "id" field."""
         if not self.already_in_database():
@@ -313,6 +327,20 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             saving_candidates = {
                 key: saving_candidates[key]
             }
+
+        candidates = []
+        # Handle associated objects: they may be saved!
+        for associated_object in self.get_associated_objects():
+            candidates += [associated_object]
+
+        # As every associated_object are going to be saved, associated_objects may be reset
+        self.reset_associated_objects()
+
+        for c in candidates:
+            try:
+                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version, already_saved=already_saved)
+            except:
+                pass
 
         for key in [key for key in saving_candidates if "x" in key]:
 
