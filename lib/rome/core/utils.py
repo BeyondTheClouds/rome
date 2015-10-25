@@ -209,7 +209,8 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
         relationships = get_relationships(self, foreignkey_mode=foreignkey_mode)
         results = map(lambda x: x.local_object_field, relationships)
         if with_indirect_field:
-            many_to_one_relationships = filter(lambda x: "MANYTOONE" in x.direction, relationships)
+            # many_to_one_relationships = filter(lambda x: "MANYTOONE" in x.direction, relationships)
+            many_to_one_relationships = relationships
             results += map(lambda x: x.local_fk_field, many_to_one_relationships)
         return list(set(results))
 
@@ -440,8 +441,11 @@ class LazyRelationship():
         self.is_loaded = True
 
     def __getattr__(self, item):
-        self.reload()
-        return getattr(self.data, item) if self.data is not None else None
+        if item not in ["data", "rel", "query", "is_relationship_list", "is_loaded"]:
+            self.reload()
+        if item == "__nonzero__" and self.is_relationship_list:
+            return getattr(self.data, "__len__", None)
+        return getattr(self.data, item, None)
 
     def __setattr__(self, name, value):
         if name in ["data", "rel", "query", "is_relationship_list", "is_loaded"]:
@@ -556,7 +560,6 @@ class LazyRelationshipSingleObject():
             self.reload()
             setattr(self.data, name, value)
             return self
-
 
 
 

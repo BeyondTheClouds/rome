@@ -74,52 +74,6 @@ class LazyValue:
     def transform(self, x):
         return self.deconverter.desimplify(x)
 
-    # def get_relationships(self):
-    #     from utils import RelationshipModel
-    #     result = []
-    #
-    #     obj = self.wrapped_value.get_complex_ref()
-    #
-    #     state = obj._sa_instance_state
-    #
-    #     for field in obj._sa_class_manager:
-    #         field_object = obj._sa_class_manager[field]
-    #         field_column = state.mapper._props[field]
-    #
-    #         contain_comparator = hasattr(field_object, "comparator")
-    #         is_relationship = ("relationship" in str(field_object.comparator)
-    #                            if contain_comparator else False
-    #                            )
-    #         if is_relationship:
-    #             remote_local_pair = field_object.property.local_remote_pairs[0]
-    #
-    #             local_fk_field = remote_local_pair[0].name
-    #             local_fk_value = getattr(obj, local_fk_field)
-    #             local_object_field = field
-    #             local_object_value = getattr(obj, local_object_field)
-    #             remote_object_field = remote_local_pair[1].name
-    #             remote_object_tablename = str(remote_local_pair[1].table)
-    #             is_list = field_object.property.uselist
-    #
-    #             remote_class=models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
-    #             expression=field_object.property.primaryjoin
-    #             to_many="TOMANY" in str(field_object.property.direction)
-    #
-    #             result += [RelationshipModel(
-    #                 local_fk_field,
-    #                 local_fk_value,
-    #                 local_object_field,
-    #                 local_object_value,
-    #                 remote_object_field,
-    #                 remote_object_tablename,
-    #                 is_list,
-    #                 remote_class=remote_class,
-    #                 expression=expression,
-    #                 to_many=to_many
-    #             )]
-    #
-    #     return result
-
     def get_relationships(self, foreignkey_mode=False):
         from utils import get_relationships
         obj = self.wrapped_value.get_complex_ref()
@@ -128,16 +82,15 @@ class LazyValue:
     def load_relationships(self, request_uuid=uuid.uuid1(), debug=True):
         """Update foreign keys according to local fields' values."""
         from utils import LazyRelationship
+        if not hasattr(self.wrapped_value, "get_complex_ref"):
+            self.lazy_load()
         attrs = self.wrapped_value.get_complex_ref().__dict__
-        relations = self.get_relationships(foreignkey_mode=True)
         for rel in self.get_relationships(foreignkey_mode=True):
             key = rel.local_object_field
             if not rel.is_list and key in attrs and attrs[key] is not None:
                 continue
             if rel.is_list and key in attrs and "InstrumentedList" not in str(type(attrs[key])):
                 continue
-            # if key is "info_cache" and debug:
-                # print("toto")
             attrs[key] = LazyRelationship(rel)
         pass
 
@@ -161,11 +114,13 @@ class LazyValue:
     def lazy_load(self):
         if self.wrapped_value is None:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
+            self.load_relationships()
 
     def __getattr__(self, attr):
+        if attr in self.wrapped_dict:
+            return self.wrapped_dict[attr]
         self.lazy_load()
         # if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
-        self.load_relationships()
         return getattr(self.wrapped_value, attr)
 
     def __setattr__(self, key, value):

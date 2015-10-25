@@ -121,7 +121,8 @@ class Query:
             if hasattr(criterion.expression.right, "value"):
                 table_name = str(criterion.expression.left.table)
                 attribute_name = str(criterion.expression.left.key)
-                value = "%s" % (criterion.expression.right.value)
+                # value = "%s" % (criterion.expression.right.value)
+                value = criterion.expression.right.value
                 self._hints += [Hint(table_name, attribute_name, value)]
         except:
             pass
