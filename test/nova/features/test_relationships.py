@@ -178,7 +178,9 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
 
-    test_relationships_list_int(save_fixed_ip=True)
+    test_relationships_single_object(save_instance=True, save_info_cache=True, use_update=True, update_instance=True, use_session=True)
+    test_relationships_single_object(save_instance=True, save_info_cache=True, use_update=True, update_instance=True, use_session=True)
+
     # sys.exit(0)
 
     ######################

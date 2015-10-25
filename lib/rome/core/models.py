@@ -256,10 +256,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
 
-        # if getattr(self, "_session", session) is not None:
-        #     if not force:
-        #         return
-
         if session is not None:
             session.add(self)
             return
@@ -301,7 +297,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         for c in candidates:
             try:
-                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
+                object_converter.simplify(c)
+                # c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
             except:
                 import traceback
                 traceback.print_exc()
