@@ -15,7 +15,6 @@ import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
 
-
 def starts_with_uppercase(name):
     if name is None or len(name) == 0:
         return False
@@ -136,7 +135,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def is_relationship_field(self, key):
         if not hasattr(self, "_relation_str"):
-            # fields = map(lambda x: x.local_object_field, self.get_relationships())
             fields = self.get_relationship_fields(with_indirect_field=True)
             self.__dict__["_relation_str"] = fields
         return key in self.__dict__["_relation_str"]
@@ -148,18 +146,20 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             if key == r.local_fk_field:
                 if r.direction in ["MANYTOONE"]:
                     self.load_relationships(filter_keys=[r.local_object_field])
+                elif r.direction in ["ONETOMANY"]:
+                    existing_value = getattr(self, r.local_object_field)
+                    candidates = existing_value if r.is_list else [existing_value]
+                    for c in candidates:
+                        if c is not None:
+                            existing_fk_value = getattr(c, r.remote_object_field, None)
+                            if existing_fk_value is None:
+                                setattr(c, r.remote_object_field, value)
                 else:
-                # if value is None:
                     try:
                         v = getattr(getattr(self, r.local_object_field), r.remote_object_field)
                         self.__dict__[key] = v
                     except:
                         pass
-                    # toto = self.__dict__
-                    # toto[key] = value
-                    # v =
-                    # models.ModelBase.__setattr__(self, key, value)
-                # else:
                     self.load_relationships(filter_keys=[r.local_object_field])
             else:
                 if r.direction in ["MANYTOONE"]:
@@ -172,36 +172,23 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                                         existing_value = getattr(value, r2.local_object_field, None)
                                         if existing_value is None or hasattr(existing_value, "is_list"):
                                             setattr(value, r2.local_object_field, self)
+                            if hasattr(value, "register_associated_object"):
+                                value.register_associated_object(self)
                 if r.direction in ["ONETOMANY"]:
-                    if key == r.local_object_field and not r.is_list:
-                        if hasattr(value, "get_relationships"):
-                            for r2 in value.get_relationships():
-                                if r2.direction in ["MANYTOONE"]:
-                                    setattr(value, r2.local_fk_field, getattr(self, r2.remote_object_field))
-                                    existing_value = getattr(value, r2.local_object_field, None)
-                                    if existing_value is not None:
-                                        if hasattr(existing_value, "is_list"):
-                                            setattr(value, r2.local_object_field, self)
-                                        else:
-                                            pass
-                                    else:
-                                        setattr(value, r2.local_object_field, self)
-                                    # print(r2)
-                #
-                # if old_value is not None and r.direction != "MANYTOONE":
-                #     # value.__dict__[r.remote_object_field] = None
-                #     if r.is_list:
-                #         for o in value:
-                #             setattr(o, r.remote_object_field, None)
-                #     else:
-                #         setattr(value, r.remote_object_field, None)
-                # if value is not None and r.direction != "MANYTOONE":
-                #     if r.is_list:
-                #         for o in value:
-                #             setattr(o, r.remote_object_field, getattr(self, r.local_fk_field))
-                #     else:
-                #         setattr(value, r.remote_object_field, getattr(self, r.local_fk_field))
-                #     # value.__dict__[r.remote_object_field] = getattr(self, r.local_fk_field)
+                    candidates = value if r.is_list else [value]
+                    filtered_candidates = filter(lambda x: hasattr(x, "get_relationships"), candidates)
+                    for c in filtered_candidates:
+                        for r2 in c.get_relationships():
+                            if r2.direction in ["MANYTOONE"]:
+                                setattr(c, r2.local_fk_field, getattr(self, r2.remote_object_field))
+                                setattr(c, r2.local_object_field, self)
+                    # if key == r.local_object_field and r.is_list:
+                    #
+                    #     if hasattr(value, "get_relationships"):
+                    #         for r2 in value.get_relationships():
+                    #             if r2.direction in ["MANYTOONE"]:
+                    #                 setattr(value, r2.local_fk_field, getattr(self, r2.remote_object_field))
+                    #                 setattr(value, r2.local_object_field, self)
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
@@ -267,11 +254,10 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def reset_associated_objects(self):
         return setattr(self, "_associated_objects", [])
 
-    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True, already_saved=None):
 
-        # if getattr(self, "_session", session) is not None:
-        #     if not force:
-        #         return
+        if already_saved is None:
+            already_saved = []
 
         if session is not None:
             session.add(self)
@@ -282,7 +268,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         target = self
         table_name = self.__tablename__
 
-        """Check if the current object has an value associated with the "id"
+        """Check if the current object has an value associated with the "id" 
         field. If this is not the case, following code will generate an unique
         value, and store it in the "id" field."""
         if not self.already_in_database():
@@ -296,39 +282,42 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         object_converter = get_encoder(request_uuid)
         object_converter.simplify(self)
 
-        from utils import LazyRelationship
-        from lazy import LazyValue
-        for rel_field in self.get_relationship_fields():
-            attr = getattr(self, rel_field)
-            candidates = []
-            # if "InstrumentedList" in str(type(attr)):
-            #     candidates = attr
-            # elif type(attr) is LazyRelationship and attr.is_loaded():
-            #     # candidates += attr.data if attr.is_relationship_list else [attr.data]
-            # elif type(attr) is Entity: #is not None:
-            #     candidates = [attr]
-            if hasattr(attr, "wrapped_value"):
-                candidates = attr.wrapped_value
-
-            try:
-                for c in candidates:
-                    o = c
-                    if hasattr(o, "wrapped_value"):
-                        o = o.wrapped_value
-                    object_converter.simplify(o)
-            except:
-                print(candidates)
-                pass
-
-        saving_candidates = object_converter.complex_cache
-
-        if no_nested_save:
-            key = object_converter.get_cache_key(self)
-            saving_candidates = {
-                key: saving_candidates[key]
-            }
+        current_id = "%s@%s" % (self.id, self.__tablename__)
+        if current_id in already_saved:
+            return
+        already_saved += [current_id]
 
         candidates = []
+
+        # Handle relationships's objects: they may be saved!
+        def is_unmodified(v):
+            return hasattr(relationship_value, "is_relationship_list") and getattr(relationship_value, "is_loaded", False)
+
+        for rel_field in self.get_relationship_fields():
+            attr = getattr(self, rel_field)
+
+            if hasattr(attr, "is_loaded") and getattr(attr, "is_loaded"):
+                if attr.wrapped_value is not None:
+                    if attr.is_relationship_list:
+                        candidates += attr.wrapped_value
+                    else:
+                        candidates = [attr.wrapped_value]
+            if len(candidates) == 0:
+                corresponding_relationship = filter(lambda x: x.local_fk_field == rel_field, self.get_relationships())
+                for rel in corresponding_relationship:
+                    if rel.direction in ["MANYTOONE", "ONETOMANY"] and getattr(self, rel.local_object_field) is not None:
+                        relationship_value = getattr(self, rel.local_object_field)
+                        # if is_unmodified_value(relationship_value):
+                        # relationship_value = relationship_value.data
+                        # if relationship_value is not None:
+                        prefiltered_candidates = []
+                        if rel.is_list:
+                            for each_value in relationship_value:
+                                prefiltered_candidates += [each_value]
+                        else:
+                            prefiltered_candidates += [relationship_value]
+                        filtered_candidates = filter(lambda x: not is_unmodified(x), prefiltered_candidates)
+                        candidates += map(lambda x: getattr(x, "data", x), filtered_candidates)
         # Handle associated objects: they may be saved!
         for associated_object in self.get_associated_objects():
             candidates += [associated_object]
@@ -342,82 +331,58 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             except:
                 pass
 
-        for key in [key for key in saving_candidates if "x" in key]:
+        key = object_converter.get_cache_key(self)
 
-            classname = "_".join(key.split("_")[0:-1])
-            table_name = get_model_tablename_from_classname(classname)
+        classname = get_model_classname_from_tablename(self.__tablename__)
+        table_name = get_model_tablename_from_classname(classname)
 
-            simplified_object = object_converter.simple_cache[key]
-            complex_object = object_converter.complex_cache[key]
-            target_object = object_converter.target_cache[key]
+        current_object = object_converter.complex_cache[key]
+        current_object["nova_classname"] = self.__tablename__
 
-            if simplified_object["id"] is not None:
-                continue
+        if not "id" in current_object or current_object["id"] is None:
+            current_object["id"] = self.next_key(table_name)
+        else:
+            model_class = get_model_class_from_name(classname)
+            existing_object = database_driver.get_driver().get(table_name, current_object["id"])
 
-            """Find a new_id for this object"""
-            new_id = database_driver.get_driver().next_key(table_name)
-
-            """Assign this id to the object"""
-            simplified_object["id"] = new_id
-            complex_object["id"] = new_id
-            target_object.id = new_id
-
-            pass
-
-        for key in saving_candidates:
-
-            classname = "_".join(key.split("_")[0:-1])
-            table_name = get_model_tablename_from_classname(classname)
-
-            current_object = object_converter.complex_cache[key]
-
-            current_object["nova_classname"] = table_name
-
-            if not "id" in current_object or current_object["id"] is None:
-                current_object["id"] = self.next_key(table_name)
+            if not same_version(existing_object, current_object, model_class):
+                current_object = merge_dict(existing_object, current_object)
             else:
-                model_class = get_model_class_from_name(classname)
-                existing_object = database_driver.get_driver().get(table_name, current_object["id"])
+                return
 
-                if not same_version(existing_object, current_object, model_class):
-                    current_object = merge_dict(existing_object, current_object)
+        if current_object["id"] == -1:
+            logging.debug("skipping the storage of object %s" % (current_object["id"]))
+            return
+
+        object_converter_datetime = get_encoder(request_uuid)
+
+        if (current_object.has_key("created_at") and current_object[
+            "created_at"] is None) or not current_object.has_key("created_at"):
+            current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
+        current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
+
+        logging.debug("starting the storage of %s (uuid=%s, session=%s)" % (current_object, request_uuid, session))
+
+        try:
+            local_object_converter = get_encoder(request_uuid)
+            corrected_object = local_object_converter.simplify(current_object)
+            if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
+                corrected_object["session"] = getattr(target, "session", None)
+            if increase_version:
+                if "rome_version_number" in corrected_object:
+                    self.rome_version_number = corrected_object["rome_version_number"]
+                if hasattr(self, "rome_version_number"):
+                    self.rome_version_number += 1
                 else:
-                    continue
-
-            if current_object["id"] == -1:
-                logging.debug("skipping the storage of object %s" % (current_object["id"]))
-                continue
-
-            object_converter_datetime = get_encoder(request_uuid)
-
-            if (current_object.has_key("created_at") and current_object[
-                "created_at"] is None) or not current_object.has_key("created_at"):
-                current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
-            current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
-
-            logging.debug("starting the storage of %s (uuid=%s, session=%s)" % (current_object, request_uuid, session))
-
-            try:
-                local_object_converter = get_encoder(request_uuid)
-                corrected_object = local_object_converter.simplify(current_object)
-                if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
-                    corrected_object["session"] = getattr(target, "session", None)
-                if increase_version:
-                    if "rome_version_number" in corrected_object:
-                        self.rome_version_number = corrected_object["rome_version_number"]
-                    if hasattr(self, "rome_version_number"):
-                        self.rome_version_number += 1
-                    else:
-                        self.rome_version_number = 0
-                corrected_object["rome_version_number"] = self.rome_version_number
-                database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
-                database_driver.get_driver().add_key(table_name, current_object["id"])
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                logging.error("Failed to store following object: %s because of %s, becoming %s" % (
-                current_object, e, corrected_object))
-                pass
-            logging.debug("finished the storage of %s" % (current_object))
-        # self.load_relationships()
+                    self.rome_version_number = 0
+            corrected_object["rome_version_number"] = self.rome_version_number
+            database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
+            database_driver.get_driver().add_key(table_name, current_object["id"])
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            logging.error("Failed to store following object: %s because of %s, becoming %s" % (
+            current_object, e, corrected_object))
+            pass
+        logging.debug("finished the storage of %s" % (current_object))
         return self
