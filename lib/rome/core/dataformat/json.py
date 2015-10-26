@@ -143,7 +143,7 @@ class Encoder(object):
 
         if not self.already_processed(obj):
 
-            obj.update_foreign_keys()
+            # obj.update_foreign_keys()
             key = self.get_cache_key(obj)
 
             if self.simple_cache.has_key(key):

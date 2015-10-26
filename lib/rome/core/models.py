@@ -237,7 +237,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             except Exception as e:
                 logging.error(e)
                 pass
-        self.update_foreign_keys()
+        # self.update_foreign_keys()
         # self.load_relationships()
         return self
 
@@ -260,7 +260,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             session.add(self)
             return
 
-        self.update_foreign_keys()
+        # self.update_foreign_keys()
 
         target = self
         table_name = self.__tablename__

@@ -422,6 +422,7 @@ class LazyRelationship():
         self.is_loaded = False
         self.is_relationship_list = self.rel.to_many
         self.query = Query(rel.remote_class)
+        self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
 
     def reload(self):
         def match(x, rel):
@@ -439,9 +440,6 @@ class LazyRelationship():
             else:
                 self.data = None
         self.is_loaded = True
-
-    # def iteritems(self):
-
 
     def __getattr__(self, item):
         if item not in ["data", "rel", "query", "is_relationship_list", "is_loaded"]:
@@ -462,112 +460,3 @@ class LazyRelationship():
             self.reload()
             setattr(self.data, name, value)
             return self
-
-class LazyRelationshipList():
-    def __init__(self, rel):
-        from lib.rome.core.orm.query import Query
-        self.rel = rel
-        self.data = None
-        self.__emulates__ = list
-        self._sa_adapter = None
-        self.is_relationship_list = True
-        self.id = "LazyRelationshipList(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
-        self.query = Query(rel.remote_class, rel.expression)
-        print(self.query.all())
-
-    def reload(self):
-
-        if self.data is not None:
-            return
-
-        # CODE THIS!
-        from lazy import LazyReference
-
-        request_uuid=uuid.uuid1()
-
-        try:
-            from lib.rome.core.dataformat import get_decoder
-        except:
-            pass
-
-        object_deconverter = get_decoder(request_uuid=request_uuid)
-
-        candidates = get_models_satisfying(
-            self.rel.remote_object_tablename,
-            self.rel.remote_object_field,
-            self.rel.local_fk_value,
-            request_uuid=request_uuid
-        )
-
-        lazy_candidates = []
-        for cand in candidates:
-            ref = LazyReference(
-                cand["nova_classname"],
-                cand["id"],
-                request_uuid,
-                object_deconverter
-            )
-            lazy_candidates += [ref]
-        self.data = lazy_candidates
-        # print("reload")
-
-    def __getattr__(self, item):
-        self.reload()
-        return getattr(self.data, item)
-
-    def __setattr__(self, name, value):
-        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list", "query"]:
-            self.__dict__[name] = value
-        else:
-            self.reload()
-            setattr(self.data, name, value)
-            return self
-
-class LazyRelationshipSingleObject():
-    def __init__(self, rel):
-        self.rel = rel
-        self.data = None
-        self.__emulates__ = list
-        self._sa_adapter = None
-        self.is_relationship_list = True
-        self.id = "LazyRelationshipSingleObject(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
-
-    def reload(self):
-
-        if self.data is not None:
-            return
-
-        # CODE THIS!
-        from lazy import LazyReference
-
-        request_uuid=uuid.uuid1()
-
-        try:
-            from lib.rome.core.dataformat import get_decoder
-        except:
-            pass
-
-        object_deconverter = get_decoder(request_uuid=request_uuid)
-
-        remote_ref = LazyReference(
-            self.rel.remote_object_tablename,
-            self.rel.local_fk_value,
-            request_uuid,
-            object_deconverter
-        )
-        self.data = remote_ref
-
-    def __getattr__(self, item):
-        self.reload()
-        return getattr(self.data, item)
-
-    def __setattr__(self, name, value):
-        if name in ["rel", "data", "__emulates__", "_sa_adapter", "id", "is_relationship_list"]:
-            self.__dict__[name] = value
-        else:
-            self.reload()
-            setattr(self.data, name, value)
-            return self
-
-
-
