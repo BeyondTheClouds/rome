@@ -11,6 +11,8 @@ from test.nova.methods.test_ensure_default_secgroup import _security_group_ensur
 import logging
 import uuid
 
+from oslo.serialization import jsonutils
+
 LOG = logging.getLogger()
 
 # List of fields that can be joined in DB layer.
@@ -36,7 +38,6 @@ def model_query(context, *args, **kwargs):
     # models = args
     return RomeQuery(*args, **kwargs)
 
-
 def _service_get(context, service_id, with_compute_node=True, session=None,
                  use_slave=False):
     query = model_query(context, models.Service, session=session,
@@ -52,7 +53,7 @@ def _service_get(context, service_id, with_compute_node=True, session=None,
 
     return result
 
-def service_update(context, service_id, values):
+def db_service_update(context, service_id, values):
     session = get_session()
     with session.begin():
         service_ref = _service_get(context, service_id,
@@ -65,28 +66,9 @@ def service_update(context, service_id, values):
 
     return service_ref
 
-
-def _report_state(service):
-        """Update the state of this service in the datastore."""
-        ctxt = Context("project1", "user1")
-        state_catalog = {}
-        try:
-            report_count = service.service_ref['report_count'] + 1
-            state_catalog['report_count'] = report_count
-
-            service.service_ref = service_update(ctxt,
-                    service.service_ref, state_catalog)
-
-            # TODO(termie): make this pattern be more elegant.
-            if getattr(service, 'model_disconnected', False):
-                service.model_disconnected = False
-                LOG.error('Recovered model server connection!')
-
-        # TODO(vish): this should probably only catch connection errors
-        except Exception:  # pylint: disable=W0702
-            if not getattr(service, 'model_disconnected', False):
-                service.model_disconnected = True
-                LOG.exception('model server went away')
+def conductor_service_update(context, service, values):
+        svc = db_service_update(context, service['id'], values)
+        return jsonutils.to_primitive(svc)
 
 class Context(object):
     def __init__(self, project_id, user_id):
@@ -100,6 +82,8 @@ class ModelInstance(dict):
         self.cleaned = None
 
 def test_service_update():
+    context = Context("project1", "user1")
+
     # session = get_session()
     # Create a service
     service = models.Service()
@@ -120,32 +104,12 @@ def test_service_update():
         compute_nodes += [compute_node]
         # session.add(compute_node)
 
-    # session.flush()
+    service_ref = conductor_service_update(context, service, {"report_count": 1})
+    print(type(service_ref))
 
-    service_update(context, service.id, {"report_count": 1})
+    print(service_ref)
 
-    service_from_db = Query(models.Service).filter(models.Service.id==service.id).first()
-    compute_nodes_from_db = Query(models.ComputeNode).filter(models.ComputeNode.service_id==service.id).all()
-
-    assert service_from_db is not None
-    assert service_from_db.id == service.id
-    assert service.report_count == 0
-    assert service_from_db.host == service.host
-    assert service_from_db.report_count == service.report_count+1
-
-    for compute_node_from_db in compute_nodes_from_db:
-        corresponding_compute_nodes = filter(lambda x: x.id == compute_node_from_db.id, compute_nodes)
-
-        assert len(corresponding_compute_nodes) > 0
-        corresponding_compute_node = corresponding_compute_nodes[0]
-
-        assert compute_node_from_db.id == corresponding_compute_node.id
-        assert compute_node_from_db.vcpus == corresponding_compute_node.vcpus
-        assert compute_node_from_db.service_id == corresponding_compute_node.service_id
-        assert compute_node_from_db.service.id == corresponding_compute_node.service.id
-        assert compute_node_from_db.service.report_count == corresponding_compute_node.service.report_count+1
-
-    report_count = service_from_db['report_count'] + 1
+    assert type(service_ref) == dict
 
 if __name__ == '__main__':
 

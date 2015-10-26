@@ -440,9 +440,17 @@ class LazyRelationship():
                 self.data = None
         self.is_loaded = True
 
+    # def iteritems(self):
+
+
     def __getattr__(self, item):
         if item not in ["data", "rel", "query", "is_relationship_list", "is_loaded"]:
             self.reload()
+        if item == "iteritems":
+            if self.is_relationship_list:
+                return self.data.iteritems
+            else:
+                None
         if item == "__nonzero__" and self.is_relationship_list:
             return getattr(self.data, "__len__", None)
         return getattr(self.data, item, None)
