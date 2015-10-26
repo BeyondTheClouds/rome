@@ -287,23 +287,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 key: saving_candidates[key]
             }
 
-        candidates = []
-        # Handle associated objects: they may be saved!
-        for associated_object in self.get_associated_objects():
-            candidates += [associated_object]
-
-        # As every associated_object are going to be saved, associated_objects may be reset
-        self.reset_associated_objects()
-
-        for c in candidates:
-            try:
-                object_converter.simplify(c)
-                # c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
-            except:
-                import traceback
-                traceback.print_exc()
-                pass
-
         for key in [key for key in saving_candidates if "x" in key]:
 
             classname = "_".join(key.split("_")[0:-1])
@@ -382,4 +365,22 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 pass
             logging.debug("finished the storage of %s" % (current_object))
         # self.load_relationships()
+
+        candidates = []
+        # Handle associated objects: they may be saved!
+        for associated_object in self.get_associated_objects():
+            candidates += [associated_object]
+
+        # As every associated_object are going to be saved, associated_objects may be reset
+        self.reset_associated_objects()
+
+        for c in candidates:
+            try:
+                # object_converter.simplify(c)
+                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
+            except:
+                import traceback
+                traceback.print_exc()
+                pass
+
         return self
