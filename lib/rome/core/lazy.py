@@ -96,7 +96,8 @@ class LazyValue:
 
     def __repr__(self):
         # return "LazyValue(%s)" % (self.wrapped_dict)
-        return "LazyValue()" % (self.wrapped_dict)
+        #return "LazyValue()" % (self.wrapped_dict)
+        return "LazyValue()"
 
     def get_key(self):
         """Returns a unique key for the current LazyReference."""
