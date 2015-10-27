@@ -118,6 +118,14 @@ class LazyValue:
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
             self.load_relationships()
 
+    def __nonzero__(self):
+        """The definition of this method enables to prevent some unwanted lazyloading"""
+        return True
+
+    def iteritems(self):
+        """The definition of this method enables to prevent some unwanted lazyloading"""
+        return self.wrapped_dict.iteritems()
+
     def __getattr__(self, attr):
         if attr in self.wrapped_dict:
             return self.wrapped_dict[attr]

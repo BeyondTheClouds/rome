@@ -416,7 +416,6 @@ def get_relationships(obj, foreignkey_mode=False):
 class LazyRelationship():
     def __init__(self, rel):
         from lib.rome.core.orm.query import Query
-        # self.id = "LazyRelationship(_%s_%s_%s)" % (rel.remote_object_field, rel.local_fk_value, rel.local_object_field)
         self.data = None
         self.rel = rel
         self.is_loaded = False

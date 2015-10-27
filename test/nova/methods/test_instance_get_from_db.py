@@ -189,6 +189,6 @@ if __name__ == '__main__':
     context = Context("project1", "user1")
 
     one_instance = Query(models.Instance).first()
-    not one_instance.system_metadata
+    # not one_instance.system_metadata
     coin = ModelInstance()
     _from_db_object(context, coin, one_instance, ['metadata', 'system_metadata', 'info_cache', 'security_groups'])
