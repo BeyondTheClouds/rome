@@ -374,13 +374,13 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         # As every associated_object are going to be saved, associated_objects may be reset
         self.reset_associated_objects()
 
-        for c in candidates:
-            try:
-                # object_converter.simplify(c)
-                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
-            except:
-                import traceback
-                traceback.print_exc()
-                pass
+        # for c in candidates:
+        #     try:
+        #         # object_converter.simplify(c)
+        #         c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
+        #     except:
+        #         import traceback
+        #         traceback.print_exc()
+        #         pass
 
         return self
