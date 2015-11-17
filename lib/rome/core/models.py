@@ -112,6 +112,14 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 
+    def delete(self, session=None):
+        # <HARD DELETE IMPLEMENTATION>
+        if session is not None:
+            session.delete(self)
+            return
+        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # </HARD DELETE IMPLEMENTATION>
+    
     def soft_delete(self, session=None):
         # <SOFT DELETE IMPLEMENTATION>
         self.deleted = 1
