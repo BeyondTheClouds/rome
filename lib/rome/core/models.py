@@ -114,7 +114,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def soft_delete(self, session=None):
         # <SOFT DELETE IMPLEMENTATION>
-        self.deleted = True
+        self.deleted = 1
         object_converter_datetime = get_encoder()
         self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
         if session is not None:
