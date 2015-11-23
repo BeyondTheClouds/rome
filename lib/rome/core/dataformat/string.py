@@ -39,7 +39,7 @@ class Encoder(object):
             prefix = "list"
         elif is_dict and obj.has_key("novabase_classname"):
             prefix = "novabase"
-        elif is_dict and obj.has_key("metadata_novabase_classname"):
+        elif is_dict and obj.has_key("_metadata_novabase_classname"):
             prefix = "novabase"
         elif is_dict:
             prefix = "dict"
@@ -70,7 +70,7 @@ class Decoder(object):
             result = map(lambda x: self.desimplify(x), obj)
         elif is_dict and obj.has_key("novabase_classname"):
             result = self.json_decoder.novabase_desimplify(obj)
-        elif is_dict and obj.has_key("metadata_novabase_classname"):
+        elif is_dict and obj.has_key("_metadata_novabase_classname"):
             result = self.json_decoder.novabase_desimplify(obj)
         elif is_dict:
             result = {}

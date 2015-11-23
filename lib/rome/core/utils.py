@@ -149,8 +149,10 @@ class RelationshipModel(object):
 class ModelBase(object):
     def get(self, key, default=None):
         pass
+
     def save(self, session):
         pass
+
     def update(self, values):
         pass
 

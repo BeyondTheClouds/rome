@@ -64,7 +64,7 @@ class Session(object):
             self.commit()
 
     def can_be_used(self, obj):
-        if getattr(obj, "session", None) is None:
+        if getattr(obj, "_session", None) is None:
             return True
         else:
             if obj.session["session_id"] == self.session_id:
@@ -138,7 +138,7 @@ class OldSession(object):
             self.commit()
 
     def can_be_used(self, obj):
-        if getattr(obj, "session", None) is None:
+        if getattr(obj, "_session", None) is None:
             return True
         else:
             if obj.session["session_id"] == self.session_id:
@@ -176,10 +176,10 @@ class OldSession(object):
     def commit(self):
         logging.info("session %s will start commit" % (self.session_id))
         for obj in self.session_objects_add:
-            obj.update({"session": None}, skip_session=True)
+            obj.update({"_session": None}, skip_session=True)
             obj.save()
         for obj in self.session_objects_delete:
-            obj.update({"session": None}, skip_session=True)
+            obj.update({"_session": None}, skip_session=True)
             obj.soft_delete()
         logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []

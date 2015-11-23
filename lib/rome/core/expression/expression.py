@@ -69,7 +69,7 @@ class BooleanExpression(object):
         self.deconverter = get_decoder()
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
-        # prepare the expression
+        """ Prepare the expression. """
         self.variable_substitution_dict = {}
         self.default_value_dict = {}
         self.prepare_expression()
@@ -107,14 +107,23 @@ class BooleanExpression(object):
                         if hasattr(expression_part, "default") and expression_part.bind is None and expression_part.default is not None:
                             expression_part.bind = expression_part.default.arg
                         if ":" in str(expression_part):
-                            # handle right part of the expression
+                            """ Handle right part of the expression. """
                             if " in " in criterion_str:
                                 count = 1
-                                for i in expression_part.element:
+                                parts = getattr(expression_part, "element", [])
+                                like_operator_used = False
+                                if len(parts) == 0:
+                                    """ This case happens when the LIKE operator is used. """
+                                    like_operator_used = True
+                                    parts = [expression_part] if "BindParameter" in str(type(expression_part)) else []
+                                for i in parts:
                                     corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
                                     key = ":%s_%i" % (i._orig_key, count)
                                     self.variable_substitution_dict[key] = corrected_label
                                     self.default_value_dict[corrected_label] = i.value
+                                    if like_operator_used:
+                                        """ Must remove the '%' used as the wildcard symbol in the LIKE synthax"""
+                                        self.default_value_dict[corrected_label] = self.default_value_dict[corrected_label].replace("%", "")
                                     count += 1
                             elif not "." in str(expression_part):
                                 original_label = str(expression_part)
@@ -165,6 +174,11 @@ class BooleanExpression(object):
                 a = tab[0]
                 b = tab[1]
                 criterion_str = ("""__import__('re').search(%s, %s) is not None\n""" % (b, a))
+
+            if "LIKE" in criterion_str:
+                left = criterion_str.split("LIKE")[0]
+                right = criterion_str.split("LIKE")[1]
+                criterion_str = "(%s in %s) or (%s in %s)" % (left, right, right, left)
 
             boolean_expression_str_memory[prev_criterion_str] = criterion_str
 

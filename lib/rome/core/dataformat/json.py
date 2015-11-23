@@ -159,7 +159,7 @@ class Encoder(object):
                     "tablename": obj.__tablename__,
                     "novabase_classname": novabase_classname,
                     "id": obj.id,
-                    "pid": extract_adress(obj)
+                    "_pid": extract_adress(obj)
                 }
                 if hasattr(tmp, "user_id"):
                     tmp = utils.merge_dicts(obj, {"user_id": obj.user_id})
@@ -182,9 +182,9 @@ class Encoder(object):
             complex_object = self.extract_complex_object(obj)
 
             metadata_class_name = novabase_classname
-            complex_object["metadata_novabase_classname"] = metadata_class_name
-            complex_object["pid"] = extract_adress(obj)
-            complex_object["rid"] = str(self.request_uuid)
+            complex_object["_metadata_novabase_classname"] = metadata_class_name
+            complex_object["_pid"] = extract_adress(obj)
+            complex_object["_rid"] = str(self.request_uuid)
 
             if not key in self.complex_cache:
                 self.complex_cache[key] = complex_object
@@ -230,9 +230,9 @@ class Encoder(object):
 
                     metadata_class_name = novabase_classname
                     metadata_dict = {
-                        "metadata_novabase_classname": metadata_class_name,
-                        "pid": extract_adress(obj),
-                        "rid": str(self.request_uuid)
+                        "_metadata_novabase_classname": metadata_class_name,
+                        "_pid": extract_adress(obj),
+                        "_rid": str(self.request_uuid)
                     }
                     self.complex_cache[key] = utils.merge_dicts(
                         self.complex_cache[key],
@@ -308,8 +308,8 @@ class Decoder(object):
 
     def get_key(self, obj):
         """Returns a unique key for the given object."""
-        if is_dict_and_has_key(obj, "nova_classname"):
-            table_name = obj["nova_classname"]
+        if is_dict_and_has_key(obj, "_nova_classname"):
+            table_name = obj["_nova_classname"]
             key = obj["id"]
             return "%s_%s_%s" % (table_name, str(key), self.request_uuid)
         elif is_dict_and_has_key(obj, "novabase_classname"):
@@ -324,15 +324,15 @@ class Decoder(object):
         key = self.get_key(obj)
         if not self.cache.has_key(key):
             can_load = True
-            if obj.has_key("nova_classname"):
-                tablename = obj["nova_classname"]
+            if obj.has_key("_nova_classname"):
+                tablename = obj["_nova_classname"]
             elif obj.has_key("novabase_classname"):
                 tablename = models.get_tablename_from_name(
                     obj["novabase_classname"]
                 )
             else:
                 tablename = models.get_tablename_from_name(
-                    obj["metadata_novabase_classname"]
+                    obj["_metadata_novabase_classname"]
                 )
             if "simplify_strategy" in obj:
                 can_load = False
@@ -375,7 +375,7 @@ class Decoder(object):
                 result += [self.desimplify(item)]
         elif is_dict and obj.has_key("novabase_classname"):
             result = self.novabase_desimplify(obj)
-        elif is_dict and obj.has_key("metadata_novabase_classname"):
+        elif is_dict and obj.has_key("_metadata_novabase_classname"):
             result = self.novabase_desimplify(obj)
         elif is_dict:
             result = {}

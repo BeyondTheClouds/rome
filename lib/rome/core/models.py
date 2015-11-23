@@ -105,7 +105,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
         self._session = None
-        self.rome_version_number = -1
+        self._rome_version_number = -1
 
     def __setitem__(self, key, value):
         """ This function overrides the default __setitem_ provided by sqlalchemy model class, in order to prevent
@@ -194,23 +194,22 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         return hasattr(self, "id") and (self.id is not None)
 
     def soft_delete(self, session=None):
-        # <SOFT DELETE IMPLEMENTATION>
         self.deleted = True
         object_converter_datetime = get_encoder()
         self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
+        self.deleted = 1
         if session is not None:
             session.add(self)
             return
         else:
             self.save()
-        # </SOFT DELETE IMPLEMENTATION>
 
-        # # <HARD DELETE IMPLEMENTATION>
-        # if session is not None:
-        #     session.delete(self)
-        #     return
-        # database_driver.get_driver().remove_key(self.__tablename__, self.id)
-        # # </HARD DELETE IMPLEMENTATION>
+    def delete(self, session=None):
+        if session is not None:
+            session.delete(self)
+            return
+        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        return self
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
         """Set default values"""
@@ -316,7 +315,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             current_object = object_converter.complex_cache[key]
 
-            current_object["nova_classname"] = table_name
+            current_object["_nova_classname"] = table_name
 
             if not "id" in current_object or current_object["id"] is None:
                 current_object["id"] = self.next_key(table_name)
@@ -345,16 +344,16 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             try:
                 local_object_converter = get_encoder(request_uuid)
                 corrected_object = local_object_converter.simplify(current_object)
-                if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
-                    corrected_object["session"] = getattr(target, "session", None)
+                if target.__tablename__ == corrected_object["_nova_classname"] and target.id == corrected_object["id"]:
+                    corrected_object["_session"] = getattr(target, "_session", None)
                 if increase_version:
-                    if "rome_version_number" in corrected_object:
-                        self.rome_version_number = corrected_object["rome_version_number"]
-                    if hasattr(self, "rome_version_number"):
-                        self.rome_version_number += 1
+                    if "_rome_version_number" in corrected_object:
+                        self._rome_version_number = corrected_object["_rome_version_number"]
+                    if hasattr(self, "_rome_version_number"):
+                        self._rome_version_number += 1
                     else:
-                        self.rome_version_number = 0
-                corrected_object["rome_version_number"] = self.rome_version_number
+                        self._rome_version_number = 0
+                corrected_object["_rome_version_number"] = self._rome_version_number
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
@@ -374,13 +373,13 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         # As every associated_object are going to be saved, associated_objects may be reset
         self.reset_associated_objects()
 
-        # for c in candidates:
-        #     try:
-        #         # object_converter.simplify(c)
-        #         c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
-        #     except:
-        #         import traceback
-        #         traceback.print_exc()
-        #         pass
+        for c in candidates:
+            try:
+                # object_converter.simplify(c)
+                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
+            except:
+                import traceback
+                traceback.print_exc()
+                pass
 
         return self

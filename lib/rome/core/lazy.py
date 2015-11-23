@@ -71,6 +71,24 @@ class LazyValue:
         self.wrapped_value = None
         self.request_uuid = request_uuid
 
+        """ Remove Rome's specific attributes of the dict, to stick with what SQLAlchemy returns in order to pass
+        Nova's unit tests! """
+        self._unwanted_keys = ["_session", "_nova_classname", "simplify_strategy", "_rome_version_number", "_rid", "_pid", "_metadata_novabase_classname", "_diff_dict", "_unwanted_keys"]
+        self._diff_dict = {}
+        # self._filter_wrapped_dict()
+
+    def _filter_wrapped_dict(self):
+        for key in self._unwanted_keys:
+            v = self.wrapped_dict[key]
+            self._diff_dict[key] = v
+
+    def get_filtered_dict(self):
+        result = {}
+        filtered_keys = filter(lambda x: x not in self._unwanted_keys, self.wrapped_dict.keys())
+        for key in filtered_keys:
+            result[key] = self.wrapped_dict[key]
+        return result
+
     def transform(self, x):
         return self.deconverter.desimplify(x)
 
@@ -84,7 +102,8 @@ class LazyValue:
         from utils import LazyRelationship
         if not hasattr(self.wrapped_value, "get_complex_ref"):
             self.lazy_load()
-        attrs = self.wrapped_value.get_complex_ref().__dict__
+        wv = self.wrapped_value
+        attrs = wv.get_complex_ref().__dict__ if hasattr(wv, "get_complex_ref") else []
         for rel in self.get_relationships(foreignkey_mode=True):
             key = rel.local_object_field
             if not rel.is_list and key in attrs and attrs[key] is not None:
@@ -95,10 +114,8 @@ class LazyValue:
         pass
 
     def __repr__(self):
-        # return "LazyValue(%s)" % (self.wrapped_dict)
-        #return "LazyValue()" % (self.wrapped_dict)
-        # return "LazyValue()"
-        return """{"type": "LazyValue"}"""
+        # return """{"type": "LazyValue"}"""
+        return str(self.get_filtered_dict())
 
     def get_key(self):
         """Returns a unique key for the current LazyReference."""
@@ -106,8 +123,8 @@ class LazyValue:
 
     def resolve_model_name(self):
         """Returns the model class corresponding to the remote object."""
-        if "metadata_novabase_classname" in self.wrapped_dict:
-            return self.wrapped_dict["metadata_novabase_classname"]
+        if "_metadata_novabase_classname" in self.wrapped_dict:
+            return self.wrapped_dict["_metadata_novabase_classname"]
         elif self.wrapped_value is not None:
             return models.get_model_classname_from_tablename(self.wrapped_value.base)
         else:
@@ -122,7 +139,7 @@ class LazyValue:
         if attr in self.wrapped_dict:
             return self.wrapped_dict[attr]
         self.lazy_load()
-        # if "nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["nova_classname"]:
+        # if "_nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["_nova_classname"]:
         return getattr(self.wrapped_value, attr)
 
     def __setattr__(self, key, value):
@@ -184,8 +201,8 @@ class LazyReference:
         if obj is not None:
             if"novabase_classname" in obj:
                 model_class_name = obj["novabase_classname"]
-            elif "metadata_novabase_classname" in obj:
-                model_class_name = obj["metadata_novabase_classname"]
+            elif "_metadata_novabase_classname" in obj:
+                model_class_name = obj["_metadata_novabase_classname"]
         else:
             model_class_name = self.resolve_model_name()
         if model_class_name is not None:

@@ -14,6 +14,8 @@ from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
 import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
 
+from lib.rome.core.models import get_model_class_from_name, get_model_classname_from_tablename, get_model_tablename_from_classname, get_tablename_from_name
+
 try:
     from lib.rome.core.dataformat import get_decoder
     from lib.rome.core.dataformat.json import find_table_name
@@ -97,7 +99,18 @@ class Query:
         return len(self.all())
 
     def soft_delete(self, synchronize_session=False):
-        return self
+        objects = self.all()
+        deletion_candidates = filter(lambda o: hasattr(o, "soft_delete"), objects)
+        for each in deletion_candidates:
+            each.soft_delete()
+        return deletion_candidates
+
+    def delete(self, synchronize_session=False):
+        objects = self.all()
+        deletion_candidates = filter(lambda o: hasattr(o, "soft_delete"), objects)
+        for each in deletion_candidates:
+            each.delete()
+        return deletion_candidates
 
     def update(self, values, synchronize_session='evaluate'):
         result = self.all()
@@ -126,6 +139,33 @@ class Query:
                 self._hints += [Hint(table_name, attribute_name, value)]
         except:
             pass
+
+    def _extract_models(self, criterion):
+        tables = []
+        """ Extract tables names from the criterion. """
+        expressions = [criterion.expression.left, criterion.expression.right] if hasattr(criterion, "expression") else []
+        for expression in expressions:
+            if hasattr(expression, "foreign_keys"):
+                for foreign_key in getattr(expression, "foreign_keys"):
+                    if hasattr(foreign_key, "column"):
+                        tables += [foreign_key.column.table]
+        tables_objects = getattr(criterion, "_from_objects", [])
+        tables_names = map(lambda x: str(x), tables_objects)
+        tables += tables_names
+        tables = list(set(tables)) # remove duplicate names
+
+        """ Extract the missing entity models from tablenames. """
+        current_entities = map(lambda x: x._model, self._models)
+        current_entities = filter(lambda x: x is not None, current_entities)
+        current_entities_tablenames = map(lambda x: x.__tablename__, current_entities)
+        missing_tables = filter(lambda x: x not in current_entities_tablenames, tables)
+        missing_tables_names = map(lambda x: str(x), missing_tables)
+        missing_entities_names = map(lambda x: get_model_classname_from_tablename(x), missing_tables_names)
+        missing_entities_objects = map(lambda x: get_model_class_from_name(x), missing_entities_names)
+
+        """ Add the missing entity models to the models of the current query. """
+        missing_models_to_selections = map(lambda x: Selection(x, "id", is_hidden=True), missing_entities_objects)
+        self._models += missing_models_to_selections
 
     def filter_by(self, **kwargs):
         _func = self._funcs[:]
@@ -158,6 +198,7 @@ class Query:
         _criterions = self._criterions[:]
         for criterion in criterions:
             self._extract_hint(criterion)
+            self._extract_models(criterion)
             _criterions += [criterion]
         _hints = self._hints[:]
         args = self._models + _func + _criterions + _hints + self._initial_models

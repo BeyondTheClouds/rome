@@ -79,7 +79,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             fields = map(lambda x: "%s" % (x.key), klass()._sa_instance_state.attrs)
         except:
             fields = map(lambda x: "%s" % (x), klass._sa_class_manager)
-        fields += ["pid", "metadata_novabase_classname", "rid", "nova_classname", "rome_version_number"]
+        fields += ["_pid", "_metadata_novabase_classname", "_rid", "_nova_classname", "_rome_version_number"]
         fields = sorted(list(set(fields)))
         print("fields@%s => %s" % (tablename, fields))
         return fields
@@ -109,7 +109,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
         fields = self._extract_fields(tablename)
         corrected_columns = map(lambda x: self._correct_badname(x), fields)
-        corrected_columns = filter(lambda x: x!="rome_version_number", corrected_columns)
+        corrected_columns = filter(lambda x: x!="_rome_version_number", corrected_columns)
         # columns_name_str = ", ".join(map(lambda x: "%s varchar" % (x), corrected_columns))
         columns_associated_with_types_list = map(lambda x: process_column(x, klass), corrected_columns)
         columns_associated_with_types = {}
@@ -125,7 +125,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         columns_associated_with_types = self.table_columns_metadata[tablename]
         columns_name_str = ", ".join(map(lambda x: "%s %s" % (x[0], x[1]), columns_associated_with_types.values()))
 
-        columns_name_str += ", rome_version_number int"
+        columns_name_str += ", _rome_version_number int"
         cql_request = "create table %s (%s, PRIMARY KEY(id))" % (tablename, columns_name_str)
         print(cql_request)
         try:
@@ -151,7 +151,7 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
         if not self._table_exist(tablename):
             self._table_create(tablename)
-        filtered_value = dict((k,v) for k,v in value.iteritems() if v is not None and k != "rome_version_number")
+        filtered_value = dict((k,v) for k,v in value.iteritems() if v is not None and k != "_rome_version_number")
         columns = filtered_value.keys()
         corrected_columns = list(set(columns))
 
@@ -162,8 +162,8 @@ class CassandraDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         encoded_values = map(lambda x: process_column(tablename, x, value), corrected_columns)
         columns_value_str = ", ".join(encoded_values)
 
-        columns_name_str += ", rome_version_number"
-        columns_value_str += ", %s" % (value["rome_version_number"])
+        columns_name_str += ", _rome_version_number"
+        columns_value_str += ", %s" % (value["_rome_version_number"])
 
         cql_request = "insert into %s (%s) values (%s)" % (tablename, columns_name_str, columns_value_str)
         print(cql_request)

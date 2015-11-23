@@ -44,7 +44,7 @@ def build_driver():
         return lib.rome.driver.riak.driver.MapReduceRiakDriver()
 
 def get_driver():
-    global driver
-    if driver is None:
-        driver = build_driver()
-    return driver
+    # global driver
+    # if driver is None:
+    # driver = build_driver()
+    return build_driver()

@@ -89,7 +89,7 @@ def compute_node_get_all(context, no_date_fields):
         decoder = Decoder(request_uuid=request_uuid)
 
         json_object = encoder.simplify(ref)
-        json_object.pop("metadata_novabase_classname")
+        json_object.pop("_metadata_novabase_classname")
 
         return decoder.desimplify(json_object)
 
