@@ -144,7 +144,7 @@ class LazyValue:
     def __getattr__(self, attr):
         if attr in self.wrapped_dict:
             value = self.wrapped_dict[attr]
-            if "timezone" in value:
+            if type(value) is dict and "timezone" in value:
                 from lib.rome.core.dataformat import get_decoder
                 deconverter = get_decoder()
                 # print(value)
