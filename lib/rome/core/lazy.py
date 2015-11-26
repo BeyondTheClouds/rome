@@ -104,13 +104,14 @@ class LazyValue:
             self.lazy_load()
         wv = self.wrapped_value
         attrs = wv.get_complex_ref().__dict__ if hasattr(wv, "get_complex_ref") else []
-        for rel in self.get_relationships(foreignkey_mode=True):
-            key = rel.local_object_field
-            if not rel.is_list and key in attrs and attrs[key] is not None:
-                continue
-            if rel.is_list and key in attrs and "InstrumentedList" not in str(type(attrs[key])):
-                continue
-            attrs[key] = LazyRelationship(rel)
+        if len(attrs) > 0:
+            for rel in self.get_relationships(foreignkey_mode=True):
+                key = rel.local_object_field
+                if not rel.is_list and key in attrs and attrs[key] is not None:
+                    continue
+                if rel.is_list and key in attrs and "InstrumentedList" not in str(type(attrs[key])):
+                    continue
+                attrs[key] = LazyRelationship(rel)
         pass
 
     def __repr__(self):
@@ -143,7 +144,7 @@ class LazyValue:
         return getattr(self.wrapped_value, attr)
 
     def __setattr__(self, key, value):
-        if key in ["deconverter", "wrapped_dict", "wrapped_value", "request_uuid"]:
+        if key in ["deconverter", "wrapped_dict", "wrapped_value", "request_uuid", "_unwanted_keys", "_diff_dict"]:
             self.__dict__[key] = value
         else:
             self.lazy_load()

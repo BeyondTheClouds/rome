@@ -5,7 +5,8 @@ from lib.rome.core.orm.query import Query
 
 from lib.rome.core.orm.query import Query as RomeQuery
 from lib.rome.core.session.session import Session as RomeSession
-
+import six
+from oslo.utils import timeutils
 from test.nova.methods.test_ensure_default_secgroup import _security_group_ensure_default, _security_group_get_query
 
 import logging
@@ -76,11 +77,21 @@ def _metadata_refs(metadata_dict, meta_class):
             metadata_refs.append(metadata_ref)
     return metadata_refs
 
+# def convert_objects_related_datetimes(values, *datetime_keys):
+#     for key in datetime_keys:
+#         if key in values and values[key]:
+#             # if isinstance(values[key], six.string_types):
+#             #     values[key] = timeutils.parse_strtime(values[key])
+#             # NOTE(danms): Strip UTC timezones from datetimes, since they're
+#             # stored that way in the database
+#             values[key] = values[key].replace(tzinfo=None)
+#     return values
+
 def convert_objects_related_datetimes(values, *datetime_keys):
     for key in datetime_keys:
         if key in values and values[key]:
-            # if isinstance(values[key], six.string_types):
-            #     values[key] = timeutils.parse_strtime(values[key])
+            if isinstance(values[key], six.string_types):
+                values[key] = timeutils.parse_strtime(values[key])
             # NOTE(danms): Strip UTC timezones from datetimes, since they're
             # stored that way in the database
             values[key] = values[key].replace(tzinfo=None)
@@ -130,8 +141,8 @@ def instance_create(context, values):
     security_group_ensure_default(context)
 
     values = values.copy()
-    # values['metadata'] = _metadata_refs(
-    #         values.get('metadata'), models.InstanceMetadata)
+    values['metadata'] = _metadata_refs(
+            values.get('metadata'), models.InstanceMetadata)
 
     values['system_metadata'] = _metadata_refs(
             values.get('system_metadata'), models.InstanceSystemMetadata)
@@ -140,12 +151,18 @@ def instance_create(context, values):
     instance_ref = models.Instance()
     if not values.get('uuid'):
         values['uuid'] = str(uuid.uuid4())
-    # instance_ref['info_cache'] = models.InstanceInfoCache()
-    # info_cache = values.pop('info_cache', None)
-    # if info_cache is not None:
-        # instance_ref['info_cache'].update(info_cache)
+    instance_ref['info_cache'] = models.InstanceInfoCache()
+    info_cache = values.pop('info_cache', None)
+    if info_cache is not None:
+        instance_ref['info_cache'].update(info_cache)
     security_groups = values.pop('security_groups', [])
     instance_ref.update(values, do_save=False)
+
+    # TODO(jonathan): explicitly set the uuid for instance's metadata
+    for metadata in values.get("metadata"):
+        metadata.uuid = values["uuid"]
+    for metadata in values.get("system_metadata"):
+        metadata.uuid = values["uuid"]
 
     def _get_sec_group_models(session, security_groups):
         models = []
@@ -198,6 +215,8 @@ if __name__ == '__main__':
 
     context = Context("project1", "user1")
 
-    values = {'vm_state': u'building', 'availability_zone': None, 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-efuqt0e0', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'4249791567dd4331807f1d0366eee23e', 'uuid': 'ad14ea73-219d-47a5-95b1-862c6c2b5559', 'info_cache': {'network_info': '[]'}, 'hostname': u'vm-node-1-0', 'display_description': u'vm_node_1_0', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'93ae28587bb04f5a99a942883e9ca0bf', 'metadata': {}, 'ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'vm_node_1_0', 'system_metadata': {u'image_kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0', 'architecture': None, 'auto_disk_config': False, 'os_type': None, 'config_drive': u''}
+    # values = {'vm_state': u'building', 'availability_zone': None, 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-efuqt0e0', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'4249791567dd4331807f1d0366eee23e', 'uuid': 'ad14ea73-219d-47a5-95b1-862c6c2b5559', 'info_cache': {'network_info': '[]'}, 'hostname': u'vm-node-1-0', 'display_description': u'vm_node_1_0', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'93ae28587bb04f5a99a942883e9ca0bf', 'metadata': {}, 'ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'vm_node_1_0', 'system_metadata': {u'image_kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0', 'architecture': None, 'auto_disk_config': False, 'os_type': None, 'config_drive': u''}
+    # values = {'vm_state': u'building', 'availability_zone': None, 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-efuqt0e0', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'4249791567dd4331807f1d0366eee23e', 'uuid': None, 'info_cache': {'network_info': '[]'}, 'hostname': u'vm-node-1-0', 'display_description': u'vm_node_1_0', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'93ae28587bb04f5a99a942883e9ca0bf', 'metadata': {}, 'ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'vm_node_1_0', 'system_metadata': {u'image_kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0', 'architecture': None, 'auto_disk_config': False, 'os_type': None, 'config_drive': u''}
+    values = {'vm_state': u'building', 'availability_zone': u'nova', 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-wtp8yf09', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'9896d2549d9d4487bdfaceabb40d8a42', 'uuid': '65ddcf72-7279-44d4-b8ac-fdc48d8633fc', 'info_cache': {'network_info': '[]'}, 'hostname': u'plop', 'display_description': u'plop', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'54e4c7b651904240a87b79ca19954730', 'metadata': {}, 'ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'plop', 'system_metadata': {u'image_kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064', 'architecture': None, 'auto_disk_config': True, 'os_type': None, 'config_drive': u''}
 
     instance_create(context, values)
