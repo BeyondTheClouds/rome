@@ -75,7 +75,8 @@ class Encoder(object):
     def already_processed(self, obj):
         """Check if the given object has been processed, according to its
         unique key."""
-
+        if hasattr(obj, "is_relationship_list"):
+            return True
         key = self.get_cache_key(obj)
         return self.simple_cache.has_key(key)
 
