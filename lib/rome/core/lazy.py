@@ -75,6 +75,11 @@ class LazyValue:
         Nova's unit tests! """
         self._unwanted_keys = ["_session", "_nova_classname", "simplify_strategy", "_rome_version_number", "_rid", "_pid", "_metadata_novabase_classname", "_diff_dict", "_unwanted_keys"]
         self._diff_dict = {}
+
+        if not type(wrapped_dict) is dict:
+            candidate_value = wrapped_dict
+            self.lazy_load()
+            self.wrapped_dict = {"value": candidate_value}
         # self._filter_wrapped_dict()
 
     def _filter_wrapped_dict(self):
@@ -84,12 +89,9 @@ class LazyValue:
 
     def get_filtered_dict(self):
         result = {}
-        try:
-            filtered_keys = filter(lambda x: x not in self._unwanted_keys, self.wrapped_dict.keys())
-            for key in filtered_keys:
-                result[key] = self.wrapped_dict[key]
-        except:
-            result = {"value": self.wrapped_value}
+        filtered_keys = filter(lambda x: x not in self._unwanted_keys, self.wrapped_dict.keys())
+        for key in filtered_keys:
+            result[key] = self.wrapped_dict[key]
         return result
 
     def transform(self, x):
