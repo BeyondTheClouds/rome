@@ -143,7 +143,9 @@ class LazyValue:
 
     def __getattr__(self, attr):
         if attr in self.wrapped_dict:
-            return self.wrapped_dict[attr]
+            from lib.rome.core.dataformat import get_decoder
+            self.deconverter = get_decoder()
+            return self.deconverter.desimplify(self.wrapped_dict[attr])
         self.lazy_load()
         # if "_nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["_nova_classname"]:
         return getattr(self.wrapped_value, attr)
