@@ -14,6 +14,11 @@ import uuid
 from lib.rome.core.orm.query import or_
 from lib.rome.core.orm.query import and_
 
+from nova.objects.instance import Instance
+from nova.objects.network import Network
+from nova.objects.virtual_interface import VirtualInterface
+from nova.objects.fixed_ip import FixedIP
+
 LOG = logging.getLogger()
 
 # List of fields that can be joined in DB layer.
@@ -40,7 +45,6 @@ def model_query(context, *args, **kwargs):
     return RomeQuery(*args, **kwargs)
 
 
-
 def network_get_associated_fixed_ips(context, network_id, host=None):
     # FIXME(sirp): since this returns fixed_ips, this would be better named
     # fixed_ip_get_all_by_network.
@@ -63,9 +67,11 @@ def network_get_associated_fixed_ips(context, network_id, host=None):
                           models.Instance.created_at,
                           models.FixedIp.allocated,
                           models.FixedIp.leased)
+
     query = query.join(models.VirtualInterface).join(models.Instance)
     query = query.filter(models.FixedIp.deleted == 0)
     query = query.filter(models.FixedIp.network_id == network_id)
+
     query = query.join((models.VirtualInterface, vif_and))
     query = query.filter(models.FixedIp.instance_uuid != None)
     query = query.filter(models.FixedIp.virtual_interface_id != None)
@@ -79,6 +85,9 @@ def network_get_associated_fixed_ips(context, network_id, host=None):
     if host:
         query = query.filter(models.Instance.host == host)
     result = query.all()
+
+    plop1 = Query(models.FixedIp).join(models.Instance).filter(models.Instance.uuid==models.FixedIp.instance_uuid).all()
+    print(plop1)
     data = []
     for datum in result:
         cleaned = {}
@@ -96,6 +105,37 @@ def network_get_associated_fixed_ips(context, network_id, host=None):
         data.append(cleaned)
     return data
 
+def get_by_network(cls, context, network, host=None):
+    ipinfo = network_get_associated_fixed_ips(context,
+                                                 network['id'],
+                                                 host=host)
+    if not ipinfo:
+        return []
+
+    fips = cls(context=context, objects=[])
+
+    for info in ipinfo:
+        inst = Instance(context=context,
+                                uuid=info['instance_uuid'],
+                                hostname=info['instance_hostname'],
+                                created_at=info['instance_created'],
+                                updated_at=info['instance_updated'])
+        vif = VirtualInterface(context=context,
+                                       id=info['vif_id'],
+                                       address=info['vif_address'])
+        fip = FixedIP(context=context,
+                              address=info['address'],
+                              instance_uuid=info['instance_uuid'],
+                              network_id=info['network_id'],
+                              virtual_interface_id=info['vif_id'],
+                              allocated=info['allocated'],
+                              leased=info['leased'],
+                              default_route=info['default_route'],
+                              instance=inst,
+                              virtual_interface=vif)
+        fips.objects.append(fip)
+    fips.obj_reset_changes()
+    return fips
 
 
 class Context(object):
@@ -110,4 +150,5 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
-    print("-> %s" % ((network_get_associated_fixed_ips(context, 1))))
+    network = Query(models.Network).filter(models.Network.id==1).all()[0]
+    print(get_by_network(FixedIP, context, network))

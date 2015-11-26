@@ -121,6 +121,10 @@ class LazyValue:
 
     def __repr__(self):
         # return """{"type": "LazyValue"}"""
+        if not type(self.wrapped_dict) is dict:
+            return str(self.wrapped_value)
+        if "timezone" in self.wrapped_dict:
+            return ""
         return str(self.get_filtered_dict())
 
     def get_key(self):
