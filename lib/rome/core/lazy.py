@@ -84,9 +84,12 @@ class LazyValue:
 
     def get_filtered_dict(self):
         result = {}
-        filtered_keys = filter(lambda x: x not in self._unwanted_keys, self.wrapped_dict.keys())
-        for key in filtered_keys:
-            result[key] = self.wrapped_dict[key]
+        try:
+            filtered_keys = filter(lambda x: x not in self._unwanted_keys, self.wrapped_dict.keys())
+            for key in filtered_keys:
+                result[key] = self.wrapped_dict[key]
+        except:
+            result = {"value": self.wrapped_value}
         return result
 
     def transform(self, x):
