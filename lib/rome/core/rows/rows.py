@@ -257,6 +257,12 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                 continue
         return results
 
+def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
+    if only_if_necessary and type(value).__name__ in ["int", "str", "float"]:
+        return value
+    else:
+        return LazyValue(value, request_uuid)
+
 
 def construct_rows(models, criterions, hints, session=None):
 
@@ -368,7 +374,8 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [value]
 
             # final_row = map(lambda x: deconverter.desimplify(x), final_row)
-            final_row = map(lambda x: LazyValue(x, request_uuid), final_row)
+            # final_row = map(lambda x: LazyValue(x, request_uuid), final_row)
+            final_row = map(lambda x: wrap_with_lazy_value(x, request_uuid=request_uuid), final_row)
 
             if len(showable_selection) == 1:
                 final_rows += final_row
