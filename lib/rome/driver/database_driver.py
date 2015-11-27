@@ -1,5 +1,6 @@
 from lib.rome.utils.MemoizationDecorator import memoization_decorator
 from lib.rome.conf.Configuration import get_config
+from lib.rome.utils.MemoizationDecorator import MemoizationDecorator
 
 class DatabaseDriverInterface(object):
 
@@ -47,4 +48,5 @@ def get_driver():
     # global driver
     # if driver is None:
     # driver = build_driver()
-    return build_driver()
+    return MemoizationDecorator(build_driver())
+    # return build_driver()
