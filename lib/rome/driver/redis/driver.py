@@ -97,7 +97,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
             str_result = filter(lambda x: x is not None, str_result)
-            print(">> %s (%s)" % (str_result, keys))
+            # print(">> %s (%s)" % (str_result, keys))
             result = map(lambda x: eval(x), str_result)
         return result
 
