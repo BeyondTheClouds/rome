@@ -108,8 +108,6 @@ class LazyValue:
         if not hasattr(self.wrapped_value, "get_complex_ref"):
             self.lazy_load()
         wv = self.wrapped_value
-        # Try to inject request information is wrapped_value
-        wv._request_uuid=request_uuid
         # Find relationships and load them
         attrs = wv.get_complex_ref().__dict__ if hasattr(wv, "get_complex_ref") else []
         if len(attrs) > 0:
