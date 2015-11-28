@@ -28,7 +28,6 @@ class SelectorThread(Thread):
 
 if __name__ == '__main__':
 
-
     import yappi
     yappi.start()
 

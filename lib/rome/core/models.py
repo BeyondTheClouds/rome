@@ -101,6 +101,8 @@ class IterableModel(object):
         for field in self._sa_class_manager:
             yield field
 
+entity_relationship_field = {}
+
 class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
@@ -134,15 +136,21 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             self.handle_relationship_change_event(key, value)
 
     def is_relationship_field(self, key):
-        if not hasattr(self, "_relation_str"):
+        # if key in ["_sa_instance_state", "id"]:
+        #     return False
+        tablename = self.__tablename__
+        if not tablename in entity_relationship_field:
             fields = self.get_relationship_fields(with_indirect_field=True)
-            self.__dict__["_relation_str"] = fields
-        return key in self.__dict__["_relation_str"]
+            entity_relationship_field[tablename] = fields
+        return key in entity_relationship_field[tablename]
+        # if not hasattr(self, "_relation_str"):
+        #     fields = self.get_relationship_fields(with_indirect_field=True)
+        #     self.__dict__["_relation_str"] = fields
+        # return key in self.__dict__["_relation_str"]
 
     def handle_relationship_change_event(self, key, value):
         relationships = filter(lambda x: key in [x.local_object_field, x.local_fk_field], self.get_relationships())
         for r in relationships:
-            old_value = getattr(self, key, None)
             if key == r.local_fk_field:
                 if r.direction in ["MANYTOONE"]:
                     self.load_relationships(filter_keys=[r.local_object_field])

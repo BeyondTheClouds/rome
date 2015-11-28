@@ -918,6 +918,7 @@ class VirtualInterface(BASE, NovaBase):
 
 # TODO(vish): can these both come from the same baseclass?
 @global_scope
+@secondary_index_decorator("address")
 class FixedIp(BASE, NovaBase):
     """Represents a fixed ip for an instance."""
     __tablename__ = 'fixed_ips'

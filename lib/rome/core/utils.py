@@ -194,6 +194,7 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
             # many_to_one_relationships = filter(lambda x: "MANYTOONE" in x.direction, relationships)
             many_to_one_relationships = relationships
             results += map(lambda x: x.local_fk_field, many_to_one_relationships)
+        results = filter(lambda x: x not in ["id"],  results)
         return list(set(results))
 
     def update_foreign_keys(self, request_uuid=uuid.uuid1()):

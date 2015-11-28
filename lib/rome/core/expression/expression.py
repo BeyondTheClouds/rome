@@ -49,11 +49,14 @@ class LazyDictionnary:
 
     def __init__(self, **entries):
         self.entries = entries
+        self._cache = {}
         self.deconverter = get_decoder()
 
     def __getattr__(self, item):
-        deconverted_value = self.deconverter.desimplify(self.entries[item])
-        return deconverted_value
+        if item not in self._cache:
+            deconverted_value = self.deconverter.desimplify(self.entries[item])
+            self._cache[item] = deconverted_value
+        return self._cache[item]
 
 boolean_expression_str_memory = {}
 
@@ -76,6 +79,19 @@ class BooleanExpression(object):
 
     def is_boolean_expression(self):
         return True
+
+    def extract_hint(self):
+        from lib.rome.core.terms.terms import Hint
+        result = []
+        for expression in self.exps:
+            for sub_expression in expression.exps:
+                if hasattr(sub_expression.right, "value"):
+                    table_name = str(sub_expression.left.table)
+                    attribute_name = str(sub_expression.left.key)
+                    # value = "%s" % (criterion.expression.right.value)
+                    value = sub_expression.right.value
+                    result += [Hint(table_name, attribute_name, value)]
+        return result
 
     def prepare_expression(self):
 
@@ -184,7 +200,7 @@ class BooleanExpression(object):
 
         return criterion_str
 
-    def evaluate(self, value):
+    def evaluate(self, value, additional_parameters={}):
 
         # construct a dict with the values involved in the expression
         values_dict = {}
@@ -202,7 +218,7 @@ class BooleanExpression(object):
         for key in self.default_value_dict:
             values_dict[key] = self.default_value_dict[key]
         final_values_dict = {}
-        for key in values_dict:
+        for key in values_dict.keys():
             value = values_dict[key]
             if key.startswith("id_"):
                 value = int(value)
@@ -223,8 +239,14 @@ class BooleanExpression(object):
                         if getattr(final_values_dict[key], attr, None) is None:
                             value = expression_part.default.arg
                             setattr(final_values_dict[key], attr, value)
+        second_final_values_dict = {}
+        for key in additional_parameters:
+            value = LazyDictionnary(**additional_parameters[key])
+            second_final_values_dict[key] = value
+        for key in final_values_dict:
+            second_final_values_dict[key] = final_values_dict[key]
         try:
-            result = eval(self.compiled_expression, final_values_dict)
+            result = eval(self.compiled_expression, second_final_values_dict)
         except:
             import traceback
             traceback.print_exc()

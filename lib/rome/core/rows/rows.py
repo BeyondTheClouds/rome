@@ -155,7 +155,7 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         """ Initialising candidates per table """
         for each in labels:
             candidates_per_table[each] = {}
-        """ Collecting joining expressions """
+        """ Collecting non-joining expressions """
         for criterion in criterions:
             for exp in criterion.exps:
                 for joining_criterion in extract_joining_criterion(exp):
@@ -177,6 +177,7 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                                 "exp": exp,
                                 "criterion": criterion
                             }]
+        """ Collecting joining expressions """
         done_index = {}
         for step in steps:
             tablename = step[1]
@@ -227,6 +228,11 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         if len(steps) > 0:
             step = steps[0]
             results = map(lambda  x: [candidates_per_table[step[1]][x]], candidates_per_table[step[1]])
+            # Apply a filter on the current results
+            # validated_results = results
+            # for each in non_joining_criterions[step[1]]:
+            #     validated_results = filter(lambda r: each["criterion"].evaluate(r[0], additional_parameters={"fixed_ips": r[0]}), validated_results)
+            # results = validated_results
             processed_models += [step[1]]
         remaining_models = map(lambda x:x[1], steps[1:])
         for step in steps[1:]:
@@ -376,9 +382,6 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-
-            # final_row = map(lambda x: deconverter.desimplify(x), final_row)
-            # final_row = map(lambda x: LazyValue(x, request_uuid), final_row)
             final_row = map(lambda x: wrap_with_lazy_value(x, request_uuid=request_uuid), final_row)
 
             if len(showable_selection) == 1:

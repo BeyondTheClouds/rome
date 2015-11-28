@@ -96,9 +96,12 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: int(x.split(":")[-1])))
 
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
-            str_result = filter(lambda x: x is not None, str_result)
-            # print(">> %s (%s)" % (str_result, keys))
-            result = map(lambda x: eval(x), str_result)
+            # str_result = filter(lambda x: x is not None, str_result)
+
+            # result = map(lambda x: eval(x), str_result)
+            str_result = "[%s]" % (",".join(str_result))
+            result = eval(str_result)
+            result = filter(lambda x: x!= None, result)
         return result
 
 class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
@@ -187,7 +190,11 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         if len(keys) > 0:
             str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
-            str_result = filter(lambda x: x is not None, str_result)
+            # str_result = filter(lambda x: x is not None, str_result)
             # result = map(lambda x: json.loads(x), str_result)
-            result = map(lambda x: eval(x), str_result)
+
+            # result = map(lambda x: eval(x), str_result)
+            str_result = "[%s]" % (",".join(str_result))
+            result = eval(str_result)
+            result = filter(lambda x: x!= None, result)
         return result

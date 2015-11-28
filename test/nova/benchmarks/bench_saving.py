@@ -17,6 +17,9 @@ def compute_ip(network_id, fixed_ip_id):
 
 def create_mock_data(network_count=3, fixed_ip_count=200):
 
+    import yappi
+    yappi.start()
+
     for i in range(1, network_count):
         network = models.Network()
         network.id = i
@@ -33,6 +36,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
             fixed_ip.save()
     pass
 
+    yappi.get_func_stats().print_all()
 
 
 if __name__ == '__main__':
