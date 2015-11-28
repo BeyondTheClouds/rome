@@ -317,9 +317,10 @@ class LazyRelationship():
         from lib.rome.core.orm.query import Query
         self.data = None
         self.rel = rel
-        self.request_uuid=request_uuid
+        self.request_uuid = request_uuid
         self.is_loaded = False
         self.is_relationship_list = self.rel.to_many
+        # print(self.request_uuid)
         self.query = Query(rel.remote_class)
         self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
 
@@ -327,7 +328,7 @@ class LazyRelationship():
         def match(x, rel):
             field_name = rel.remote_object_field
             x_value = getattr(x, field_name, "None")
-            return  x_value == rel.local_fk_value
+            return x_value == rel.local_fk_value
         if self.data is not None:
             return
         if self.request_uuid:

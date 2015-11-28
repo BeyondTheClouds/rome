@@ -102,7 +102,7 @@ class LazyValue:
         obj = self.wrapped_value.get_complex_ref()
         return get_relationships(obj, foreignkey_mode=foreignkey_mode)
 
-    def load_relationships(self, request_uuid=uuid.uuid1(), debug=True):
+    def load_relationships(self, debug=True):
         """Update foreign keys according to local fields' values."""
         from utils import LazyRelationship
         if not hasattr(self.wrapped_value, "get_complex_ref"):
@@ -117,7 +117,7 @@ class LazyValue:
                     continue
                 if rel.is_list and key in attrs and "InstrumentedList" not in str(type(attrs[key])):
                     continue
-                attrs[key] = LazyRelationship(rel, request_uuid=request_uuid)
+                attrs[key] = LazyRelationship(rel, request_uuid=self.request_uuid)
         pass
 
     def __repr__(self):
