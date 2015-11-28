@@ -95,7 +95,7 @@ DB_CACHES = LimitedSizeDictionnary(size_limit=50)
 
 def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
     if request_uuid is not None:
-        db_cache_key = "%s_%s" % (tablename, request_uuid)
+        db_cache_key = "%s_%s_%s" % (tablename, request_uuid, hints)
         if db_cache_key in DB_CACHES:
             return DB_CACHES[db_cache_key]
     data = database_driver.get_driver().getall(tablename, hints=hints)
