@@ -322,7 +322,7 @@ class LazyRelationship():
         self.is_relationship_list = self.rel.to_many
         # print(self.request_uuid)
         self.query = Query(rel.remote_class)
-        self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
+        self.query = self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
 
     def reload(self):
         def match(x, rel):

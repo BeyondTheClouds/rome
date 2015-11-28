@@ -213,5 +213,6 @@ if __name__ == '__main__':
 
     context = Context("project1", "user1")
 
-    one_instance = Query(models.Instance).filter(models.Instance.id==1).first()
-    extract_flavor(one_instance)
+    for instance in Query(models.Instance).all():
+        # one_instance = Query(models.Instance).filter(models.Instance.id==1).first()
+        extract_flavor(instance)
