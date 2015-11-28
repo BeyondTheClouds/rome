@@ -8,6 +8,7 @@ import traceback
 import inspect
 import re
 import logging
+import uuid
 
 from lib.rome.core.terms.terms import *
 from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
@@ -76,8 +77,8 @@ class Query:
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
-    def all(self):
-        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session)
+    def all(self, request_uuid=None):
+        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session, request_uuid=request_uuid)
         result = []
         for r in result_list:
             ok = True

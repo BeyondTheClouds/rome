@@ -273,7 +273,7 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
         return LazyValue(value, request_uuid)
 
 
-def construct_rows(models, criterions, hints, session=None):
+def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     """This function constructs the rows that corresponds to the current orm.
     :return: a list of row, according to sqlalchemy expectation
@@ -283,7 +283,10 @@ def construct_rows(models, criterions, hints, session=None):
 
     part1_starttime = current_milli_time()
 
-    request_uuid = uuid.uuid1()
+    if request_uuid is None:
+        request_uuid = uuid.uuid1()
+    else:
+        request_uuid = request_uuid
 
     labels = []
     columns = set([])

@@ -37,7 +37,6 @@ class MemoizationDecorator(object):
 
             call_hash = self.compute_hash(self.method_name, args, kwargs)
 
-
             if call_hash in self.memory:
                 # Increment safely the number of threads waiting for expected value
                 item = self.memory[call_hash]
