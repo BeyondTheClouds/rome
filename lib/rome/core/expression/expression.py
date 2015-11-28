@@ -84,13 +84,14 @@ class BooleanExpression(object):
         from lib.rome.core.terms.terms import Hint
         result = []
         for expression in self.exps:
-            for sub_expression in expression.exps:
-                if hasattr(sub_expression.right, "value"):
-                    table_name = str(sub_expression.left.table)
-                    attribute_name = str(sub_expression.left.key)
-                    # value = "%s" % (criterion.expression.right.value)
-                    value = sub_expression.right.value
-                    result += [Hint(table_name, attribute_name, value)]
+            if hasattr(expression, "extract_hint"):
+               result += expression.extract_hint()
+            elif hasattr(expression, "right") and hasattr(expression.right, "value"):
+                table_name = str(expression.left.table)
+                attribute_name = str(expression.left.key)
+                # value = "%s" % (criterion.expression.right.value)
+                value = expression.right.value
+                result += [Hint(table_name, attribute_name, value)]
         return result
 
     def prepare_expression(self):
