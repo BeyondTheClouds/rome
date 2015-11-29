@@ -16,6 +16,7 @@ from lib.rome.core.models import get_model_classname_from_tablename, get_model_c
 from lib.rome.core.lazy import LazyValue
 
 from lib.rome.core.dataformat import get_decoder
+from lib.rome.utils.SecondaryIndexDecorator import SECONDARY_INDEXES
 
 file_logger_enabled = False
 try:
@@ -213,14 +214,14 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                             if not candidates_values[key].has_key(value_key):
                                 candidates_values[key][value_key] = {}
                             object_hash = str(object).__hash__()
-                            object_table = object["_nova_classname"]
+                            object_table = object["_nova_classname"] if "_nova_classname" in object else object["nova_classname"]
                             candidates_values[key][value_key][object_hash] = {"value": value_key, "object": object}
                             candidates_per_table[object_table][object_hash] = object
         else:
             for each in steps:
                 for each_object in each[0]:
                     object_hash = str(each_object).__hash__()
-                    object_table = each_object["_nova_classname"]
+                    object_table = each_object["_nova_classname"] if "_nova_classname" in each_object else each_object["nova_classname"]
                     candidates_per_table[object_table][object_hash] = each_object
         """ Progressively reduce the list of results """
         results = []
@@ -321,6 +322,8 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
     for selectable in model_set:
         tablename = find_table_name(selectable._model)
         authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
+        # tablename = selectable._model.__tablename__
+        # authorized_secondary_indexes = SECONDARY_INDEXES[tablename] if tablename in SECONDARY_INDEXES else []
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
         objects = get_objects(tablename, request_uuid=request_uuid, skip_loading=False, hints=reduced_hints)

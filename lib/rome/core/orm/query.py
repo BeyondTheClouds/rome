@@ -133,15 +133,9 @@ class Query:
     def _extract_hint(self, criterion):
         if hasattr(criterion, "extract_hint"):
             self._hints = criterion.extract_hint()
-        # try:
-        #     if hasattr(criterion.expression.right, "value"):
-        #         table_name = str(criterion.expression.left.table)
-        #         attribute_name = str(criterion.expression.left.key)
-        #         # value = "%s" % (criterion.expression.right.value)
-        #         value = criterion.expression.right.value
-        #         self._hints += [Hint(table_name, attribute_name, value)]
-        # except:
-        #     pass
+        elif type(criterion).__name__ == "BinaryExpression":
+            exp = BooleanExpression("OR", *[criterion])
+            self._extract_hint(exp)
 
     def _extract_models(self, criterion):
         tables = []
@@ -170,27 +164,43 @@ class Query:
         missing_models_to_selections = map(lambda x: Selection(x, "id", is_hidden=True), missing_entities_objects)
         self._models += missing_models_to_selections
 
+    # def filter_by(self, **kwargs):
+    #     _func = self._funcs[:]
+    #     _criterions = self._criterions[:]
+    #     for a in kwargs:
+    #         for selectable in self._models:
+    #             try:
+    #                 column = getattr(selectable._model, a)
+    #                 criterion = column.__eq__(kwargs[a])
+    #                 self._extract_hint(criterion)
+    #                 _criterions += [criterion]
+    #                 break
+    #             except Exception as e:
+    #                 # create a binary expression
+    #                 # traceback.print_exc()
+    #                 pass
+    #     _hints = self._hints[:]
+    #     args = self._models + _func + _criterions + _hints + self._initial_models
+    #     kwargs = {}
+    #     if self._session is not None:
+    #         kwargs["session"] = self._session
+    #     return Query(*args, **kwargs)
+
     def filter_by(self, **kwargs):
-        _func = self._funcs[:]
-        _criterions = self._criterions[:]
+        criterions = []
         for a in kwargs:
             for selectable in self._models:
                 try:
                     column = getattr(selectable._model, a)
                     criterion = column.__eq__(kwargs[a])
                     self._extract_hint(criterion)
-                    _criterions += [criterion]
+                    criterion += [criterion]
                     break
                 except Exception as e:
                     # create a binary expression
                     # traceback.print_exc()
                     pass
-        _hints = self._hints[:]
-        args = self._models + _func + _criterions + _hints + self._initial_models
-        kwargs = {}
-        if self._session is not None:
-            kwargs["session"] = self._session
-        return Query(*args, **kwargs)
+        return self.filter(*criterions)
 
     def filter_dict(self, filters):
         return self.filter_by(**filters)

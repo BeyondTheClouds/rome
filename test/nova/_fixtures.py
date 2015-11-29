@@ -19,63 +19,6 @@
 SQLAlchemy models for nova data.
 """
 
-"""Custom SQLAlchemy types."""
-
-import netaddr
-from sqlalchemy.dialects import postgresql
-from sqlalchemy import types
-
-# from nova import utils
-
-
-# class IPAddress(types.TypeDecorator):
-#     """An SQLAlchemy type representing an IP-address."""
-#
-#     impl = types.String
-#
-#     def load_dialect_impl(self, dialect):
-#         if dialect.name == 'postgresql':
-#             return dialect.type_descriptor(postgresql.INET())
-#         else:
-#             return dialect.type_descriptor(types.String(39))
-#
-#     def process_bind_param(self, value, dialect):
-#         """Process/Formats the value before insert it into the db."""
-#         if dialect.name == 'postgresql':
-#             return value
-#         # NOTE(maurosr): The purpose here is to convert ipv6 to the shortened
-#         # form, not validate it.
-#         elif utils.is_valid_ipv6(value):
-#             return utils.get_shortened_ipv6(value)
-#         return value
-
-
-# class CIDR(types.TypeDecorator):
-#     """An SQLAlchemy type representing a CIDR definition."""
-#
-#     impl = types.String
-#
-#     def load_dialect_impl(self, dialect):
-#         if dialect.name == 'postgresql':
-#             return dialect.type_descriptor(postgresql.INET())
-#         else:
-#             return dialect.type_descriptor(types.String(43))
-#
-#     def process_bind_param(self, value, dialect):
-#         """Process/Formats the value before insert it into the db."""
-#         # NOTE(sdague): normalize all the inserts
-#         if utils.is_valid_ipv6_cidr(value):
-#             return utils.get_shortened_ipv6_cidr(value)
-#         return value
-#
-#     def process_result_value(self, value, dialect):
-#         try:
-#             return str(netaddr.IPNetwork(value, version=4).cidr)
-#         except netaddr.AddrFormatError:
-#             return str(netaddr.IPNetwork(value, version=6).cidr)
-#         except TypeError:
-#             return None
-
 import uuid
 
 from oslo.config import cfg
@@ -87,7 +30,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import orm
 from sqlalchemy import ForeignKey, DateTime, Boolean, Text, Float
 
-# from nova.db.sqlalchemy import types
+from nova.db.sqlalchemy import types
 
 # RIAK
 import lib.rome.driver.database_driver as database_driver
@@ -108,6 +51,7 @@ def MediumText():
     return Text().with_variant(MEDIUMTEXT(), 'mysql')
 
 @global_scope
+@secondary_index_decorator("host")
 class Service(BASE, NovaBase):
     """Represents a running service on a host."""
 
@@ -173,7 +117,7 @@ class ComputeNode(BASE, NovaBase):
     # (See libvirt.virtConnection).
     cpu_info = Column(MediumText(), nullable=False)
     disk_available_least = Column(Integer)
-    host_ip = Column(MediumText())
+    host_ip = Column(types.IPAddress())
     supported_instances = Column(Text)
     metrics = Column(Text)
 
@@ -210,6 +154,9 @@ class Certificate(BASE, NovaBase):
 
 @global_scope
 @secondary_index_decorator("uuid")
+@secondary_index_decorator("host")
+@secondary_index_decorator("node")
+@secondary_index_decorator("deleted")
 class Instance(BASE, NovaBase):
     """Represents a guest VM."""
     __tablename__ = 'instances'
@@ -236,7 +183,7 @@ class Instance(BASE, NovaBase):
     @property
     def name(self):
         try:
-            base_name = self.id
+            base_name = CONF.instance_name_template % self.id
         except TypeError:
             # Support templates like "uuid-%(uuid)s", etc.
             info = {}
@@ -326,8 +273,8 @@ class Instance(BASE, NovaBase):
 
     # User editable field meant to represent what ip should be used
     # to connect to the instance
-    access_ip_v4 = Column(MediumText())
-    access_ip_v6 = Column(MediumText())
+    access_ip_v4 = Column(types.IPAddress())
+    access_ip_v6 = Column(types.IPAddress())
 
     auto_disk_config = Column(Boolean())
     progress = Column(Integer)
@@ -352,6 +299,7 @@ class Instance(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("instance_uuid")
 class InstanceInfoCache(BASE, NovaBase):
     """Represents a cache of information about an instance
     """
@@ -374,6 +322,7 @@ class InstanceInfoCache(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("instance_uuid")
 class InstanceExtra(BASE, NovaBase):
     __tablename__ = 'instance_extra'
     __table_args__ = (
@@ -614,6 +563,7 @@ class Snapshot(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("instance_uuid")
 class BlockDeviceMapping(BASE, NovaBase):
     """Represents block device mapping that is defined by EC2."""
     __tablename__ = "block_device_mapping"
@@ -754,7 +704,7 @@ class SecurityGroupIngressRule(BASE, NovaBase):
     protocol = Column(String(255))
     from_port = Column(Integer)
     to_port = Column(Integer)
-    cidr = Column(MediumText())
+    cidr = Column(types.CIDR())
 
     # Note: This is not the parent SecurityGroup. It's SecurityGroup we're
     # granting access for.
@@ -774,7 +724,7 @@ class SecurityGroupIngressDefaultRule(BASE, NovaBase):
     protocol = Column(String(5))  # "tcp", "udp" or "icmp"
     from_port = Column(Integer)
     to_port = Column(Integer)
-    cidr = Column(MediumText())
+    cidr = Column(types.CIDR())
 
 
 @global_scope
@@ -787,7 +737,7 @@ class ProviderFirewallRule(BASE, NovaBase):
     protocol = Column(String(5))  # "tcp", "udp", or "icmp"
     from_port = Column(Integer)
     to_port = Column(Integer)
-    cidr = Column(MediumText())
+    cidr = Column(types.CIDR())
 
 
 @global_scope
@@ -841,7 +791,6 @@ class Migration(BASE, NovaBase):
 
 
 @global_scope
-@secondary_index_decorator("uuid")
 class Network(BASE, NovaBase):
     """Represents a network."""
     __tablename__ = 'networks'
@@ -861,30 +810,25 @@ class Network(BASE, NovaBase):
     label = Column(String(255))
 
     injected = Column(Boolean, default=False)
-    cidr = Column(MediumText())
-    cidr_v6 = Column(MediumText())
+    cidr = Column(types.CIDR())
+    cidr_v6 = Column(types.CIDR())
     multi_host = Column(Boolean, default=False)
 
-    toto1 = Column(BigInteger)
-    toto2 = Column(Enum)
-    toto3 = Column(Boolean)
-    toto4 = Column(Float)
-
-    gateway_v6 = Column(MediumText())
-    netmask_v6 = Column(MediumText())
-    netmask = Column(MediumText())
+    gateway_v6 = Column(types.IPAddress())
+    netmask_v6 = Column(types.IPAddress())
+    netmask = Column(types.IPAddress())
     bridge = Column(String(255))
     bridge_interface = Column(String(255))
-    gateway = Column(MediumText())
-    broadcast = Column(MediumText())
-    dns1 = Column(MediumText())
-    dns2 = Column(MediumText())
+    gateway = Column(types.IPAddress())
+    broadcast = Column(types.IPAddress())
+    dns1 = Column(types.IPAddress())
+    dns2 = Column(types.IPAddress())
 
     vlan = Column(Integer)
-    vpn_public_address = Column(MediumText())
+    vpn_public_address = Column(types.IPAddress())
     vpn_public_port = Column(Integer)
-    vpn_private_address = Column(MediumText())
-    dhcp_start = Column(MediumText())
+    vpn_private_address = Column(types.IPAddress())
+    dhcp_start = Column(types.IPAddress())
 
     rxtx_base = Column(Integer)
 
@@ -894,12 +838,13 @@ class Network(BASE, NovaBase):
     uuid = Column(String(36))
 
     mtu = Column(Integer)
-    dhcp_server = Column(MediumText())
+    dhcp_server = Column(types.IPAddress())
     enable_dhcp = Column(Boolean, default=True)
     share_address = Column(Boolean, default=False)
 
 
 @global_scope
+@secondary_index_decorator("instance_uuid")
 class VirtualInterface(BASE, NovaBase):
     """Represents a virtual interface on an instance."""
     __tablename__ = 'virtual_interfaces'
@@ -918,7 +863,11 @@ class VirtualInterface(BASE, NovaBase):
 
 # TODO(vish): can these both come from the same baseclass?
 @global_scope
+@secondary_index_decorator("instance_uuid")
 @secondary_index_decorator("address")
+@secondary_index_decorator("host")
+@secondary_index_decorator("leased")
+@secondary_index_decorator("virtual_interface_id")
 class FixedIp(BASE, NovaBase):
     """Represents a fixed ip for an instance."""
     __tablename__ = 'fixed_ips'
@@ -938,7 +887,7 @@ class FixedIp(BASE, NovaBase):
               'allocated')
     )
     id = Column(Integer, primary_key=True)
-    address = Column(MediumText())
+    address = Column(types.IPAddress())
     network_id = Column(Integer)
     virtual_interface_id = Column(Integer)
     instance_uuid = Column(String(36), ForeignKey('instances.uuid'))
@@ -989,7 +938,7 @@ class FloatingIp(BASE, NovaBase):
               'pool', 'deleted', 'fixed_ip_id', 'project_id')
     )
     id = Column(Integer, primary_key=True)
-    address = Column(MediumText())
+    address = Column(types.IPAddress())
     fixed_ip_id = Column(Integer)
     project_id = Column(String(255))
     host = Column(String(255))  # , ForeignKey('hosts.id'))
@@ -1031,7 +980,7 @@ class ConsolePool(BASE, NovaBase):
             name="uniq_console_pools0host0console_type0compute_host0deleted"),
     )
     id = Column(Integer, primary_key=True)
-    address = Column(MediumText())
+    address = Column(types.IPAddress())
     username = Column(String(255))
     password = Column(String(255))
     console_type = Column(String(255))
@@ -1340,6 +1289,8 @@ class InstanceFault(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("instance_uuid")
+@secondary_index_decorator("request_id")
 class InstanceAction(BASE, NovaBase):
     """Track client actions on an instance.
 
@@ -1365,6 +1316,8 @@ class InstanceAction(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("action_id")
+@secondary_index_decorator("event")
 class InstanceActionEvent(BASE, NovaBase):
     """Track events that occur during an InstanceAction."""
     __tablename__ = 'instance_actions_events'
