@@ -100,18 +100,20 @@ class Query:
         return len(self.all())
 
     def soft_delete(self, synchronize_session=False):
-        objects = self.all()
-        deletion_candidates = filter(lambda o: hasattr(o, "soft_delete"), objects)
-        for each in deletion_candidates:
-            each.soft_delete()
-        return deletion_candidates
+        for e in self.all():
+            try:
+                e.soft_delete()
+            except:
+                pass
+        return self
 
     def delete(self, synchronize_session=False):
-        objects = self.all()
-        deletion_candidates = filter(lambda o: hasattr(o, "soft_delete"), objects)
-        for each in deletion_candidates:
-            each.delete()
-        return deletion_candidates
+        for e in self.all():
+            try:
+                e.delete()
+            except:
+                pass
+        return self
 
     def update(self, values, synchronize_session='evaluate'):
         result = self.all()

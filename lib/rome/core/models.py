@@ -201,23 +201,51 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 
+    # def soft_delete(self, session=None):
+    #     self.deleted = True
+    #     object_converter_datetime = get_encoder()
+    #     self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
+    #     self.deleted = 1
+    #     if session is not None:
+    #         session.add(self)
+    #         return
+    #     else:
+    #         self.save()
+    #
+    # def delete(self, session=None):
+    #     if session is not None:
+    #         session.delete(self)
+    #         return
+    #     database_driver.get_driver().remove_key(self.__tablename__, self.id)
+    #     return self
+
+    def delete(self, session=None):
+        # <HARD DELETE IMPLEMENTATION>
+        if session is not None:
+            session.delete(self)
+            return
+        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # </HARD DELETE IMPLEMENTATION>
+
     def soft_delete(self, session=None):
-        self.deleted = True
+        # <SOFT DELETE IMPLEMENTATION>
+        self.deleted = 1
         object_converter_datetime = get_encoder()
         self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
-        self.deleted = 1
         if session is not None:
             session.add(self)
             return
         else:
             self.save()
+        # </SOFT DELETE IMPLEMENTATION>
 
-    def delete(self, session=None):
-        if session is not None:
-            session.delete(self)
-            return
-        database_driver.get_driver().remove_key(self.__tablename__, self.id)
-        return self
+        # # <HARD DELETE IMPLEMENTATION>
+        # if session is not None:
+        #     session.delete(self)
+        #     return
+        # database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # # </HARD DELETE IMPLEMENTATION>
+
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
         """Set default values"""
