@@ -48,5 +48,5 @@ def get_driver():
     # global driver
     # if driver is None:
     # driver = build_driver()
-    return MemoizationDecorator(build_driver())
-    # return build_driver()
+    # return MemoizationDecorator(build_driver())
+    return build_driver()
