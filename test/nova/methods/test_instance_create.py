@@ -26,6 +26,7 @@ _INSTANCE_OPTIONAL_NON_COLUMN_FIELDS = ['fault', 'numa_topology',
 INSTANCE_OPTIONAL_ATTRS = (_INSTANCE_OPTIONAL_JOINED_FIELDS +
                            _INSTANCE_OPTIONAL_NON_COLUMN_FIELDS)
 
+
 def get_session(use_slave=False, **kwargs):
     # return FakeSession()
     return RomeSession()
@@ -48,14 +49,15 @@ def security_group_ensure_default(context):
         # suppress the error and proceed
         pass
 
+
 def _security_group_get_by_names(context, session, project_id, group_names):
     """Get security group models for a project by a list of names.
     Raise SecurityGroupNotFoundForProject for a name not found.
     """
     query = _security_group_get_query(context, session=session,
-                                      read_deleted="no", join_rules=False).\
-            filter_by(project_id=project_id).\
-            filter(models.SecurityGroup.name.in_(group_names))
+                                      read_deleted="no", join_rules=False). \
+        filter_by(project_id=project_id). \
+        filter(models.SecurityGroup.name.in_(group_names))
     sg_models = query.all()
     if len(sg_models) == len(group_names):
         return sg_models
@@ -64,7 +66,7 @@ def _security_group_get_by_names(context, session, project_id, group_names):
     for group_name in group_names:
         if group_name not in group_names_from_models:
             raise Exception()
-    # Not Reached
+            # Not Reached
 
 
 def _metadata_refs(metadata_dict, meta_class):
@@ -76,6 +78,7 @@ def _metadata_refs(metadata_dict, meta_class):
             metadata_ref['value'] = v
             metadata_refs.append(metadata_ref)
     return metadata_refs
+
 
 # def convert_objects_related_datetimes(values, *datetime_keys):
 #     for key in datetime_keys:
@@ -97,6 +100,7 @@ def convert_objects_related_datetimes(values, *datetime_keys):
             values[key] = values[key].replace(tzinfo=None)
     return values
 
+
 def _handle_objects_related_type_conversions(values):
     """Make sure that certain things in values (which may have come from
     an objects.instance.Instance object) are in suitable form for the
@@ -112,8 +116,10 @@ def _handle_objects_related_type_conversions(values):
                      'launched_at', 'terminated_at', 'scheduled_at')
     convert_objects_related_datetimes(values, *datetime_keys)
 
+
 def _validate_unique_server_name(context, session, name):
     return
+
 
 def ec2_instance_create(context, instance_uuid, id=None):
     """Create ec2 compatible instance by provided uuid."""
@@ -142,10 +148,10 @@ def instance_create(context, values):
 
     values = values.copy()
     values['metadata'] = _metadata_refs(
-            values.get('metadata'), models.InstanceMetadata)
+        values.get('metadata'), models.InstanceMetadata)
 
     values['system_metadata'] = _metadata_refs(
-            values.get('system_metadata'), models.InstanceSystemMetadata)
+        values.get('system_metadata'), models.InstanceSystemMetadata)
     _handle_objects_related_type_conversions(values)
 
     instance_ref = models.Instance()
@@ -173,7 +179,7 @@ def instance_create(context, values):
             security_groups = [x for x in security_groups if x != 'default']
         if security_groups:
             models.extend(_security_group_get_by_names(context,
-                    session, context.project_id, security_groups))
+                                                       session, context.project_id, security_groups))
         return models
 
     session = get_session()
@@ -181,7 +187,7 @@ def instance_create(context, values):
         if 'hostname' in values:
             _validate_unique_server_name(context, session, values['hostname'])
         instance_ref.security_groups = _get_sec_group_models(session,
-                security_groups)
+                                                             security_groups)
         session.add(instance_ref)
 
     # create the instance uuid to ec2_id mapping entry for instance
@@ -190,6 +196,7 @@ def instance_create(context, values):
     _instance_extra_create(context, {'instance_uuid': instance_ref['uuid']})
 
     return instance_ref
+
 
 def _instance_extra_create(context, values):
     inst_extra_ref = models.InstanceExtra()
@@ -203,20 +210,52 @@ class Context(object):
         self.project_id = project_id
         self.user_id = user_id
 
+
 class ModelInstance(dict):
     def __init__(self):
         self.fields = []
         self.deleted = None
         self.cleaned = None
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
     context = Context("project1", "user1")
 
     # values = {'vm_state': u'building', 'availability_zone': None, 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-efuqt0e0', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'4249791567dd4331807f1d0366eee23e', 'uuid': 'ad14ea73-219d-47a5-95b1-862c6c2b5559', 'info_cache': {'network_info': '[]'}, 'hostname': u'vm-node-1-0', 'display_description': u'vm_node_1_0', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'93ae28587bb04f5a99a942883e9ca0bf', 'metadata': {}, 'ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'vm_node_1_0', 'system_metadata': {u'image_kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0', 'architecture': None, 'auto_disk_config': False, 'os_type': None, 'config_drive': u''}
     # values = {'vm_state': u'building', 'availability_zone': None, 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-efuqt0e0', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'4249791567dd4331807f1d0366eee23e', 'uuid': None, 'info_cache': {'network_info': '[]'}, 'hostname': u'vm-node-1-0', 'display_description': u'vm_node_1_0', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'93ae28587bb04f5a99a942883e9ca0bf', 'metadata': {}, 'ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'vm_node_1_0', 'system_metadata': {u'image_kernel_id': u'25b24691-323d-4eee-bfaa-45d25fcf9c66', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f04ed562-8dc7-4dab-8834-a1f3b459c3cb', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'124f2f1a-a92d-4617-8f32-c3fb9147b4c0', 'architecture': None, 'auto_disk_config': False, 'os_type': None, 'config_drive': u''}
-    values = {'vm_state': u'building', 'availability_zone': u'nova', 'ephemeral_gb': 0, 'instance_type_id': 1, 'user_data': None, 'vm_mode': None, 'reservation_id': u'r-wtp8yf09', 'security_groups': [u'default'], 'root_device_name': None, 'user_id': u'9896d2549d9d4487bdfaceabb40d8a42', 'uuid': '65ddcf72-7279-44d4-b8ac-fdc48d8633fc', 'info_cache': {'network_info': '[]'}, 'hostname': u'plop', 'display_description': u'plop', 'key_data': None, 'power_state': 0, 'progress': 0, 'project_id': u'54e4c7b651904240a87b79ca19954730', 'metadata': {}, 'ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f', 'access_ip_v6': None, 'access_ip_v4': None, 'kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47', 'key_name': None, 'ephemeral_key_uuid': None, 'display_name': u'plop', 'system_metadata': {u'image_kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47', 'instance_type_memory_mb': u'64', 'instance_type_swap': u'0', 'instance_type_vcpu_weight': None, 'instance_type_root_gb': u'0', 'instance_type_id': u'1', u'image_ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f', 'instance_type_name': u'm1.nano', 'instance_type_ephemeral_gb': u'0', 'instance_type_rxtx_factor': u'1.0', 'image_disk_format': u'ami', 'instance_type_flavorid': u'42', 'image_container_format': u'ami', 'instance_type_vcpus': u'1', 'image_min_ram': 0, 'image_min_disk': 0, 'image_base_image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064'}, 'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False, 'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064', 'architecture': None, 'auto_disk_config': True, 'os_type': None, 'config_drive': u''}
+    values = {'vm_state': u'building', 'availability_zone': u'nova', 'ephemeral_gb': 0, 'instance_type_id': 1,
+              'user_data': None, 'vm_mode': None, 'reservation_id': u'r-wtp8yf09', 'security_groups': [u'default'],
+              'root_device_name': None, 'user_id': u'9896d2549d9d4487bdfaceabb40d8a42',
+              'uuid': '65ddcf72-7279-44d4-b8ac-fdc48d8633fc', 'info_cache': {'network_info': '[]'}, 'hostname': u'plop',
+              'display_description': u'plop', 'key_data': None, 'power_state': 0, 'progress': 0,
+              'project_id': u'54e4c7b651904240a87b79ca19954730', 'metadata': {},
+              'ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f', 'access_ip_v6': None, 'access_ip_v4': None,
+              'kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47', 'key_name': None, 'ephemeral_key_uuid': None,
+              'display_name': u'plop', 'system_metadata': {u'image_kernel_id': u'4cb9d8a6-c00d-44b3-8c55-8da57284bc47',
+                                                           'instance_type_memory_mb': u'64', 'instance_type_swap': u'0',
+                                                           'instance_type_vcpu_weight': None,
+                                                           'instance_type_root_gb': u'0', 'instance_type_id': u'1',
+                                                           u'image_ramdisk_id': u'f4734d93-3939-4ab7-9675-a94c11360b4f',
+                                                           'instance_type_name': u'm1.nano',
+                                                           'instance_type_ephemeral_gb': u'0',
+                                                           'instance_type_rxtx_factor': u'1.0',
+                                                           'image_disk_format': u'ami', 'instance_type_flavorid': u'42',
+                                                           'image_container_format': u'ami',
+                                                           'instance_type_vcpus': u'1', 'image_min_ram': 0,
+                                                           'image_min_disk': 0,
+                                                           'image_base_image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064'},
+              'task_state': u'scheduling', 'shutdown_terminate': False, 'root_gb': 0, 'locked': False,
+              'launch_index': 0, 'memory_mb': 64, 'vcpus': 1, 'image_ref': u'3fede984-cca6-4d03-829a-9d79ee15d064',
+              'architecture': None, 'auto_disk_config': True, 'os_type': None, 'config_drive': u''}
+
+    import yappi
+    yappi.start()
 
     instance_create(context, values)
+    instance_create(context, values)
+    instance_create(context, values)
+    instance_create(context, values)
+
+    yappi.get_func_stats().print_all()

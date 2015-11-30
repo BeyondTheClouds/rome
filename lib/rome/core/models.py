@@ -261,10 +261,15 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def reset_associated_objects(self):
         return setattr(self, "_associated_objects", [])
 
-    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True, session_saving=None):
 
         if session is not None:
             session.add(self)
+            return
+
+        object_key = "%s:%s" % (self.__tablename__, self.id)
+
+        if session_saving and self.id and object_key in session_saving.already_saved:
             return
 
         # self.update_foreign_keys()
@@ -328,6 +333,12 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             if not "id" in current_object or current_object["id"] is None:
                 current_object["id"] = self.next_key(table_name)
             else:
+
+                current_object_key = "%s:%s" % (table_name, current_object["id"])
+
+                if session_saving and current_object_key in session_saving.already_saved:
+                    continue
+
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
 
@@ -338,7 +349,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             if current_object["id"] == -1:
                 logging.debug("skipping the storage of object %s" % (current_object["id"]))
-                continue
+                # continue
+                break
 
             object_converter_datetime = get_encoder(request_uuid)
 
@@ -371,6 +383,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 current_object, e, corrected_object))
                 pass
             logging.debug("finished the storage of %s" % (current_object))
+
+            if session_saving:
+                session_saving.already_saved += [current_object_key]
         # self.load_relationships()
 
         candidates = []
@@ -384,7 +399,7 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
         for c in candidates:
             try:
                 # object_converter.simplify(c)
-                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version)
+                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version, session_saving=session_saving)
             except:
                 import traceback
                 traceback.print_exc()
