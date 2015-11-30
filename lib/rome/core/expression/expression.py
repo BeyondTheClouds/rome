@@ -54,7 +54,8 @@ class LazyDictionnary:
 
     def __getattr__(self, item):
         if item not in self._cache:
-            deconverted_value = self.deconverter.desimplify(self.entries[item])
+            raw_value = self.entries[item] if item in self.entries else None
+            deconverted_value = self.deconverter.desimplify(raw_value)
             self._cache[item] = deconverted_value
         return self._cache[item]
 
@@ -210,9 +211,9 @@ class BooleanExpression(object):
                 try:
                     s = LazyDictionnary(**value[value.keys().index(key)])
                     values_dict[key] = s
-                except:
+                except Exception as e:
                     print("[BUG] evaluation failed: %s -> %s" % (key, value))
-                    return False
+                    # return False
         else:
             values_dict = value
 
