@@ -52,6 +52,9 @@ class LazyDictionnary:
         self._cache = {}
         self.deconverter = get_decoder()
 
+    def keys(self):
+        return self.entries.keys()
+
     def __getattr__(self, item):
         if item not in self._cache:
             raw_value = self.entries[item] if item in self.entries else None
@@ -204,6 +207,7 @@ class BooleanExpression(object):
 
     def evaluate(self, value, additional_parameters={}):
 
+        orig_value = value
         # construct a dict with the values involved in the expression
         values_dict = {}
         if type(value) is not dict:
@@ -255,7 +259,7 @@ class BooleanExpression(object):
             if self.operator == "NORMAL":
                 return False
             for exp in self.exps:
-                if exp.evaluate(value):
+                if exp.evaluate(orig_value):
                     if self.operator in ["OR"]:
                         return True
                 else:

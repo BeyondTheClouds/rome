@@ -237,6 +237,15 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
     # def get_relationship_fields(self):
     #     return map(lambda x:x.local_object_field, self.get_relationships())
 
+CACHING_FAKE_INSTANCES = {}
+
+def get_fake_instance_relationships(classname):
+    from lib.rome.core.models import get_model_class_from_name
+    if not classname in CACHING_FAKE_INSTANCES:
+        fake_instance = get_model_class_from_name(classname)().get_relationships()
+        CACHING_FAKE_INSTANCES[classname] = fake_instance
+    return CACHING_FAKE_INSTANCES[classname]
+
 def get_relationships_from_class(cls, foreignkey_mode=False):
     from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
 
@@ -275,49 +284,21 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
 
             to_many = is_list
 
-        # is_foreignkey = getattr(getattr(field_object, "expression", False), "foreign_keys", False) is not None
-        # if is_foreignkey:
-        #     foreignkey_object = getattr(getattr(field_object, "expression", False), "foreign_keys", False)
-        #     foreignkey_object = list(foreignkey_object)[0]
-        #
-        #     local_info = str(foreignkey_object.parent)
-        #     local_info_tab = local_info.split(".")
-        #     remote_info = str(foreignkey_object.column)
-        #     remote_info_tab = remote_info.split(".")
-        #
-        #     local_fk_field = local_info_tab[1]
-        #     local_fk_value = None
-        #     local_object_field = None
-        #     local_object_value = None
-        #     remote_object_field = None
-        #     remote_object_tablename = remote_info[0]
-        #     is_list = False
-        #
-        #     remote_class = cls
-        #     expression = field_object.property.primaryjoin
-        #     direction = str(field_object.property.direction).split("'")[1]
-        #
-        #     if type(expression) == BinaryExpression:
-        #         expression = [expression]
-        #
-        #     to_many = False
-        #
-        # if is_foreignkey or is_relationship:
-        #     result += [RelationshipModel(
-        #         local_fk_field,
-        #         local_fk_value,
-        #         local_object_field,
-        #         local_object_value,
-        #         remote_object_field,
-        #         remote_object_tablename,
-        #         is_list,
-        #         remote_class=remote_class,
-        #         expression=expression,
-        #         to_many=to_many,
-        #         obj=None,
-        #         direction=direction
-        #     )]
-
+        if is_relationship:
+            result += [RelationshipModel(
+                local_fk_field,
+                local_fk_value,
+                local_object_field,
+                local_object_value,
+                remote_object_field,
+                remote_object_tablename,
+                is_list,
+                remote_class=remote_class,
+                expression=expression,
+                to_many=to_many,
+                obj=None,
+                direction=direction
+            )]
     return result
 
 def get_relationships(obj, foreignkey_mode=False):
@@ -392,7 +373,6 @@ def get_relationships(obj, foreignkey_mode=False):
                 obj=obj,
                 direction=direction
             )]
-
     return result
 
 class LazyRelationship():

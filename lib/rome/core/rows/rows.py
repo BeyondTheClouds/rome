@@ -186,10 +186,10 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         done_index = {}
         for step in steps:
             tablename = step[1]
-            # /!\ Creating a fake instance may be very slow...
             model_classname = get_model_classname_from_tablename(tablename)
-            # fake_instance = get_model_class_from_name(model_classname)()
-            # relationships = fake_instance.get_relationships()
+            # /!\ Creating a fake instance may be very slow... => CACHING FAKE INSTANCE!!!
+            # from lib.rome.core.utils import get_fake_instance_relationships
+            # relationships = get_fake_instance_relationships(model_classname)
             from lib.rome.core.utils import get_relationships_from_class
             relationships = get_relationships_from_class(get_model_class_from_name(model_classname))
             for r in relationships:
