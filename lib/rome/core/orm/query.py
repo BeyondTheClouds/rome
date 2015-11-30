@@ -196,7 +196,7 @@ class Query:
                     column = getattr(selectable._model, a)
                     criterion = column.__eq__(kwargs[a])
                     self._extract_hint(criterion)
-                    criterion += [criterion]
+                    criterions += [criterion]
                     break
                 except Exception as e:
                     # create a binary expression

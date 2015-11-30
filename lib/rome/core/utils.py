@@ -237,6 +237,61 @@ class ReloadableRelationMixin(TimestampMixin, SoftDeleteMixin, ModelBase):
     # def get_relationship_fields(self):
     #     return map(lambda x:x.local_object_field, self.get_relationships())
 
+def get_relationships_from_class(cls, foreignkey_mode=False):
+    from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
+
+    # state = obj._sa_instance_state
+
+    result = []
+
+    fields = {}
+    for key in cls._sa_class_manager:
+        fields[key] = cls._sa_class_manager[key]
+
+    for field in fields:
+        field_object = fields[field]
+
+        contain_comparator = hasattr(field_object, "comparator")
+        is_relationship = ("relationship" in str(field_object.comparator)
+                           if contain_comparator else False
+                           )
+        if is_relationship:
+            remote_local_pair = field_object.property.local_remote_pairs[0]
+
+            local_fk_field = remote_local_pair[0].name
+            local_fk_value = None
+            local_object_field = field
+            local_object_value = None
+            remote_object_field = remote_local_pair[1].name
+            remote_object_tablename = str(remote_local_pair[1].table)
+            is_list = field_object.property.uselist
+
+            remote_class = cls
+            expression = field_object.property.primaryjoin
+            direction = str(field_object.property.direction).split("'")[1]
+
+            if type(expression) == BinaryExpression:
+                expression = [expression]
+
+            to_many = is_list
+
+            result += [RelationshipModel(
+                local_fk_field,
+                local_fk_value,
+                local_object_field,
+                local_object_value,
+                remote_object_field,
+                remote_object_tablename,
+                is_list,
+                remote_class=remote_class,
+                expression=expression,
+                to_many=to_many,
+                obj=None,
+                direction=direction
+            )]
+
+    return result
+
 def get_relationships(obj, foreignkey_mode=False):
     from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, BindParameter
 

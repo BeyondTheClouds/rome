@@ -28,9 +28,6 @@ class SelectorThread(Thread):
 
 if __name__ == '__main__':
 
-    import yappi
-    yappi.start()
-
     # logging.getLogger().setLevel(logging.DEBUG)
 
     n = 10
@@ -45,5 +42,4 @@ if __name__ == '__main__':
         thread_1.join()
         thread_2.join()
 
-    yappi.get_func_stats().print_all()
 

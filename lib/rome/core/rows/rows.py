@@ -140,6 +140,10 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     return [local_tabledata, remote_tabledata]
 
 def building_tuples(list_results, labels, criterions, hints=[]):
+
+    # import yappi
+    # yappi.start()
+
     from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
     mode = "experimental"
     if mode is "cartesian_product":
@@ -182,9 +186,12 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         done_index = {}
         for step in steps:
             tablename = step[1]
+            # /!\ Creating a fake instance may be very slow...
             model_classname = get_model_classname_from_tablename(tablename)
-            fake_instance = get_model_class_from_name(model_classname)()
-            relationships = fake_instance.get_relationships()
+            # fake_instance = get_model_class_from_name(model_classname)()
+            # relationships = fake_instance.get_relationships()
+            from lib.rome.core.utils import get_relationships_from_class
+            relationships = get_relationships_from_class(get_model_class_from_name(model_classname))
             for r in relationships:
                 criterion = extract_joining_criterion_from_relationship(r, tablename)
                 key1 = criterion[0]["table"]+"__"+criterion[1]["table"]
@@ -262,6 +269,8 @@ def building_tuples(list_results, labels, criterions, hints=[]):
                     results = new_results
                     break
                 continue
+
+        # yappi.get_func_stats().print_all()
         return results
 
 def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
