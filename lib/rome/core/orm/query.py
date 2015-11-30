@@ -144,6 +144,8 @@ class Query:
         """ Extract tables names from the criterion. """
         expressions = [criterion.expression.left, criterion.expression.right] if hasattr(criterion, "expression") else []
         for expression in expressions:
+            if str(expression) == "NULL":
+                return
             if hasattr(expression, "foreign_keys"):
                 for foreign_key in getattr(expression, "foreign_keys"):
                     if hasattr(foreign_key, "column"):
