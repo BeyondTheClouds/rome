@@ -59,6 +59,41 @@ class LazyBackrefBuffer(object):
         return getattr(self, item)
 
 
+class LazyDate:
+    """Class that represents a "Lazyfied" date value. The LazyValue wraps a value in a dict format, and
+    when an external object accesses one of the wrapped date_dict, content of the dict is "converted" in an object format
+    (models entities). In a few words LazyDate(date_dict) <-> JsonDeconverter(date_dict) ."""
+
+    def __init__(self, wrapped_date_dict, request_uuid):
+        from lib.rome.core.dataformat import get_decoder
+        self.deconverter = get_decoder(request_uuid=request_uuid)
+        self.wrapped_date_dict = wrapped_date_dict
+        self.wrapped_value = None
+        self.request_uuid = request_uuid
+
+    def transform(self, x):
+        return self.deconverter.desimplify(x)
+
+    def __repr__(self):
+        lazy_load()
+        return str(self.wrapped_value)
+
+    def lazy_load(self):
+        if self.wrapped_value is None:
+            self.wrapped_value = self.deconverter.desimplify(self.wrapped_date_dict)
+
+    def __getattr__(self, attr):
+        self.lazy_load()
+        return getattr(self.wrapped_value, attr)
+
+    def __setattr__(self, key, value):
+        if key in ["deconverter", "wrapped_date_dict", "wrapped_value", "request_uuid"]:
+            self.__dict__[key] = value
+        else:
+            self.lazy_load()
+            setattr(self.wrapped_value, key, value)
+        pass
+
 class LazyValue:
     """Class that represents a "Lazyfied" value. The LazyValue wraps a value in a dict format, and
     when an external object accesses one of the wrapped dict, content of the dict is "converted" in an object format
