@@ -75,8 +75,9 @@ class LazyDate:
         return self.deconverter.desimplify(x)
 
     def __repr__(self):
-        lazy_load()
-        return str(self.wrapped_value)
+        return "LazyDate(...)"
+        # self.lazy_load()
+        # return str(self.wrapped_value)
 
     def lazy_load(self):
         if self.wrapped_value is None:
