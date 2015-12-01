@@ -279,9 +279,9 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
         return value
     elif type(value) is dict and "timezone" in value:
-        # decoder = get_decoder()
-        # return decoder.desimplify(value)
-        return LazyDate(value, request_uuid)
+        decoder = get_decoder()
+        return decoder.desimplify(value)
+        # return LazyDate(value, request_uuid)
     else:
         return LazyValue(value, request_uuid)
 
