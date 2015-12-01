@@ -273,15 +273,18 @@ def building_tuples(list_results, labels, criterions, hints=[]):
         # yappi.get_func_stats().print_all()
         return results
 
-def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
-    if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
-        return value
-    elif type(value) is dict and "timezone" in value:
-        decoder = get_decoder()
-        return decoder.desimplify(value)
-    else:
-        return LazyValue(value, request_uuid)
+# def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
+#     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
+#         return value
+#     elif type(value) is dict and "timezone" in value:
+#         decoder = get_decoder()
+#         return decoder.desimplify(value)
+#     else:
+#         return LazyValue(value, request_uuid)
 
+
+def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
+    return LazyValue(value, request_uuid)
 
 def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 

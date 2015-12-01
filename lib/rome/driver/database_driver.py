@@ -44,9 +44,15 @@ def build_driver():
         import lib.rome.driver.riak.driver
         return lib.rome.driver.riak.driver.MapReduceRiakDriver()
 
+# def get_driver():
+#     # global driver
+#     # if driver is None:
+#     # driver = build_driver()
+#     # return MemoizationDecorator(build_driver())
+#     return build_driver()
+
 def get_driver():
-    # global driver
-    # if driver is None:
-    # driver = build_driver()
-    # return MemoizationDecorator(build_driver())
-    return build_driver()
+    global driver
+    if driver is None:
+        driver = build_driver()
+    return driver

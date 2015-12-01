@@ -90,17 +90,38 @@ def transform(data, deconverter, skip_loading):
     return result
 
 
-from lib.rome.utils.LimitedSizeDictionnary import LimitedSizeDictionnary
-DB_CACHES = LimitedSizeDictionnary(size_limit=50)
+# from lib.rome.utils.LimitedSizeDictionnary import LimitedSizeDictionnary
+# DB_CACHES = LimitedSizeDictionnary(size_limit=50)
+#
+# def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
+#     if request_uuid is not None:
+#         db_cache_key = "%s_%s_%s" % (tablename, request_uuid, hints)
+#         if db_cache_key in DB_CACHES:
+#             return DB_CACHES[db_cache_key]
+#     data = database_driver.get_driver().getall(tablename, hints=hints)
+#     if request_uuid is not None:
+#         DB_CACHES[db_cache_key] = data
+#     return data
+
+# DB_CACHES = LimitedSizeDictionnary(size_limit=50)
+DB_CACHES = {}
+cache_time_limit = 100
+
+def current_milli_time():
+    return int(round(time.time() * 200))
 
 def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
-    if request_uuid is not None:
-        db_cache_key = "%s_%s_%s" % (tablename, request_uuid, hints)
-        if db_cache_key in DB_CACHES:
-            return DB_CACHES[db_cache_key]
-    data = database_driver.get_driver().getall(tablename, hints=hints)
-    if request_uuid is not None:
-        DB_CACHES[db_cache_key] = data
+    if len(hints) > 0:
+        return database_driver.get_driver().getall(tablename, hints=hints)
+    now = current_milli_time()
+    if tablename in DB_CACHES:
+        print("db_cache_key: %s" % (tablename))
+        if tablename in DB_CACHES:
+            if now - DB_CACHES[tablename]["time"] < cache_time_limit:
+                return DB_CACHES[tablename]["data"]
+    data = database_driver.get_driver().getall(tablename)
+    # if request_uuid is not None:
+    DB_CACHES[tablename] = {"data": data, "time": current_milli_time()}
     return data
 
 
