@@ -405,8 +405,8 @@ class LazyRelationship():
         self.is_loaded = False
         self.is_relationship_list = self.rel.to_many
         # print(self.request_uuid)
-        self.query = Query(rel.remote_class)
-        self.query = self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
+        # self.query = Query(rel.remote_class)
+        # self.query = self.query.filter(getattr(rel.remote_class, rel.remote_object_field)==rel.local_fk_value)
 
     def reload(self):
         def match(x, rel):
@@ -415,10 +415,19 @@ class LazyRelationship():
             return x_value == rel.local_fk_value
         if self.data is not None:
             return
-        if self.request_uuid:
-            data = self.query.all(request_uuid=self.request_uuid) #if self.rel.to_many else self.query.first()data
+        data = database_driver.get_driver().getall(self.rel.remote_object_tablename, [[self.rel.remote_object_field, self.rel.local_fk_value]])
+
+        if len(data) == 0:
+            from lib.rome.core.orm.query import Query
+            self.query = Query(self.rel.remote_class)
+            self.query = self.query.filter(getattr(self.rel.remote_class, self.rel.remote_object_field)==self.rel.local_fk_value)
+            if self.request_uuid:
+                data = self.query.all(request_uuid=self.request_uuid) #if self.rel.to_many else self.query.first()data
+            else:
+                data = self.query.all() #if self.rel.to_many else self.query.first()data
         else:
-            data = self.query.all() #if self.rel.to_many else self.query.first()data
+            from lib.rome.core.lazy import LazyValue
+            data = map(lambda x: LazyValue(x, self.request_uuid), data)
         self.__dict__["data"] = data
         self.data = filter(lambda x: match(x, self.rel), self.data)
         if not self.rel.to_many:
