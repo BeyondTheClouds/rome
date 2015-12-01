@@ -74,10 +74,10 @@ class LazyDate:
     # def transform(self, x):
     #     return self.deconverter.desimplify(x)
 
-    # def __repr__(self):
-    #     # return "LazyDate(...)"
-    #     self.lazy_load()
-    #     return str(self.wrapped_value)
+    def __repr__(self):
+        return "LazyDate(...)"
+        self.lazy_load()
+        return str(self.wrapped_value)
 
     def lazy_load(self):
         if self.wrapped_value is None:
