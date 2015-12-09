@@ -177,17 +177,12 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     """ Collecting joining expressions. """
     joining_pairs = []
     non_joining_criterions = []
-    word_pattern = "[_a-zA-Z0-9]+"
-    joining_criterion_pattern = "^\(%s\.%s == %s\.%s\)$" % (word_pattern, word_pattern, word_pattern, word_pattern)
     for criterion in criterions:
-        if not hasattr(criterion, "raw_expression"):
-            continue
-        m = re.search(joining_criterion_pattern, criterion.raw_expression)
-        if m is None:
-            non_joining_criterions += [criterion]
-            continue
-        joining_pair = criterion.raw_expression[1:-1].split("==")
-        joining_pairs += [joining_pair]
+        _joining_pairs = criterion.extract_joining_pairs()
+        _nonjoining_criterions = criterion.extract_nonjoining_criterions()
+
+        joining_pairs += _joining_pairs
+        non_joining_criterions += _nonjoining_criterions
 
     """ Construct the resulting rows. """
     result = None

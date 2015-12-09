@@ -98,6 +98,33 @@ class BooleanExpression(object):
                 result += [Hint(table_name, attribute_name, value)]
         return result
 
+    def extract_joining_pairs(self):
+        if self.operator == "NORMAL":
+            word_pattern = "[_a-zA-Z0-9]+"
+            joining_criterion_pattern = "%s\.%s == %s\.%s" % (word_pattern, word_pattern, word_pattern, word_pattern)
+            m = re.search(joining_criterion_pattern, self.raw_expression)
+            if m is not None:
+                joining_pair = self.raw_expression[1:-1].split("==")
+                return [joining_pair]
+            else:
+                return []
+        result = []
+        for exp in self.exps:
+            if type(exp).__name__ == "BooleanExpression":
+                result += exp.extract_joining_pairs()
+        return result
+
+    def extract_nonjoining_criterions(self):
+        if self.operator == "NORMAL":
+            word_pattern = "[_a-zA-Z0-9]+"
+            joining_criterion_pattern = "%s\.%s == %s\.%s" % (word_pattern, word_pattern, word_pattern, word_pattern)
+            m = re.search(joining_criterion_pattern, self.raw_expression)
+            if m is None:
+                return [self]
+            else:
+                return []
+        return [self]
+
     def prepare_expression(self):
 
         def collect_expressions(exp):

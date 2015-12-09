@@ -87,7 +87,7 @@ def network_get_associated_fixed_ips(context, network_id, host=None):
     result = query.all()
 
     plop1 = Query(models.FixedIp).join(models.Instance).filter(models.Instance.uuid==models.FixedIp.instance_uuid).all()
-    # print(plop1)
+    print(plop1)
     data = []
     for datum in result:
         cleaned = {}
