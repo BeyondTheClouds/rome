@@ -4,7 +4,6 @@ import logging
 import time
 import uuid
 
-import re
 import pandas as pd
 from sqlalchemy.sql.expression import BinaryExpression
 from sqlalchemy.util._collections import KeyedTuple
@@ -12,8 +11,6 @@ from sqlalchemy.util._collections import KeyedTuple
 from lib.rome.core.dataformat import get_decoder
 from lib.rome.core.lazy import LazyValue
 from lib.rome.core.utils import get_objects, is_novabase
-
-import itertools
 
 file_logger_enabled = False
 try:
@@ -64,11 +61,7 @@ def find_table_name(model):
     if has_attribute(model, "clauses"):
         for clause in model.clauses:
             return find_table_name(clause)
-
     return "none"
-
-
-
 
 def extract_models(l):
     already_processed = set()
@@ -245,6 +238,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     return rows
 
 def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
+    if value is None:
+        return None
     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
         return value
     elif type(value) is dict and "timezone" in value:

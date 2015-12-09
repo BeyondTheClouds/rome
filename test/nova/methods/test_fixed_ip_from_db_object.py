@@ -53,9 +53,9 @@ def network_get_associated_fixed_ips(context, network_id, host=None):
     #             without regenerating the whole list
     vif_and = and_(models.VirtualInterface.id ==
                    models.FixedIp.virtual_interface_id,
-                   models.VirtualInterface.deleted == 0)
+                   models.VirtualInterface.deleted == 1)
     inst_and = and_(models.Instance.uuid == models.FixedIp.instance_uuid,
-                    models.Instance.deleted == 0)
+                    models.Instance.deleted == 1)
     session = get_session()
     query = session.query(models.FixedIp.address,
                           models.FixedIp.instance_uuid,
