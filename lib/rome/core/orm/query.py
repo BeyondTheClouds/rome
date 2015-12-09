@@ -262,6 +262,7 @@ class Query:
                                 other_tablename = filter(lambda x: x!= tablename, tablesnames)[0]
                                 if other_tablename in current_tablenames:
                                     _criterions += [relationship.expression]
+                                    break
                 elif is_expression:
                     _criterions += [item]
                 else:
