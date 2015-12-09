@@ -243,8 +243,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             sub_row = {}
             for refactored_key in refactored_keys:
                 raw_key = refactored_keys_to_key_index[refactored_key]
-                # sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
-                sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
+                sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
+                # sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
             row += [sub_row]
         rows += [row]
     return rows
