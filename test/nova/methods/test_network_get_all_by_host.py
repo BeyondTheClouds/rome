@@ -101,8 +101,8 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
-    # host = "jonathan-VirtualBox"
-    host = "edel-17"
+    host = "jonathan-VirtualBox"
+    # host = "edel-17"
 
     print(network_get_all_by_host(context, host))
 

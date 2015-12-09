@@ -198,6 +198,9 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         attribute_2 = joining_pair[1].strip()
         tablename_1 = attribute_1.split(".")[0]
         tablename_2 = attribute_2.split(".")[0]
+
+        if tablename_1 not in dataindex or tablename_2 not in dataindex:
+            return []
         index_1 = dataindex[tablename_1]
         index_2 = dataindex[tablename_2]
         dataframe_1 = dataframes[index_1] if not tablename_1 in processed_tables else result
@@ -225,7 +228,10 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             if value in expression_str:
                 corresponding_key = substitution_index[value]
                 expression_str = expression_str.replace(value, corresponding_key)
-        result = result.query(expression_str)
+        try:
+            result = result.query(expression_str)
+        except:
+            pass
 
     """ Building the rows. """
     result = result.transpose().to_dict()
@@ -233,7 +239,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     for value in result.values():
         row = []
         for label in labels:
-            refactored_keys = refactored_keys_index[label]
+            refactored_keys = refactored_keys_index[label] if label in refactored_keys_index else {}
             sub_row = {}
             for refactored_key in refactored_keys:
                 raw_key = refactored_keys_to_key_index[refactored_key]
@@ -241,142 +247,6 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             row += [sub_row]
         rows += [row]
     return rows
-
-def building_tuples_(list_results, labels, criterions, hints=[]):
-
-    # import yappi
-    # yappi.start()
-    from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
-
-
-    from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
-    mode = "experimental"
-    if mode is "cartesian_product":
-        cartesian_product = []
-        for element in itertools.product(*list_results):
-            cartesian_product += [element]
-        return cartesian_product
-    elif mode is "experimental":
-        steps = zip(list_results, labels)
-        candidates_values = {}
-        candidates_per_table = {}
-        joining_criterions = []
-        non_joining_criterions = {}
-        """ Initialising candidates per table """
-        for each in labels:
-            candidates_per_table[each] = {}
-        """ Collecting non-joining expressions """
-        for criterion in criterions:
-            for exp in criterion.exps:
-                for joining_criterion in extract_joining_criterion(exp):
-                    foo = [x for x in joining_criterion if x is not None]
-                    if len(foo) > 1:
-                        joining_criterions += [foo]
-                    else:
-                        """ Extract here non joining criterions, and use it to filter objects
-                            that are located in list_results """
-                        exp_criterions = ([x for x in flatten(joining_criterion) if x is not None])
-                        for non_joining_criterion in exp_criterions:
-                            tablename = non_joining_criterion["table"]
-                            column = non_joining_criterion["column"]
-                            if not tablename in non_joining_criterions:
-                                non_joining_criterions[tablename] = []
-                            non_joining_criterions[tablename] += [{
-                                "tablename": tablename,
-                                "column": column,
-                                "exp": exp,
-                                "criterion": criterion
-                            }]
-        """ Collecting joining expressions """
-        done_index = {}
-        for step in steps:
-            tablename = step[1]
-            model_classname = get_model_classname_from_tablename(tablename)
-            # /!\ Creating a fake instance may be very slow... => CACHING FAKE INSTANCE!!!
-            # from lib.rome.core.utils import get_fake_instance_relationships
-            # relationships = get_fake_instance_relationships(model_classname)
-            from lib.rome.core.utils import get_relationships_from_class
-            relationships = get_relationships_from_class(get_model_class_from_name(model_classname))
-            for r in relationships:
-                criterion = extract_joining_criterion_from_relationship(r, tablename)
-                key1 = criterion[0]["table"]+"__"+criterion[1]["table"]
-                key2 = criterion[1]["table"]+"__"+criterion[0]["table"]
-                if key1 not in done_index and key2 not in criterion[0]["table"] in labels and criterion[1]["table"] in labels:
-                    joining_criterions += [criterion]
-                    done_index[key1] = True
-                    done_index[key2] = True
-                pass
-        """ Collecting for each of the aforementioned expressions, its values <-> objects """
-        if len(joining_criterions) > 0:
-            for criterion in joining_criterions:
-                for each in criterion:
-                    key = "%s.%s" % (each["table"], each["column"])
-                    index_list_results = labels.index(each["table"])
-                    objects = list_results[index_list_results]
-                    if not candidates_values.has_key(key):
-                        candidates_values[key] = {}
-                    for object in objects:
-                        value_key = get_attribute(object, each["column"])
-                        skip = False
-                        for hint in hints:
-                            if each["table"] == hint.table_name and hint.attribute in object and object[hint.attribute] != hint.value:
-                                skip = True
-                                break
-                        if not skip:
-                            if not candidates_values[key].has_key(value_key):
-                                candidates_values[key][value_key] = {}
-                            object_hash = str(object).__hash__()
-                            object_table = object["_nova_classname"] if "_nova_classname" in object else object["nova_classname"]
-                            candidates_values[key][value_key][object_hash] = {"value": value_key, "object": object}
-                            candidates_per_table[object_table][object_hash] = object
-        else:
-            for each in steps:
-                for each_object in each[0]:
-                    object_hash = str(each_object).__hash__()
-                    object_table = each_object["_nova_classname"] if "_nova_classname" in each_object else each_object["nova_classname"]
-                    candidates_per_table[object_table][object_hash] = each_object
-        """ Progressively reduce the list of results """
-        results = []
-        processed_models = []
-        if len(steps) > 0:
-            step = steps[0]
-            results = map(lambda  x: [candidates_per_table[step[1]][x]], candidates_per_table[step[1]])
-            # Apply a filter on the current results
-            # validated_results = results
-            # for each in non_joining_criterions[step[1]]:
-            #     validated_results = filter(lambda r: each["criterion"].evaluate(r[0], additional_parameters={"fixed_ips": r[0]}), validated_results)
-            # results = validated_results
-            processed_models += [step[1]]
-        remaining_models = map(lambda x:x[1], steps[1:])
-        for step in steps[1:]:
-            for criterion in joining_criterions:
-                criterion_models = map(lambda x: x["table"], criterion)
-                candidate_models = [step[1]] + processed_models
-                if len(intersect(candidate_models, criterion_models)) > 1:
-                    processed_models += [step[1]]
-                    remaining_models = filter(lambda x: x ==step[1], remaining_models)
-                    current_criterion_option = filter(lambda x:x["table"]==step[1], criterion)
-                    remote_criterion_option = filter(lambda x:x["table"]!=step[1], criterion)
-                    if not (len(current_criterion_option) > 0 and len(remote_criterion_option) > 0):
-                        continue
-                    current_criterion_part = current_criterion_option[0]
-                    remote_criterion_part = remote_criterion_option[0]
-                    new_results = []
-                    for each in results:
-                        existing_tuple_index = processed_models.index(remote_criterion_part["table"])
-                        existing_value = get_attribute(each[existing_tuple_index], remote_criterion_part["column"])
-                        if existing_value is not None:
-                            key = "%s.%s" % (current_criterion_part["table"], current_criterion_part["column"])
-                            candidates_value_index = candidates_values[key]
-                            candidates = candidates_value_index[existing_value] if existing_value in candidates_value_index else {}
-                            for candidate_key in candidates:
-                                new_results += [each + [candidates[candidate_key]["object"]]]
-                    results = new_results
-                    break
-                continue
-
-        # yappi.get_func_stats().print_all()
-        return results
 
 def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
