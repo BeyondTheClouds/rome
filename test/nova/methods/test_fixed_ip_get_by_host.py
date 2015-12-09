@@ -70,6 +70,10 @@ if __name__ == '__main__':
 
     context = Context("project1", "user1")
 
+    host = "jonathan-VirtualBox"
+    # host = "edel-17"
+
+
     for network in Query(models.Network):
-        fixed_ip_get_by_network_host(context, network.id, "edel-40")
+        fixed_ip_get_by_network_host(context, network.id, host)
         break
