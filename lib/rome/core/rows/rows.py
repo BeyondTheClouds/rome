@@ -215,6 +215,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
 
     """ Filtering rows. """
     if result is None:
+        if len(dataframes) == 0:
+            return []
         result = dataframes[0]
 
     for non_joining_criterion in non_joining_criterions:
