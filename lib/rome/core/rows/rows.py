@@ -149,6 +149,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         keys = map(lambda x: x, list_results[0]) + ["created_at", "updated_at"]
 
         dataframe = pd.DataFrame(data=list_results, columns=keys)
+        dataframe.fillna(method='ffill', inplace=True)
+
         for value in keys:
             normal_key = "%s.%s" % (label, value)
             refactored_keys = "%s___%s" % (label, value)
