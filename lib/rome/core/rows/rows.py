@@ -12,6 +12,8 @@ from lib.rome.core.dataformat import get_decoder
 from lib.rome.core.lazy import LazyValue
 from lib.rome.core.utils import get_objects, is_novabase
 
+import math
+
 file_logger_enabled = False
 try:
     file_logger = logging.getLogger('rome_file_logger')
@@ -149,7 +151,6 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         keys = map(lambda x: x, list_results[0]) + ["created_at", "updated_at"]
 
         dataframe = pd.DataFrame(data=list_results, columns=keys)
-        dataframe.fillna(method='ffill', inplace=True)
 
         for value in keys:
             normal_key = "%s.%s" % (label, value)
@@ -234,6 +235,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             for refactored_key in refactored_keys:
                 raw_key = refactored_keys_to_key_index[refactored_key]
                 sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
+                if type(sub_row[raw_key]) is float and math.isnan(sub_row[raw_key]):
+                    sub_row[raw_key] = None
                 # sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
             row += [sub_row]
         rows += [row]

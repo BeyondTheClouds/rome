@@ -44,98 +44,50 @@ def model_query(context, *args, **kwargs):
     # models = args
     return RomeQuery(*args, **kwargs)
 
+FIXED_IP_OPTIONAL_ATTRS = ['instance', 'network', 'virtual_interface',
+                           'floating_ips']
 
-def network_get_associated_fixed_ips(context, network_id, host=None):
-    # FIXME(sirp): since this returns fixed_ips, this would be better named
-    # fixed_ip_get_all_by_network.
-    # NOTE(vish): The ugly joins here are to solve a performance issue and
-    #             should be removed once we can add and remove leases
-    #             without regenerating the whole list
-    vif_and = and_(models.VirtualInterface.id ==
-                   models.FixedIp.virtual_interface_id,
-                   models.VirtualInterface.deleted == 1)
-    inst_and = and_(models.Instance.uuid == models.FixedIp.instance_uuid,
-                    models.Instance.deleted == 1)
-    session = get_session()
-    query = session.query(models.FixedIp.address,
-                          models.FixedIp.instance_uuid,
-                          models.FixedIp.network_id,
-                          models.FixedIp.virtual_interface_id,
-                          models.VirtualInterface.address,
-                          models.Instance.hostname,
-                          models.Instance.updated_at,
-                          models.Instance.created_at,
-                          models.FixedIp.allocated,
-                          models.FixedIp.leased)
+from nova.objects import base as obj_base
+from nova import objects
 
-    query = query.join(models.VirtualInterface).join(models.Instance)
-    query = query.filter(models.FixedIp.deleted == 0)
-    query = query.filter(models.FixedIp.network_id == network_id)
+from nova.objects.fixed_ip import FixedIP
 
-    query = query.join((models.VirtualInterface, vif_and))
-    query = query.filter(models.FixedIp.instance_uuid != None)
-    query = query.filter(models.FixedIp.virtual_interface_id != None)
-
-    # query = query.filter(models.FixedIp.deleted == 0).\
-    #                filter(models.FixedIp.network_id == network_id).\
-    #                join((models.VirtualInterface, vif_and)).\
-    #                join((models.Instance, inst_and)).\
-    #                filter(models.FixedIp.instance_uuid != None).\
-    #                filter(models.FixedIp.virtual_interface_id != None)
-    if host:
-        query = query.filter(models.Instance.host == host)
-    result = query.all()
-
-    plop1 = Query(models.FixedIp).join(models.Instance).filter(models.Instance.uuid==models.FixedIp.instance_uuid).all()
-    print(plop1)
-    data = []
-    for datum in result:
-        cleaned = {}
-        cleaned['address'] = datum[0]
-        cleaned['instance_uuid'] = datum[1]
-        cleaned['network_id'] = datum[2]
-        cleaned['vif_id'] = datum[3]
-        cleaned['vif_address'] = datum[4]
-        cleaned['instance_hostname'] = datum[5]
-        cleaned['instance_updated'] = datum[6]
-        cleaned['instance_created'] = datum[7]
-        cleaned['allocated'] = datum[8]
-        cleaned['leased'] = datum[9]
-        cleaned['default_route'] = datum[10] is not None
-        data.append(cleaned)
-    return data
-
-def get_by_network(cls, context, network, host=None):
-    ipinfo = network_get_associated_fixed_ips(context,
-                                                 network['id'],
-                                                 host=host)
-    if not ipinfo:
-        return []
-
-    fips = cls(context=context, objects=[])
-
-    for info in ipinfo:
-        inst = Instance(context=context,
-                                uuid=info['instance_uuid'],
-                                hostname=info['instance_hostname'],
-                                created_at=info['instance_created'],
-                                updated_at=info['instance_updated'])
-        vif = VirtualInterface(context=context,
-                                       id=info['vif_id'],
-                                       address=info['vif_address'])
-        fip = FixedIP(context=context,
-                              address=info['address'],
-                              instance_uuid=info['instance_uuid'],
-                              network_id=info['network_id'],
-                              virtual_interface_id=info['vif_id'],
-                              allocated=info['allocated'],
-                              leased=info['leased'],
-                              default_route=info['default_route'],
-                              instance=inst,
-                              virtual_interface=vif)
-        fips.objects.append(fip)
-    fips.obj_reset_changes()
-    return fips
+def _from_db_object(context, fixedip, db_fixedip, expected_attrs=None):
+        if expected_attrs is None:
+            expected_attrs = []
+        for field in fixedip.fields:
+            if field == 'default_route':
+                # NOTE(danms): This field is only set when doing a
+                # FixedIPList.get_by_network() because it's a relatively
+                # special-case thing, so skip it here
+                continue
+            if field not in FIXED_IP_OPTIONAL_ATTRS:
+                fixedip[field] = db_fixedip[field]
+        # NOTE(danms): Instance could be deleted, and thus None
+        if 'instance' in expected_attrs:
+            fixedip.instance = objects.Instance._from_db_object(
+                context,
+                objects.Instance(context),
+                db_fixedip['instance']) if db_fixedip['instance'] else None
+        if 'network' in expected_attrs:
+            fixedip.network = objects.Network._from_db_object(
+                context,
+                objects.Network(context),
+                db_fixedip['network']) if db_fixedip['network'] else None
+        if 'virtual_interface' in expected_attrs:
+            db_vif = db_fixedip['virtual_interface']
+            vif = objects.VirtualInterface._from_db_object(
+                context,
+                objects.VirtualInterface(context),
+                db_fixedip['virtual_interface']) if db_vif else None
+            fixedip.virtual_interface = vif
+        if 'floating_ips' in expected_attrs:
+            fixedip.floating_ips = obj_base.obj_make_list(
+                    context, objects.FloatingIPList(context),
+                    objects.FloatingIP, db_fixedip['floating_ips'])
+        fixedip._context = context
+        fixedip.obj_reset_changes()
+        return fixedip
 
 
 class Context(object):
@@ -150,6 +102,8 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
-    network = Query(models.Network).filter(models.Network.id==1).all()[0]
-    result = get_by_network(FixedIP, context, network)
-    print(result)
+    fixed_ips = Query(models.FixedIp).all()
+    for fixed_ip in fixed_ips:
+        result = _from_db_object(context, FixedIP(), fixed_ip)
+        print(result)
+
