@@ -100,7 +100,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
             # result = map(lambda x: eval(x), str_result)
             str_result = "[%s]" % (",".join(str_result))
-            result = eval(str_result)
+            result = eval(str_result, {"nan": None})
             result = filter(lambda x: x!= None, result)
         return result
 
