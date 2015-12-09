@@ -140,7 +140,7 @@ class RelationshipModel(object):
     be represented either through a foreign key value or a foreign
     object."""
 
-    def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, remote_object_field,
+    def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, local_tablename, remote_object_field,
                  remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False, obj=None,
                  direction=""):
         """Constructor"""
@@ -150,6 +150,7 @@ class RelationshipModel(object):
         self.remote_object_field = remote_object_field
         self.local_fk_value = local_fk_value
         self.local_object_value = local_object_value
+        self.local_tablename = local_tablename
         self.remote_object_tablename = remote_object_tablename
         self.is_list = is_list
 
@@ -290,6 +291,7 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
 
             local_fk_field = remote_local_pair[0].name
             local_fk_value = None
+            local_tablename = cls.__tablename__
             local_object_field = field
             local_object_value = None
             remote_object_field = remote_local_pair[1].name
@@ -311,6 +313,7 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
                 local_fk_value,
                 local_object_field,
                 local_object_value,
+                local_tablename,
                 remote_object_field,
                 remote_object_tablename,
                 is_list,
@@ -358,6 +361,7 @@ def get_relationships(obj, foreignkey_mode=False):
 
             local_fk_field = remote_local_pair[0].name
             local_fk_value = getattr(obj, local_fk_field)
+            local_tablename = obj.__tablename__
             local_object_field = field
             local_object_value = getattr(obj, local_object_field)
             remote_object_field = remote_local_pair[1].name
@@ -385,6 +389,7 @@ def get_relationships(obj, foreignkey_mode=False):
                 local_fk_value,
                 local_object_field,
                 local_object_value,
+                local_tablename,
                 remote_object_field,
                 remote_object_tablename,
                 is_list,

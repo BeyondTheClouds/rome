@@ -131,6 +131,10 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     remote_tabledata = {"table": rel.remote_object_tablename, "column": rel.remote_object_field}
     return [local_tabledata, remote_tabledata]
 
+def correct_boolean_int(expression_str):
+    expression_str = expression_str.replace("___deleted == 0", "___deleted in [0, None]")
+    return expression_str
+
 def building_tuples(lists_results, labels, criterions, hints=[]):
 
     """ Build tuples (join operator in relational algebra). """
@@ -220,7 +224,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
                 corresponding_key = substitution_index[value]
                 expression_str = expression_str.replace(value, corresponding_key)
         try:
-            result = result.query(expression_str)
+            corrected_expression = correct_boolean_int(expression_str)
+            result = result.query(corrected_expression)
         except:
             pass
 

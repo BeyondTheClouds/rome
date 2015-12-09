@@ -246,6 +246,22 @@ class Query:
                 )
                 if is_class:
                     _models = _models + [Selection(item, "*")]
+                    if len(tuples) == 1:
+                        # Must find an expression that would specify how to join the tables.
+                        from lib.rome.core.utils import get_relationships_from_class
+
+                        tablename = item.__tablename__
+                        current_tablenames = map(lambda x: x._model.__tablename__, _models)
+                        models_classes = map(lambda x: x._model, _models)
+                        relationships = map(lambda x: get_relationships_from_class(x), models_classes)
+                        # relationships = get_relationships_from_class(item)
+                        flatten_relationships = [item for sublist in relationships for item in sublist]
+                        for relationship in flatten_relationships:
+                            tablesnames = [relationship.local_tablename, relationship.remote_object_tablename]
+                            if tablename in tablesnames:
+                                other_tablename = filter(lambda x: x!= tablename, tablesnames)[0]
+                                if other_tablename in current_tablenames:
+                                    _criterions += [relationship.expression]
                 elif is_expression:
                     _criterions += [item]
                 else:
