@@ -1,11 +1,9 @@
 __author__ = 'jonathan'
 
-import test.nova._fixtures as models
-from lib.rome.core.orm.query import Query
-import collections
 import logging
 import time
-from lib.rome.core.lazy import LazyReference, LazyValue
+
+import test.nova._fixtures as models
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 

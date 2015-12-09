@@ -1,22 +1,19 @@
 __author__ = 'jonathan'
 
-import itertools
 import logging
-import traceback
 import time
-
-from sqlalchemy.util._collections import KeyedTuple
-from sqlalchemy.sql.expression import BinaryExpression
-
 import uuid
-from lib.rome.core.utils import get_objects, is_novabase
 
-from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
-
-from lib.rome.core.lazy import LazyValue
+import re
+import pandas as pd
+from sqlalchemy.sql.expression import BinaryExpression
+from sqlalchemy.util._collections import KeyedTuple
 
 from lib.rome.core.dataformat import get_decoder
-from lib.rome.utils.SecondaryIndexDecorator import SECONDARY_INDEXES
+from lib.rome.core.lazy import LazyValue
+from lib.rome.core.utils import get_objects, is_novabase
+
+import itertools
 
 file_logger_enabled = False
 try:
@@ -139,10 +136,116 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     remote_tabledata = {"table": rel.remote_object_tablename, "column": rel.remote_object_field}
     return [local_tabledata, remote_tabledata]
 
-def building_tuples(list_results, labels, criterions, hints=[]):
+def building_tuples(lists_results, labels, criterions, hints=[]):
+
+    """ Build tuples (join operator in relational algebra). """
+
+    """ Create the Dataframe indexes. """
+    dataframes = []
+    dataindex = {}
+    substitution_index = {}
+    normal_keys_index = {}
+    refactored_keys_index = {}
+    normal_keys_to_key_index = {}
+    refactored_keys_to_key_index = {}
+    index = 0
+    for list_results in lists_results:
+        label = labels[index]
+        if len(list_results) == 0:
+            continue
+        keys = map(lambda x: x, list_results[0]) + ["created_at", "updated_at"]
+
+        dataframe = pd.DataFrame(data=list_results, columns=keys)
+        for value in keys:
+            normal_key = "%s.%s" % (label, value)
+            refactored_keys = "%s___%s" % (label, value)
+            normal_keys_to_key_index[normal_key] = value
+            refactored_keys_to_key_index[refactored_keys] = value
+        normal_keys = map(lambda x: "%s.%s" % (label, x), keys)
+        normal_keys_index[label] = normal_keys
+        refactored_keys = map(lambda x: "%s___%s" % (label, x), keys)
+        refactored_keys_index[label] = refactored_keys
+        for (a, b) in zip(normal_keys, refactored_keys):
+            substitution_index[a] = b
+        dataframe.columns = refactored_keys
+        dataframes += [dataframe]
+
+        """ Index the dataframe and create a reverse index. """
+        dataindex[label] = index
+        index += 1
+
+    """ Collecting joining expressions. """
+    joining_pairs = []
+    non_joining_criterions = []
+    word_pattern = "[_a-zA-Z0-9]+"
+    joining_criterion_pattern = "^\(%s\.%s == %s\.%s\)$" % (word_pattern, word_pattern, word_pattern, word_pattern)
+    for criterion in criterions:
+        if not hasattr(criterion, "raw_expression"):
+            continue
+        m = re.search(joining_criterion_pattern, criterion.raw_expression)
+        if m is None:
+            non_joining_criterions += [criterion]
+            continue
+        joining_pair = criterion.raw_expression[1:-1].split("==")
+        joining_pairs += [joining_pair]
+
+    """ Construct the resulting rows. """
+    result = None
+    processed_tables = []
+    for joining_pair in joining_pairs:
+        """ Preparing the tables that will be joined. """
+        attribute_1 = joining_pair[0].strip()
+        attribute_2 = joining_pair[1].strip()
+        tablename_1 = attribute_1.split(".")[0]
+        tablename_2 = attribute_2.split(".")[0]
+        index_1 = dataindex[tablename_1]
+        index_2 = dataindex[tablename_2]
+        dataframe_1 = dataframes[index_1] if not tablename_1 in processed_tables else result
+        dataframe_2 = dataframes[index_2] if not tablename_2 in processed_tables else result
+
+        refactored_attribute_1 = attribute_1.split(".")[0]+"___"+attribute_1.split(".")[1]
+        refactored_attribute_2 = attribute_2.split(".")[0]+"___"+attribute_2.split(".")[1]
+
+        """ Join the tables. """
+        result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2)
+
+        """ Update the history of processed tables. """
+        processed_tables += [tablename_1, tablename_2]
+        processed_tables = list(set(processed_tables))
+
+    """ Filtering rows. """
+    if result is None:
+        result = dataframes[0]
+
+    for non_joining_criterion in non_joining_criterions:
+        expression_str = non_joining_criterion.raw_expression
+        for value in substitution_index:
+            if value in expression_str:
+                corresponding_key = substitution_index[value]
+                expression_str = expression_str.replace(value, corresponding_key)
+        result = result.query(expression_str)
+
+    """ Building the rows. """
+    result = result.transpose().to_dict()
+    rows = []
+    for value in result.values():
+        row = []
+        for label in labels:
+            refactored_keys = refactored_keys_index[label]
+            sub_row = {}
+            for refactored_key in refactored_keys:
+                raw_key = refactored_keys_to_key_index[refactored_key]
+                sub_row[raw_key] = value[refactored_key]
+            row += [sub_row]
+        rows += [row]
+    return rows
+
+def building_tuples_(list_results, labels, criterions, hints=[]):
 
     # import yappi
     # yappi.start()
+    from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
+
 
     from lib.rome.core.rows.rows import get_attribute, set_attribute, has_attribute
     mode = "experimental"
@@ -272,8 +375,6 @@ def building_tuples(list_results, labels, criterions, hints=[]):
 
         # yappi.get_func_stats().print_all()
         return results
-
-from lib.rome.core.lazy import LazyDate
 
 def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:

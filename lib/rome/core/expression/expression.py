@@ -162,6 +162,14 @@ class BooleanExpression(object):
                     self.default_value_dict[default_value_key] = exp.default_value_dict[default_value_key]
 
         self.compiled_expression = joined_compiled_expressions
+        self.raw_expression = "%s" % (self.compiled_expression)
+        for key in self.default_value_dict:
+            value = self.default_value_dict[key]
+            if type(value).__name__ in ["int", "float"]:
+                self.raw_expression = self.raw_expression.replace(key, "%s" % (self.default_value_dict[key]))
+            else:
+                self.raw_expression = self.raw_expression.replace(key, "\"%s\"" % (self.default_value_dict[key]))
+
         return self.compiled_expression
 
     def prepare_criterion(self, criterion):
