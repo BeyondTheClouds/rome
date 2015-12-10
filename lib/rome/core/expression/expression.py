@@ -95,6 +95,10 @@ class BooleanExpression(object):
                 attribute_name = str(expression.left.key)
                 # value = "%s" % (criterion.expression.right.value)
                 value = expression.right.value
+                if type(expression.left.type).__name__ == "Integer":
+                    value = int(value)
+                if type(expression.left.type).__name__ == "Float":
+                    value = float(value)
                 result += [Hint(table_name, attribute_name, value)]
         return result
 
@@ -152,6 +156,7 @@ class BooleanExpression(object):
                 if type(expression) is BinaryExpression:
                     expression_parts = [expression.right, expression.left]
                     for expression_part in expression_parts:
+                        other_parts = filter(lambda x: x != expression_part,expression_parts)
                         if hasattr(expression_part, "default") and expression_part.bind is None and expression_part.default is not None:
                             expression_part.bind = expression_part.default.arg
                         if ":" in str(expression_part):
@@ -177,7 +182,14 @@ class BooleanExpression(object):
                                 original_label = str(expression_part)
                                 corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
                                 self.variable_substitution_dict[original_label] = corrected_label
-                                self.default_value_dict[corrected_label] = expression_part.value
+                                value = expression_part.value
+                                if len(other_parts) > 0:
+                                    other_part = other_parts[0]
+                                    if type(other_part.expression.type).__name__ == "Integer":
+                                        value = int(value)
+                                    if type(other_part.expression.type).__name__ == "Float":
+                                        value = float(value)
+                                self.default_value_dict[corrected_label] = value
 
         for sub in self.variable_substitution_dict:
             joined_compiled_expressions = joined_compiled_expressions.replace(sub, self.variable_substitution_dict[sub])

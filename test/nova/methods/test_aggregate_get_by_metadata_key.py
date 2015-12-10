@@ -61,6 +61,36 @@ def aggregate_get_by_metadata_key(context, key):
     # processed_result = []
     return processed_result
 
+
+def _aggregate_get_query(context, model_class, id_field=None, id=None,
+                         session=None, read_deleted=None):
+    columns_to_join = {models.Aggregate: ['_hosts', '_metadata']}
+
+    query = model_query(context, model_class, session=session,
+                        read_deleted=read_deleted)
+
+    for c in columns_to_join.get(model_class, []):
+        query = query.options(joinedload(c))
+
+    if id and id_field:
+        query = query.filter(id_field == id)
+
+    return query
+
+def aggregate_get(context, aggregate_id):
+    print("[aggregate_get] id:%s" % (aggregate_id))
+    query = _aggregate_get_query(context,
+                                 models.Aggregate,
+                                 models.Aggregate.id,
+                                 aggregate_id)
+    aggregate = query.first()
+    print("[aggregate_get] aggregate:%s" % (aggregate))
+
+    if not aggregate:
+        raise Exception("aggregate %s not found :(" % (aggregate_id))
+
+    return aggregate
+
 class Context(object):
     def __init__(self, project_id, user_id):
         self.project_id = project_id
@@ -79,8 +109,8 @@ if __name__ == '__main__':
     context = Context("admin", "admin")
 
     result = aggregate_get_by_metadata_key(context, "availability_zone")
-    print(result)
-    result = aggregate_get_by_metadata_key(context, "availability_zone")
-    print(result)
-    result = aggregate_get_by_metadata_key(context, "availability_zone")
-    print(result)
+
+    for each in result:
+        aggregate_id = each.id
+        plop = aggregate_get(context, "3")
+        print(plop)
