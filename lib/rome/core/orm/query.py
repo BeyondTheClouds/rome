@@ -93,6 +93,19 @@ class Query:
         return len(self.all())
 
     def soft_delete(self, synchronize_session=False):
+        for e in self.all():
+            try:
+                e.soft_delete()
+            except:
+                pass
+        return self
+    
+    def delete(self, synchronize_session=False):
+        for e in self.all():
+            try:
+                e.delete()
+            except:
+                pass
         return self
 
     def update(self, values, synchronize_session='evaluate'):
