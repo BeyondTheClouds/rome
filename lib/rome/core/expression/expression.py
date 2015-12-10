@@ -155,8 +155,9 @@ class BooleanExpression(object):
             for expression in self.exps:
                 if type(expression) is BinaryExpression:
                     expression_parts = [expression.right, expression.left]
+                    other_part = expression.left
                     for expression_part in expression_parts:
-                        other_parts = filter(lambda x: x != expression_part,expression_parts)
+                        # other_parts = filter(lambda x: x != expression_part,expression_parts)
                         if hasattr(expression_part, "default") and expression_part.bind is None and expression_part.default is not None:
                             expression_part.bind = expression_part.default.arg
                         if ":" in str(expression_part):
@@ -183,13 +184,14 @@ class BooleanExpression(object):
                                 corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
                                 self.variable_substitution_dict[original_label] = corrected_label
                                 value = expression_part.value
-                                if len(other_parts) > 0:
-                                    other_part = other_parts[0]
-                                    if type(other_part.expression.type).__name__ == "Integer":
-                                        value = int(value)
-                                    if type(other_part.expression.type).__name__ == "Float":
-                                        value = float(value)
+                                # if len(other_parts) > 0:
+                                #     other_part = other_parts[0]
+                                if type(other_part.expression.type).__name__ == "Integer":
+                                    value = int(value)
+                                if type(other_part.expression.type).__name__ == "Float":
+                                    value = float(value)
                                 self.default_value_dict[corrected_label] = value
+                        other_part = expression.right
 
         for sub in self.variable_substitution_dict:
             joined_compiled_expressions = joined_compiled_expressions.replace(sub, self.variable_substitution_dict[sub])

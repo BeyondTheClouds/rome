@@ -108,9 +108,11 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
-    result = aggregate_get_by_metadata_key(context, "availability_zone")
-
-    for each in result:
-        aggregate_id = each.id
-        plop = aggregate_get(context, "3")
-        print(plop)
+    # result = aggregate_get_by_metadata_key(context, "availability_zone")
+    #
+    # for each in result:
+    #     aggregate_id = each.id
+    plop = aggregate_get(context, "4")
+    plop = aggregate_get(context, '4')
+    plop = aggregate_get(context, 4)
+    print(plop)
