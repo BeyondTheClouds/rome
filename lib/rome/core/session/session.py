@@ -180,7 +180,7 @@ class OldSession(object):
             obj.save()
         for obj in self.session_objects_delete:
             obj.update({"session": None}, skip_session=True)
-            obj.soft_delete()
+            obj.delete()
         logging.info("session %s committed" % (self.session_id))
         self.session_objects_add = []
         self.session_objects_delete = []
