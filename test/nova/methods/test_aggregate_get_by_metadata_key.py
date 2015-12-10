@@ -17,6 +17,8 @@ from oslo.utils import timeutils
 from sqlalchemy.sql.expression import asc
 from sqlalchemy.sql.expression import desc
 
+from sqlalchemy.orm import contains_eager
+
 LOG = logging.getLogger()
 
 # List of fields that can be joined in DB layer.
@@ -52,7 +54,7 @@ def aggregate_get_by_metadata_key(context, key):
     # query = query.join("_metadata")
     query = query.join(models.AggregateMetadata)
     query = query.filter(models.AggregateMetadata.key == key)
-    # query = query.options(contains_eager("_metadata"))
+    query = query.options(contains_eager("_metadata"))
     query = query.options(joinedload("_hosts"))
     # TODO(jonathan): change following to support ROME convention.
     # return query.all()
