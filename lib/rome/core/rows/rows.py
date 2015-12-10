@@ -205,8 +205,10 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         refactored_attribute_2 = attribute_2.split(".")[0]+"___"+attribute_2.split(".")[1]
 
         """ Join the tables. """
-        result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2)
-
+        try:
+            result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2)
+        except KeyError:
+            return []
         """ Update the history of processed tables. """
         processed_tables += [tablename_1, tablename_2]
         processed_tables = list(set(processed_tables))
