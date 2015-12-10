@@ -1,23 +1,15 @@
 __author__ = 'jonathan'
 
-import test.nova._fixtures as models
-from lib.rome.core.orm.query import Query
+import logging
+
+from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import joinedload
+
+# import test.nova._fixtures as models
+import nova.db.discovery.models as models
 
 from lib.rome.core.orm.query import Query as RomeQuery
 from lib.rome.core.session.session import Session as RomeSession
-
-from test.nova.methods.test_ensure_default_secgroup import _security_group_ensure_default, _security_group_get_query
-from lib.rome.core.orm.query import or_
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import joinedload_all
-
-import logging
-import uuid
-from oslo.utils import timeutils
-from sqlalchemy.sql.expression import asc
-from sqlalchemy.sql.expression import desc
-
-from sqlalchemy.orm import contains_eager
 
 LOG = logging.getLogger()
 
@@ -50,19 +42,23 @@ def aggregate_get_by_metadata_key(context, key):
     :param key Matches metadata key.
     """
     query = model_query(context, models.Aggregate)
+    print("[aggregate_get_by_metadata_key] (1) result:%s" % (query.all()))
     # TODO(jonathan): change following to support ROME convention.
     # query = query.join("_metadata")
     query = query.join(models.AggregateMetadata)
+    print("[aggregate_get_by_metadata_key] (2) result:%s" % (query.all()))
     query = query.filter(models.AggregateMetadata.key == key)
-    query = query.options(contains_eager("_metadata"))
-    query = query.options(joinedload("_hosts"))
-    # TODO(jonathan): change following to support ROME convention.
-    # return query.all()
+    print("[aggregate_get_by_metadata_key] (3) result:%s" % (query.all()))
+    # query = query.options(contains_eager("_metadata"))
+    # query = query.options(joinedload("_hosts"))
+    # # TODO(jonathan): change following to support ROME convention.
+    # # return query.all()
     result = query.all()
     print("[aggregate_get_by_metadata_key] result:%s" % (result))
     processed_result = map(lambda x: x[0], query.all())
     processed_result = map(lambda x: x.get_complex_ref(), processed_result)
     print("[aggregate_get_by_metadata_key] processed_result:%s" % (processed_result))
+    # processed_result = []
     return processed_result
 
 class Context(object):
@@ -80,7 +76,11 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
 
-    context = Context("project1", "user1")
+    context = Context("admin", "admin")
 
+    result = aggregate_get_by_metadata_key(context, "availability_zone")
+    print(result)
+    result = aggregate_get_by_metadata_key(context, "availability_zone")
+    print(result)
     result = aggregate_get_by_metadata_key(context, "availability_zone")
     print(result)

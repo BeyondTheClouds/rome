@@ -141,7 +141,7 @@ class RelationshipModel(object):
     object."""
 
     def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, local_tablename, remote_object_field,
-                 remote_object_tablename, is_list, remote_class=None, expression=None, to_many=False, obj=None,
+                 remote_object_tablename, is_list, remote_class=None, expression=None, initial_expression=None, to_many=False, obj=None,
                  direction=""):
         """Constructor"""
 
@@ -156,6 +156,7 @@ class RelationshipModel(object):
 
         self.remote_class = remote_class
         self.expression = expression
+        self.initial_expression = initial_expression
         self.to_many = to_many
         self.obj = obj
         self.direction = direction
@@ -299,7 +300,7 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
             is_list = field_object.property.uselist
 
             remote_class = cls
-            expression = field_object.property.primaryjoin
+            expression = field_object.expression
             direction = str(field_object.property.direction).split("'")[1]
 
             if type(expression) == BinaryExpression:
@@ -319,6 +320,7 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
                 is_list,
                 remote_class=remote_class,
                 expression=expression,
+                initial_expression=expression,
                 to_many=to_many,
                 obj=None,
                 direction=direction
@@ -372,6 +374,7 @@ def get_relationships(obj, foreignkey_mode=False):
 
             remote_class = models.get_model_class_from_name(models.get_model_classname_from_tablename(remote_object_tablename))
             expression = field_object.property.primaryjoin
+            initial_expression=expression
             direction = str(field_object.property.direction).split("'")[1]
 
             if type(expression) == BinaryExpression:
@@ -395,11 +398,13 @@ def get_relationships(obj, foreignkey_mode=False):
                 is_list,
                 remote_class=remote_class,
                 expression=expression,
+                initial_expression=initial_expression,
                 to_many=to_many,
                 obj=obj,
                 direction=direction
             )]
     return result
+
 
 class LazyRelationship():
     def __init__(self, rel, request_uuid=None):

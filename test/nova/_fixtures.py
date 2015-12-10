@@ -340,6 +340,7 @@ class InstanceExtra(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("flavorid")
 class InstanceTypes(BASE, NovaBase):
     """Represents possible flavors for instances.
 
@@ -1115,6 +1116,8 @@ class Cell(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("aggregate_id")
+@secondary_index_decorator("host")
 class AggregateHost(BASE, NovaBase):
     """Represents a host that is member of an aggregate."""
     __tablename__ = 'aggregate_hosts'
@@ -1129,6 +1132,8 @@ class AggregateHost(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("aggregate_id")
+@secondary_index_decorator("key")
 class AggregateMetadata(BASE, NovaBase):
     """Represents a metadata key/value pair for an aggregate."""
     __tablename__ = 'aggregate_metadata'
@@ -1145,6 +1150,7 @@ class AggregateMetadata(BASE, NovaBase):
 
 
 @global_scope
+@secondary_index_decorator("name")
 class Aggregate(BASE, NovaBase):
     """Represents a cluster of hosts that exists in this zone."""
     __tablename__ = 'aggregates'
