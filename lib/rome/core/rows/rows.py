@@ -185,6 +185,9 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         non_joining_criterions += _nonjoining_criterions
 
     """ Construct the resulting rows. """
+    if len(labels) > 1 and len(filter(lambda x: len(x) == 0, lists_results)) > 0:
+        return []
+
     result = None
     processed_tables = []
     for joining_pair in joining_pairs:
