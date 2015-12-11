@@ -140,7 +140,7 @@ class RelationshipModel(object):
     be represented either through a foreign key value or a foreign
     object."""
 
-    def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, local_tablename, remote_object_field,
+    def __init__(self, local_fk_field, local_fk_value, local_object_field, local_object_value, local_object_type, local_tablename, remote_object_field,
                  remote_object_tablename, is_list, remote_class=None, expression=None, initial_expression=None, to_many=False, obj=None,
                  direction=""):
         """Constructor"""
@@ -150,6 +150,7 @@ class RelationshipModel(object):
         self.remote_object_field = remote_object_field
         self.local_fk_value = local_fk_value
         self.local_object_value = local_object_value
+        self.local_object_type = local_object_type
         self.local_tablename = local_tablename
         self.remote_object_tablename = remote_object_tablename
         self.is_list = is_list
@@ -160,6 +161,25 @@ class RelationshipModel(object):
         self.to_many = to_many
         self.obj = obj
         self.direction = direction
+        self._convert_local_object_value()
+
+    def _convert_local_object_value(self):
+        initial_value = self.local_fk_value
+        value = initial_value
+        value_changed = False
+        fk_typename = type(self.local_object_type).__name__
+        if value is None:
+            return
+        value_typename = type(self.local_object_type).__name__
+        if fk_typename in ["Integer", "Float"]:
+            if value_typename == "str" and "." in value:
+                value = float(value)
+                value_changed = True
+            if fk_typename == "Integer":
+                value = int(value)
+                value_changed = True
+        if value_changed:
+            self.local_fk_value = value
 
     def __repr__(self):
         return "{local_fk_field: %s, local_fk_value: %s} <--> {local_object_field:%s, remote_object_field:%s, local_object_value:%s, remote_object_tablename:%s, is_list:%s}" % (
@@ -295,6 +315,11 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
             local_tablename = cls.__tablename__
             local_object_field = field
             local_object_value = None
+            local_object_type = None
+            try:
+                local_object_type = remote_local_pair[0].type
+            except:
+                pass
             remote_object_field = remote_local_pair[1].name
             remote_object_tablename = str(remote_local_pair[1].table)
             is_list = field_object.property.uselist
@@ -314,6 +339,7 @@ def get_relationships_from_class(cls, foreignkey_mode=False):
                 local_fk_value,
                 local_object_field,
                 local_object_value,
+                local_object_type,
                 local_tablename,
                 remote_object_field,
                 remote_object_tablename,
@@ -365,6 +391,11 @@ def get_relationships(obj, foreignkey_mode=False):
             local_fk_value = getattr(obj, local_fk_field)
             local_tablename = obj.__tablename__
             local_object_field = field
+            local_object_type = None
+            try:
+                local_object_type = remote_local_pair[0].type
+            except:
+                pass
             local_object_value = getattr(obj, local_object_field)
             remote_object_field = remote_local_pair[1].name
             remote_object_tablename = str(remote_local_pair[1].table)
@@ -392,6 +423,7 @@ def get_relationships(obj, foreignkey_mode=False):
                 local_fk_value,
                 local_object_field,
                 local_object_value,
+                local_object_type,
                 local_tablename,
                 remote_object_field,
                 remote_object_tablename,
