@@ -135,6 +135,16 @@ def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted in [0, None]")
     return expression_str
 
+def drop_y(df):
+    # list comprehension of the cols that end with '_y'
+    to_drop = [x for x in df if x.endswith('_y')]
+    df.drop(to_drop, axis=1, inplace=True)
+
+def rename_x(df):
+    for col in df:
+        if col.endswith('_x'):
+            df.rename(columns={col:col.rstrip('_x')}, inplace=True)
+
 def building_tuples(lists_results, labels, criterions, hints=[]):
 
     """ Build tuples (join operator in relational algebra). """
@@ -209,7 +219,9 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
 
         """ Join the tables. """
         try:
-            result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2)
+            result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2, how="outer")
+            drop_y(result)
+            rename_x(result)
         except KeyError:
             return []
         """ Update the history of processed tables. """
