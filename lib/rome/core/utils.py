@@ -163,6 +163,12 @@ class RelationshipModel(object):
         self.direction = direction
         self._convert_local_object_value()
 
+    def given_type_is_subtype(self, given_type, type_candidates):
+        for type_candidate in type_candidates:
+            if type_candidate in given_type:
+                return True
+        return False
+
     def _convert_local_object_value(self):
         initial_value = self.local_fk_value
         value = initial_value
@@ -171,11 +177,12 @@ class RelationshipModel(object):
         if value is None:
             return
         value_typename = type(self.local_object_type).__name__
-        if fk_typename in ["Integer", "Float"]:
+        # if fk_typename in ["Integer", "Float"]:
+        if self.given_type_is_subtype(fk_typename, ["Integer", "Float"]):
             if value_typename == "str" and "." in value:
                 value = float(value)
                 value_changed = True
-            if fk_typename == "Integer":
+            if self.given_type_is_subtype(fk_typename, ["Integer"]):
                 value = int(value)
                 value_changed = True
         if value_changed:
