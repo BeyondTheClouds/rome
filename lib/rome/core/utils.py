@@ -165,7 +165,7 @@ class RelationshipModel(object):
 
     def given_type_is_subtype(self, given_type, type_candidates):
         for type_candidate in type_candidates:
-            if type_candidate in given_type:
+            if str.upper(type_candidate) in str.upper(given_type):
                 return True
         return False
 
