@@ -76,6 +76,7 @@ class BooleanExpression(object):
         self.deconverter = get_decoder()
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
+        self.is_joining_expression = True
         """ Prepare the expression. """
         self.variable_substitution_dict = {}
         self.default_value_dict = {}
@@ -322,3 +323,8 @@ class BooleanExpression(object):
         if result is False:
             toto = 1
         return result
+
+class JoiningBooleanExpression(BooleanExpression):
+    def __init__(self, operator, *exps):
+        BooleanExpression.__init__(self, operator, *exps)
+        self.is_joining_expression = True

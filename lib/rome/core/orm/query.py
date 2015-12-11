@@ -261,7 +261,14 @@ class Query:
                             if tablename in tablesnames:
                                 other_tablename = filter(lambda x: x!= tablename, tablesnames)[0]
                                 if other_tablename in current_tablenames:
-                                    _criterions += [relationship.initial_expression]
+                                    type_expression = type(relationship.initial_expression).__name__
+                                    new_criterions = []
+                                    if type_expression == "BooleanClauseList":
+                                        for exp in relationship.initial_expression:
+                                            new_criterions += [JoiningBooleanExpression("NORMAL", *[exp])]
+                                    elif type_expression == "BinaryExpression":
+                                        new_criterions = [JoiningBooleanExpression("NORMAL", *[relationship.initial_expression])]
+                                    _criterions += new_criterions
                                     break
                 elif is_expression:
                     _criterions += [item]
