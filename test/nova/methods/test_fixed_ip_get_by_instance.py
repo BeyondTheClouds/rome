@@ -72,5 +72,5 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
     context = Context("admin", "admin")
-    instance_uuid = "7722b8c6-80a3-4bb3-8a31-18370346e75d"
+    instance_uuid = "ad86ce1e-c20f-40fa-a687-0f6dbbb0398f"
     print(fixed_ip_get_by_instance(context, instance_uuid))
