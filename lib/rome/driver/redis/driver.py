@@ -93,7 +93,9 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         result = []
         keys = list(set(keys))
         if len(keys) > 0:
-            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: int(x.split(":")[-1])))
+            keys = filter(lambda x: x != "None" and x != None, keys)
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
+            # str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: int(x.split(":")[-1])))
 
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
             str_result = filter(lambda x: x is not None, str_result)
@@ -188,7 +190,9 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         result = []
         keys = list(set(keys))
         if len(keys) > 0:
-            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
+            keys = filter(lambda x: x != "None" and x != None, keys)
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
+            # str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
             str_result = filter(lambda x: x is not None, str_result)
             # result = map(lambda x: json.loads(x), str_result)
