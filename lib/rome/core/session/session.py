@@ -41,14 +41,31 @@ class Session(object):
         self.acquired_locks = []
         self.already_saved = []
 
+    def already_in(self, obj, objects):
+        if obj in objects:
+            return True
+        obj_signature = "%s" % (obj)
+        existing_signature = map(lambda x: "%s" % (x), objects)
+        return obj_signature in existing_signature
+
     def add(self, *objs):
         for obj in objs:
-            if obj not in self.session_objects_add:
+            if hasattr(obj, "is_loaded"):
+                if obj.is_loaded:
+                    obj = obj.data
+                else:
+                    continue
+            if not self.already_in(obj, self.session_objects_add):
                 self.session_objects_add += [obj]
 
     def delete(self, *objs):
         for obj in objs:
-            if obj not in self.session_objects_delete:
+            if hasattr(obj, "is_loaded"):
+                if obj.is_loaded:
+                    obj = obj.data
+                else:
+                    continue
+            if not self.already_in(obj, self.session_objects_delete):
                 self.session_objects_delete += [obj]
 
     def query(self, *entities, **kwargs):

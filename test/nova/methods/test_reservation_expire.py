@@ -55,11 +55,12 @@ def reservation_expire(context):
                                         session=session, read_deleted="no").\
                             filter(models.Reservation.expire < current_time)
 
-        for reservation in reservation_query.join(models.QuotaUsage).all():
+        for row in reservation_query.join(models.QuotaUsage).all():
+            reservation = row[0] if len(row) > 1 else row
             if reservation.delta >= 0:
                 reservation.usage.reserved -= reservation.delta
                 session.add(reservation.usage)
-
+        session.flush()
         reservation_query.soft_delete(synchronize_session=False)
 
 class Context(object):
