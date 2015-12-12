@@ -13,6 +13,7 @@ from lib.rome.core.lazy import LazyValue
 from lib.rome.core.utils import get_objects, is_novabase
 
 import math
+import re
 
 file_logger_enabled = False
 try:
@@ -132,8 +133,26 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     return [local_tabledata, remote_tabledata]
 
 def correct_boolean_int(expression_str):
-    expression_str = expression_str.replace("___deleted == 0", "___deleted in [0, None]")
+    # expression_str = expression_str.replace("___deleted == 0", "___deleted in [0, None]")
+    expression_str = expression_str.replace("___deleted == 0", "___deleted <= 0")
     return expression_str
+
+def correct_expression_containing_none(expression_str):
+    # Use trick found here: http://stackoverflow.com/questions/26535563/querying-for-nan-and-other-names-in-pandas
+    terms = expression_str.split()
+    clean_expression = " ".join(terms)
+    # clean_expression = clean_expression.replace("is not None", "not in [@nan, None]")
+    # clean_expression = clean_expression.replace("is None", "in [@nan, None]")
+    if len(terms) > 0:
+        variable_name = terms[0]
+        variable_name = variable_name.replace("(", "")
+        if "is not None" in clean_expression:
+            clean_expression = "(%s == %s)" % (variable_name, variable_name, variable_name)
+        if "is None" in clean_expression:
+            clean_expression = "(%s != %s)" % (variable_name, variable_name, variable_name)
+    # clean_expression = clean_expression.replace("is not None", "")
+    # clean_expression = clean_expression.replace("is None", "in [@nan, None]")
+    return clean_expression
 
 def drop_y(df):
     # list comprehension of the cols that end with '_y'
@@ -141,9 +160,9 @@ def drop_y(df):
     df.drop(to_drop, axis=1, inplace=True)
 
 def rename_x(df):
-    for col in df:
-        if col.endswith('_x'):
-            df.rename(columns={col:col.rstrip('_x')}, inplace=True)
+    cols = list(df.columns)
+    fixed_columns = map(lambda x: re.sub("_x$", "", x), cols)
+    df.columns = fixed_columns
 
 def building_tuples(lists_results, labels, criterions, hints=[]):
 
@@ -202,6 +221,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     processed_tables = []
     for joining_pair in joining_pairs:
         """ Preparing the tables that will be joined. """
+
+
         attribute_1 = joining_pair[0].strip()
         attribute_2 = joining_pair[1].strip()
         tablename_1 = attribute_1.split(".")[0]
@@ -242,6 +263,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
                 expression_str = expression_str.replace(value, corresponding_key)
         try:
             corrected_expression = correct_boolean_int(expression_str)
+            corrected_expression = correct_expression_containing_none(corrected_expression)
             result = result.query(corrected_expression)
         except:
             pass
