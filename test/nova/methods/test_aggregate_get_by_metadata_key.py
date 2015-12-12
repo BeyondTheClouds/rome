@@ -112,7 +112,8 @@ if __name__ == '__main__':
     #
     # for each in result:
     #     aggregate_id = each.id
-    plop = aggregate_get(context, "4")
-    plop = aggregate_get(context, '4')
-    plop = aggregate_get(context, 4)
+    aggregate_id = 1
+    plop = aggregate_get(context, "%s" % (aggregate_id))
+    plop = aggregate_get(context, '%s' % (aggregate_id))
+    plop = aggregate_get(context, aggregate_id)
     print(plop)

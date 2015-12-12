@@ -77,6 +77,7 @@ class BooleanExpression(object):
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
         self.is_joining_expression = True
+        self.tables_involved = []
         """ Prepare the expression. """
         self.variable_substitution_dict = {}
         self.default_value_dict = {}
