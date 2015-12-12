@@ -133,16 +133,13 @@ def extract_joining_criterion_from_relationship(rel, local_table):
     return [local_tabledata, remote_tabledata]
 
 def correct_boolean_int(expression_str):
-    # expression_str = expression_str.replace("___deleted == 0", "___deleted in [0, None]")
-    expression_str = expression_str.replace("___deleted == 0", "___deleted <= 0")
+    expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
     return expression_str
 
 def correct_expression_containing_none(expression_str):
     # Use trick found here: http://stackoverflow.com/questions/26535563/querying-for-nan-and-other-names-in-pandas
     terms = expression_str.split()
     clean_expression = " ".join(terms)
-    # clean_expression = clean_expression.replace("is not None", "not in [@nan, None]")
-    # clean_expression = clean_expression.replace("is None", "in [@nan, None]")
     if len(terms) > 0:
         variable_name = terms[0]
         variable_name = variable_name.replace("(", "")
@@ -150,8 +147,6 @@ def correct_expression_containing_none(expression_str):
             clean_expression = "(%s == %s)" % (variable_name, variable_name, variable_name)
         if "is None" in clean_expression:
             clean_expression = "(%s != %s)" % (variable_name, variable_name, variable_name)
-    # clean_expression = clean_expression.replace("is not None", "")
-    # clean_expression = clean_expression.replace("is None", "in [@nan, None]")
     return clean_expression
 
 def drop_y(df):

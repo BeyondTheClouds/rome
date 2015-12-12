@@ -49,16 +49,15 @@ def aggregate_get_by_metadata_key(context, key):
     print("[aggregate_get_by_metadata_key] (2) result:%s" % (query.all()))
     query = query.filter(models.AggregateMetadata.key == key)
     print("[aggregate_get_by_metadata_key] (3) result:%s" % (query.all()))
-    # query = query.options(contains_eager("_metadata"))
-    # query = query.options(joinedload("_hosts"))
-    # # TODO(jonathan): change following to support ROME convention.
-    # # return query.all()
+    query = query.options(contains_eager("_metadata"))
+    query = query.options(joinedload("_hosts"))
+    # TODO(jonathan): change following to support ROME convention.
+    # return query.all()
     result = query.all()
     print("[aggregate_get_by_metadata_key] result:%s" % (result))
     processed_result = map(lambda x: x[0], query.all())
     processed_result = map(lambda x: x.get_complex_ref(), processed_result)
     print("[aggregate_get_by_metadata_key] processed_result:%s" % (processed_result))
-    # processed_result = []
     return processed_result
 
 
@@ -108,12 +107,18 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
-    # result = aggregate_get_by_metadata_key(context, "availability_zone")
-    #
-    # for each in result:
-    #     aggregate_id = each.id
-    aggregate_id = 1
-    plop = aggregate_get(context, "%s" % (aggregate_id))
-    plop = aggregate_get(context, '%s' % (aggregate_id))
-    plop = aggregate_get(context, aggregate_id)
-    print(plop)
+    aggregate_get_by_metadata_key(context, "availability_zone")
+    # aggregate_get_by_metadata_key(context, "availability_zone")
+    # aggregate_get_by_metadata_key(context, "availability_zone")
+    # aggregate_get_by_metadata_key(context, "availability_zone")
+
+
+
+    # #
+    # # for each in result:
+    # #     aggregate_id = each.id
+    # aggregate_id = 1
+    # plop = aggregate_get(context, "%s" % (aggregate_id))
+    # plop = aggregate_get(context, '%s' % (aggregate_id))
+    # plop = aggregate_get(context, aggregate_id)
+    # print(plop)
