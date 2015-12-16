@@ -172,6 +172,10 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     normal_keys_to_key_index = {}
     refactored_keys_to_key_index = {}
     index = 0
+
+    # if len(lists_results) == 1:
+    #     return map(lambda x: [x], lists_results[0])
+
     for list_results in lists_results:
         label = labels[index]
         if len(list_results) == 0:
@@ -264,9 +268,12 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             pass
 
     """ Building the rows. """
-    result = result.transpose().to_dict()
+    # result = result.transpose()
+    # result = result.transpose().to_dict()
     rows = []
-    for value in result.values():
+    # for value in result.values():
+    for index, row in result.iterrows():
+        value = row
         row = []
         for label in labels:
             refactored_keys = refactored_keys_index[label] if label in refactored_keys_index else {}

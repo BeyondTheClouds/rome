@@ -92,8 +92,8 @@ def get_by_instance_uuids(cls, context, instance_uuids):
         db_faultdict = instance_fault_get_by_instance_uuids(context,
                                                                instance_uuids)
         db_faultlist = itertools.chain(*db_faultdict.values())
-        return obj_make_list(context, cls(context), InstanceFault,
-                                  db_faultlist)
+        # return obj_make_list(context, cls(context), InstanceFault,
+        #                           db_faultlist)
 
 class InstanceFault(object):
     # Version 1.0: Initial version
