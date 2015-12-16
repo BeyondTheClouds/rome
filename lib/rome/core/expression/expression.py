@@ -111,6 +111,8 @@ class BooleanExpression(object):
             m = re.search(joining_criterion_pattern, self.raw_expression)
             if m is not None:
                 joining_pair = self.raw_expression[1:-1].split("==")
+                joining_pair = map(lambda x: x.strip(), joining_pair)
+                joining_pair = sorted(joining_pair)
                 return [joining_pair]
             else:
                 return []

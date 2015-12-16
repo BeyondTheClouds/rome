@@ -18,6 +18,8 @@ class SelectorThread(Thread):
         # print("ping")
         # query = Query(models.FixedIp)
         query = Query(models.FixedIp).join(models.Network, models.Network.id==models.FixedIp.network_id)
+
+        # query = Query(models.Instance)
         # query = Query(models.FixedIp).join(models.Network, models.Network.id==models.FixedIp.network_id).filter(or_(models.FixedIp.address=="172.9.0.15", models.FixedIp.address=="172.9.0.16", models.FixedIp.address=="172.9.0.17", models.FixedIp.address=="172.9.0.18", models.FixedIp.address=="172.9.0.19"))
         print(len(query.all()))
         # print("pong")

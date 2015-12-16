@@ -171,6 +171,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     refactored_keys_index = {}
     normal_keys_to_key_index = {}
     refactored_keys_to_key_index = {}
+    refactored_keys_to_table_index = {}
     index = 0
 
     # if len(lists_results) == 1:
@@ -187,6 +188,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
         for value in keys:
             normal_key = "%s.%s" % (label, value)
             refactored_keys = "%s___%s" % (label, value)
+            refactored_keys_to_table_index[refactored_keys] = label
             normal_keys_to_key_index[normal_key] = value
             refactored_keys_to_key_index[refactored_keys] = value
         normal_keys = map(lambda x: "%s.%s" % (label, x), keys)
@@ -205,48 +207,62 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     """ Collecting joining expressions. """
     joining_pairs = []
     non_joining_criterions = []
+    _joining_pairs_str_index = {}
+    _nonjoining_criterions_str_index = {}
     for criterion in criterions:
         _joining_pairs = criterion.extract_joining_pairs()
         _nonjoining_criterions = criterion.extract_nonjoining_criterions()
 
-        joining_pairs += _joining_pairs
-        non_joining_criterions += _nonjoining_criterions
+        _nonjoining_criterions_str = str(_nonjoining_criterions)
+
+        if len(_joining_pairs) > 0:
+            _joining_pairs_str = str(sorted(_joining_pairs[0]))
+            if not _joining_pairs_str in _joining_pairs_str_index:
+                _joining_pairs_str_index[_joining_pairs_str] = 1
+                joining_pairs += _joining_pairs
+        if not _nonjoining_criterions_str in _nonjoining_criterions_str_index:
+            _nonjoining_criterions_str_index[_nonjoining_criterions_str] = 1
+            non_joining_criterions += _nonjoining_criterions
+
+
 
     """ Construct the resulting rows. """
     if len(labels) > 1 and len(filter(lambda x: len(x) == 0, lists_results)) > 0:
         return []
 
     result = None
-    processed_tables = []
-    for joining_pair in joining_pairs:
-        """ Preparing the tables that will be joined. """
+
+    if len(list_results) > 1:
+        processed_tables = []
+        for joining_pair in joining_pairs:
+            """ Preparing the tables that will be joined. """
 
 
-        attribute_1 = joining_pair[0].strip()
-        attribute_2 = joining_pair[1].strip()
-        tablename_1 = attribute_1.split(".")[0]
-        tablename_2 = attribute_2.split(".")[0]
+            attribute_1 = joining_pair[0].strip()
+            attribute_2 = joining_pair[1].strip()
+            tablename_1 = attribute_1.split(".")[0]
+            tablename_2 = attribute_2.split(".")[0]
 
-        if tablename_1 not in dataindex or tablename_2 not in dataindex:
-            return []
-        index_1 = dataindex[tablename_1]
-        index_2 = dataindex[tablename_2]
-        dataframe_1 = dataframes[index_1] if not tablename_1 in processed_tables else result
-        dataframe_2 = dataframes[index_2] if not tablename_2 in processed_tables else result
+            if tablename_1 not in dataindex or tablename_2 not in dataindex:
+                return []
+            index_1 = dataindex[tablename_1]
+            index_2 = dataindex[tablename_2]
+            dataframe_1 = dataframes[index_1] if not tablename_1 in processed_tables else result
+            dataframe_2 = dataframes[index_2] if not tablename_2 in processed_tables else result
 
-        refactored_attribute_1 = attribute_1.split(".")[0]+"___"+attribute_1.split(".")[1]
-        refactored_attribute_2 = attribute_2.split(".")[0]+"___"+attribute_2.split(".")[1]
+            refactored_attribute_1 = attribute_1.split(".")[0]+"___"+attribute_1.split(".")[1]
+            refactored_attribute_2 = attribute_2.split(".")[0]+"___"+attribute_2.split(".")[1]
 
-        """ Join the tables. """
-        try:
-            result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2, how="outer")
-            drop_y(result)
-            rename_x(result)
-        except KeyError:
-            return []
-        """ Update the history of processed tables. """
-        processed_tables += [tablename_1, tablename_2]
-        processed_tables = list(set(processed_tables))
+            """ Join the tables. """
+            try:
+                result = pd.merge(dataframe_1, dataframe_2, left_on=refactored_attribute_1, right_on=refactored_attribute_2, how="outer")
+                drop_y(result)
+                rename_x(result)
+            except KeyError:
+                return []
+            """ Update the history of processed tables. """
+            processed_tables += [tablename_1, tablename_2]
+            processed_tables = list(set(processed_tables))
 
     """ Filtering rows. """
     if result is None:
@@ -268,23 +284,51 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             pass
 
     """ Building the rows. """
-    # result = result.transpose()
-    # result = result.transpose().to_dict()
     rows = []
+    # for index, row in result.iterrows():
+    #     value = row
+    #     row = []
+    #     for label in labels:
+    #         refactored_keys = refactored_keys_index[label] if label in refactored_keys_index else {}
+    #         sub_row = {}
+    #         for refactored_key in refactored_keys:
+    #             raw_key = refactored_keys_to_key_index[refactored_key]
+    #             sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
+    #             if type(sub_row[raw_key]) is float and math.isnan(sub_row[raw_key]):
+    #                 sub_row[raw_key] = None
+    #             sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
+    #         row += [sub_row]
+    #     rows += [row]
+    # return rows
+    #
+    # rows = []
     # for value in result.values():
-    for index, row in result.iterrows():
-        value = row
-        row = []
-        for label in labels:
-            refactored_keys = refactored_keys_index[label] if label in refactored_keys_index else {}
-            sub_row = {}
-            for refactored_key in refactored_keys:
-                raw_key = refactored_keys_to_key_index[refactored_key]
-                sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
-                if type(sub_row[raw_key]) is float and math.isnan(sub_row[raw_key]):
-                    sub_row[raw_key] = None
-                # sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
-            row += [sub_row]
+
+    # def row_to_dict()
+
+    # for index, row in result.iterrows():
+    # for row in result.itertuples():
+    #     value = row
+    columns_indexes = {}
+    label_indexes = {}
+    i = 0
+    for refactored_key in result.columns.values:
+        columns_indexes[refactored_key] = i
+        i += 1
+    i = 0
+    for label in labels:
+        label_indexes[label] = i
+
+    transposed_result = result.transpose()
+    dict_values = transposed_result.to_dict()
+    for value in dict_values.values():
+        row = map(lambda x: {}, labels)
+        for ci in columns_indexes:
+            table = refactored_keys_to_table_index[ci]
+            table_index = label_indexes[table]
+            key = refactored_keys_to_key_index[ci]
+            v = value[ci]
+            row[table_index][key] = v
         rows += [row]
     return rows
 
@@ -296,7 +340,6 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     elif type(value) is dict and "timezone" in value:
         decoder = get_decoder()
         return decoder.desimplify(value)
-        # return LazyDate(value, request_uuid)
     else:
         return LazyValue(value, request_uuid)
 
