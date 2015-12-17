@@ -323,7 +323,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     dict_values = transposed_result.to_dict()
     for value in dict_values.values():
         row = map(lambda x: {}, labels)
-        for ci in columns_indexes:
+        for ci in value:
             table = refactored_keys_to_table_index[ci]
             table_index = label_indexes[table]
             key = refactored_keys_to_key_index[ci]
