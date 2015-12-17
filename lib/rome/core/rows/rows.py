@@ -239,7 +239,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
 
     result = None
 
-    if len(list_results) > 1:
+    if len(lists_results) > 1:
         processed_tables = []
         for joining_pair in joining_pairs:
             """ Preparing the tables that will be joined. """
