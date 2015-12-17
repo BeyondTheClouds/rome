@@ -82,5 +82,5 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
     context = Context("admin", "admin")
-    instance_uuid = "ad86ce1e-c20f-40fa-a687-0f6dbbb0398f"
+    instance_uuid = "48be8fd6-967d-4489-9858-24399cdc83c9"
     print(get_by_instance_uuid(FixedIP, context, instance_uuid))

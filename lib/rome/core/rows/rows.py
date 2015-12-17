@@ -12,6 +12,8 @@ from lib.rome.core.dataformat import get_decoder
 from lib.rome.core.lazy import LazyValue
 from lib.rome.core.utils import get_objects, is_novabase
 
+from lib.rome.core.models import get_model_classname_from_tablename
+
 import math
 import re
 
@@ -174,8 +176,13 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     refactored_keys_to_table_index = {}
     index = 0
 
+
+    classname_index = {}
+    for each in labels:
+        classname_index[each] = get_model_classname_from_tablename(each)
     # if len(lists_results) == 1:
     #     return map(lambda x: [x], lists_results[0])
+
 
     for list_results in lists_results:
         label = labels[index]
@@ -318,6 +325,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
     i = 0
     for label in labels:
         label_indexes[label] = i
+        i += 1
 
     transposed_result = result.transpose()
     dict_values = transposed_result.to_dict()
@@ -330,6 +338,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             v = value[ci]
             if type(v) is float and math.isnan(v):
                 v = 0
+            if key == "_metadata_novabase_classname":
+                print("plop")
             row[table_index][key] = v
         rows += [row]
     return rows
