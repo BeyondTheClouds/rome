@@ -14,7 +14,7 @@ from sqlalchemy import DateTime
 
 import lib.rome.driver.database_driver as database_driver
 import time
-
+import math
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -182,6 +182,8 @@ class RelationshipModel(object):
             if value_typename == "str" and "." in value:
                 value = float(value)
                 value_changed = True
+            if type(value) is float and math.isnan(value):
+                    value = 0
             if self.given_type_is_subtype(fk_typename, ["Integer"]):
                 value = int(value)
                 value_changed = True
