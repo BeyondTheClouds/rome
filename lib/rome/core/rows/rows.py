@@ -328,6 +328,8 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             table_index = label_indexes[table]
             key = refactored_keys_to_key_index[ci]
             v = value[ci]
+            if type(v) is float and math.isnan(v):
+                v = 0
             row[table_index][key] = v
         rows += [row]
     return rows
