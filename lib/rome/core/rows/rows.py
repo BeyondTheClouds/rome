@@ -339,7 +339,7 @@ def building_tuples(lists_results, labels, criterions, hints=[]):
             if type(v) is float and math.isnan(v):
                 v = 0
             if key == "_metadata_novabase_classname":
-                print("plop")
+                v = classname_index[table]
             row[table_index][key] = v
         rows += [row]
     return rows
