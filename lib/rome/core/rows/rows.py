@@ -205,9 +205,9 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
     part3_starttime = current_milli_time()
 
     """ Building tuples """
-    if len(list_results) > 1:
+    try:
         tuples = building_tuples(list_results, labels, criterions, hints)
-    else:
+    except:
         tuples = simple_building_tuples(list_results, labels, criterions, hints)
     part4_starttime = current_milli_time()
 
