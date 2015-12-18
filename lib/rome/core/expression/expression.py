@@ -146,9 +146,9 @@ class BooleanExpression(object):
         compiled_expressions = map(lambda x: "(%s)" % (collect_expressions(x)), self.exps)
 
         joined_compiled_expressions = []
-        if self.operator == "AND":
+        if self.operator == "and":
             joined_compiled_expressions = " and ".join(compiled_expressions)
-        elif self.operator == "OR":
+        elif self.operator == "or":
             joined_compiled_expressions = " or ".join(compiled_expressions)
         elif self.operator == "NORMAL":
             joined_compiled_expressions = " or ".join(compiled_expressions)
@@ -313,19 +313,24 @@ class BooleanExpression(object):
                 return False
             for exp in self.exps:
                 if exp.evaluate(orig_value):
-                    if self.operator in ["OR"]:
+                    if self.operator in ["or"]:
                         return True
                 else:
-                    if self.operator in ["AND"]:
+                    if self.operator in ["and"]:
                         return False
-            if self.operator in ["NORMAL", "OR"]:
+            if self.operator in ["NORMAL", "or"]:
                 return False
             else:
                 return True
             pass
-        if result is False:
-            toto = 1
         return result
+
+    def __repr__(self):
+        if self.operator == "NORMAL":
+            return str(self.raw_expression)
+        else:
+            op = " %s ".lower() % (self.operator)
+            return "(%s)" % (op.join(map(lambda x: str(x), self.exps)))
 
 class JoiningBooleanExpression(BooleanExpression):
     def __init__(self, operator, *exps):

@@ -15,11 +15,11 @@ class Selection:
 
 
 def and_(*exps):
-    return BooleanExpression("AND", *exps)
+    return BooleanExpression("and", *exps)
 
 
 def or_(*exps):
-    return BooleanExpression("OR", *exps)
+    return BooleanExpression("or", *exps)
 
 
 class Function:

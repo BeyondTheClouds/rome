@@ -29,7 +29,7 @@ if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
 
-    n = 1
+    n = 2
 
     for i in range(0, n):
         thread_1 = SelectorThread("canard")
