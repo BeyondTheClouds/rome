@@ -6,7 +6,7 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
 import gevent
-from gevent import monkey; monkey.patch_socket()
+# from gevent import monkey; monkey.patch_socket()
 
 from multiprocessing import Pool
 import multiprocessing
@@ -110,11 +110,12 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
         keys = list(set(keys))
-        keys_parted = chunks(keys, 300)
-        jobs = [gevent.spawn(self._resolve_keys, tablename, keys) for keys in keys_parted]
-        gevent.joinall(jobs, timeout=2)
-        result = [job.value for job in jobs]
-        return list(flatten(result))
+        # keys_parted = chunks(keys, 300)
+        # jobs = [gevent.spawn(self._resolve_keys, tablename, keys) for keys in keys_parted]
+        # gevent.joinall(jobs, timeout=2)
+        # result = [job.value for job in jobs]
+        # return list(flatten(result))
+        return self._resolve_keys(tablename, keys)
 
 
 class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
