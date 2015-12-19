@@ -1,14 +1,39 @@
-import lib.rome.driver.database_driver
 import redis
-# import json
+
+import lib.rome.driver.database_driver
+
 import rediscluster
 from lib.rome.conf.Configuration import get_config
-# from redlock import RedLock as RedLock
-# import redis_lock
 from redlock import Redlock as Redlock
-import time
+import gevent
+from gevent import monkey; monkey.patch_socket()
 
-from lib.rome.driver.redis.lock import ClusterLock as ClusterLock
+from multiprocessing import Pool
+import multiprocessing
+
+NCORES = multiprocessing.cpu_count()
+eval_pool = Pool(processes=NCORES)
+
+
+def easy_parallize(f, sequence, pool):
+    result = pool.map(f, sequence)
+    cleaned = [x for x in result if not x is None]
+    return cleaned
+
+
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
+def flatten(container):
+    for i in container:
+        if isinstance(i, list) or isinstance(i, tuple):
+            for j in flatten(i):
+                yield j
+        else:
+            yield i
+
 
 class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -16,7 +41,6 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         config = get_config()
         self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
         self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
-        # self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
         """"""
@@ -41,26 +65,12 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        # lockname = "lock-%s" % (tablename)
-        # my_lock = None
-        # try_to_lock = True
-        # while try_to_lock:
-        #     # my_lock = self.dlm.lock(lockname,1000)
-        #     my_lock = self.dlm.lock(lockname, 200)
-        #     if my_lock is not False:
-        #         try_to_lock = False
-        #     else:
-        #         time.sleep(0.2)
-        # json_value = json.dumps(value)
         json_value = value
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
             secondary_value = value[secondary_index]
             fetched = self.redis_client.sadd("sec_index:%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
-            # fetched = self.redis_client.hset("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
-        # self.dlm.unlock(lockname)
-        # self.dlm.unlock(my_lock)
         return result
 
     def get(self, tablename, key, hint=None):
@@ -69,10 +79,23 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         if hint is not None:
             redis_keys = self.redis_client.smembers("sec_index:%s:%s:%s" % (tablename, hint[0], hint[1]))
             redis_key = redis_keys[0]
-            # redis_key = self.redis_client.hget("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, hint[0], hint[1]))
         fetched = self.redis_client.hget(tablename, redis_key)
-        # result = json.loads(fetched) if fetched is not None else None
         result = eval(fetched) if fetched is not None else None
+        return result
+
+    def _resolve_keys(self, tablename, keys):
+        if len(keys) > 0:
+            keys = filter(lambda x: x != "None" and x != None, keys)
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
+
+            """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
+            # str_result = filter(lambda x: x is not None, str_result)
+
+            # str_result = "[%s]" % (",".join(str_result))
+            # result = eval(str_result, {"nan": None})
+
+            result = easy_parallize(eval, str_result, eval_pool)
+            result = filter(lambda x: x!= None, result)
         return result
 
     def getall(self, tablename, hints=[]):
@@ -86,35 +109,21 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             keys = map(lambda x: "%s:id:%s" % (tablename, x[1]), id_hints)
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
-            # if len(sec_keys) > 0:
-            #     # keys += filter(None, self.redis_client.smembers("sec_index:%s" % (tablename), sec_keys))
-            #     keys += filter(None, self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys))
-            # # keys = filter(None, keys) + id_hints
-        result = []
         keys = list(set(keys))
-        if len(keys) > 0:
-            keys = filter(lambda x: x != "None" and x != None, keys)
-            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
-            # str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: int(x.split(":")[-1])))
+        keys_parted = chunks(keys, 300)
+        jobs = [gevent.spawn(self._resolve_keys, tablename, keys) for keys in keys_parted]
+        gevent.joinall(jobs, timeout=2)
+        result = [job.value for job in jobs]
+        return list(flatten(result))
 
-            """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
-            str_result = filter(lambda x: x is not None, str_result)
-
-            # result = map(lambda x: eval(x), str_result)
-            str_result = "[%s]" % (",".join(str_result))
-            result = eval(str_result, {"nan": None})
-            result = filter(lambda x: x!= None, result)
-        return result
 
 class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def __init__(self):
         config = get_config()
-        # startup_nodes = [{"host": "127.0.0.1", "port": "6379"}]
         startup_nodes = map(lambda x: {"host": x, "port": "%s" % (config.port())}, config.cluster_nodes())
         self.redis_client = rediscluster.StrictRedisCluster(startup_nodes=startup_nodes, decode_responses=True)
         self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
-        # self.dlm = ClusterLock()
 
     def add_key(self, tablename, key):
         """"""
@@ -139,25 +148,12 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        # lockname = "lock-%s" % (tablename)
-        # my_lock = None
-        # try_to_lock = True
-        # while try_to_lock:
-        #     my_lock = self.dlm.lock(lockname, 50)
-        #     if my_lock is not False:
-        #         try_to_lock = False
-        #     else:
-        #         time.sleep(0.020)
-        # json_value = json.dumps(value)
         json_value = value
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
             secondary_value = value[secondary_index]
             fetched = self.redis_client.sadd("sec_index:%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
-            # fetched = self.redis_client.hset("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
-        # self.dlm.unlock(my_lock)
-        # self.dlm.unlock(lockname)
         return result
 
     def get(self, tablename, key, hint=None):
@@ -166,9 +162,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
         if hint is not None:
             redis_keys = self.redis_client.smembers("sec_index:%s:%s:%s" % (tablename, hint[0], hint[1]))
             redis_key = redis_keys[0]
-            # redis_key = self.redis_client.hget("sec_index:%s" % (tablename), "%s:%s:%s" % (tablename, hint[0], hint[1]))
         fetched = self.redis_client.hget(tablename, redis_key)
-        # result = json.loads(fetched) if fetched is not None else None
         result = eval(fetched) if fetched is not None else None
         return result
 
@@ -183,21 +177,13 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             keys = map(lambda x: "%s:id:%s" % (tablename, x[1]), id_hints)
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
-            # if len(sec_keys) > 0:
-            #     # keys += filter(None, self.redis_client.smembers("sec_index:%s" % (tablename), sec_keys))
-            #     keys += filter(None, self.redis_client.hmget("sec_index:%s" % (tablename), sec_keys))
-            # # keys = filter(None, keys) + id_hints
         result = []
         keys = list(set(keys))
         if len(keys) > 0:
             keys = filter(lambda x: x != "None" and x != None, keys)
             str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
-            # str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x:int(x.split(":")[-1])))
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
             str_result = filter(lambda x: x is not None, str_result)
-            # result = map(lambda x: json.loads(x), str_result)
-
-            # result = map(lambda x: eval(x), str_result)
             str_result = "[%s]" % (",".join(str_result))
             result = eval(str_result)
             result = filter(lambda x: x!= None, result)
