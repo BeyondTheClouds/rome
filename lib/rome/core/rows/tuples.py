@@ -2,7 +2,6 @@ import re
 from lib.rome.core.models import get_model_classname_from_tablename
 import pandas as pd
 import math
-from pandasql import sqldf
 
 def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
@@ -54,7 +53,6 @@ def default_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     # if len(lists_results) == 1:
     #     return map(lambda x: [x], lists_results[0])
 
-
     for list_results in lists_results:
         label = labels[index]
         if len(list_results) == 0:
@@ -101,8 +99,6 @@ def default_panda_building_tuples(lists_results, labels, criterions, hints=[]):
         if not _nonjoining_criterions_str in _nonjoining_criterions_str_index:
             _nonjoining_criterions_str_index[_nonjoining_criterions_str] = 1
             non_joining_criterions += _nonjoining_criterions
-
-
 
     """ Construct the resulting rows. """
     if len(labels) > 1 and len(filter(lambda x: len(x) == 0, lists_results)) > 0:
@@ -163,30 +159,6 @@ def default_panda_building_tuples(lists_results, labels, criterions, hints=[]):
 
     """ Building the rows. """
     rows = []
-    # for index, row in result.iterrows():
-    #     value = row
-    #     row = []
-    #     for label in labels:
-    #         refactored_keys = refactored_keys_index[label] if label in refactored_keys_index else {}
-    #         sub_row = {}
-    #         for refactored_key in refactored_keys:
-    #             raw_key = refactored_keys_to_key_index[refactored_key]
-    #             sub_row[raw_key] = value[refactored_key] if refactored_key in value else None
-    #             if type(sub_row[raw_key]) is float and math.isnan(sub_row[raw_key]):
-    #                 sub_row[raw_key] = None
-    #             sub_row[raw_key] = value[refactored_key] if refactored_key in value else 0
-    #         row += [sub_row]
-    #     rows += [row]
-    # return rows
-    #
-    # rows = []
-    # for value in result.values():
-
-    # def row_to_dict()
-
-    # for index, row in result.iterrows():
-    # for row in result.itertuples():
-    #     value = row
     columns_indexes = {}
     label_indexes = {}
     i = 0
@@ -350,17 +322,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     """ Transform pandas data into dict. """
     final_columns = list(set(map(lambda l: "%s__id" % (l), labels)))
     filtered_result = filtered_result[final_columns]
-    # filtered_result = filtered_result[]
-    # rows_frame = filtered_result.transpose()
-    tuple_to_row_converter = lambda t: map(t)
     rows = []
     for each in filtered_result.itertuples():
         row = map(lambda (x, y): table_id_index[x][y], zip(labels, reversed(each)))
         rows += [row]
-    # pre_filtered_result = filtered_result.transpose().to_dict()
-    # for row in pre_filtered_result:
-    #     # print(row)
-    #     pass
-
-    rows = []
     return rows
