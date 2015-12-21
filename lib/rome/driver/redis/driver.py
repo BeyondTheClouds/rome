@@ -25,26 +25,26 @@ def easy_parallize_(f, sequence):
 
 def easy_parallize(f, sequence):
     return map(f, sequence)
-    # import os
-    #
-    # children = []
-    # result = []
-    # for i in range(len(sequence)):
-    #     pid = os.fork()
-    #     if pid:
-    #         children.append(pid)
-    #     else:
-    #         children.append(pid)
-    #         value = sequence.pop()
-    #         result += [eval(value)]
-    #         os._exit(0)
-    #
-    # for i, child in enumerate(children):
-    #     os.waitpid(child, 0)
-    #
-    # print(result)
-    # result = eval_pool.map(f, sequence)
-    # cleaned = [x for x in result if not x is None]
+
+def easy_parallize__(f, sequence):
+    from threading import Thread
+    from Queue import Queue
+    def worker():
+        while True:
+            item = q.pop()
+            f(item)
+            q.task_done()
+
+    q = Queue()
+    for i in range(4):
+         t = Thread(target=worker)
+         t.daemon = True
+         t.start()
+
+    for item in sequence:
+        q.put(item)
+
+    q.join()
     return []
 
 
