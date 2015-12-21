@@ -5,18 +5,47 @@ import lib.rome.driver.database_driver
 import rediscluster
 from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
+
 # import gevent
 # from gevent import monkey; monkey.patch_socket()
 
+PARALLEL_STRUCTURES = {}
 
-# Due to an incompatibility with OpenStack , 'eval_pool' is set to None in a first time. When an instance of the redis
-# driver is created, the eval_pool will be initialized.
-eval_pool = None
-
-def easy_parallize(f, sequence, pool):
-    result = pool.map(f, sequence)
+def easy_parallize_(f, sequence):
+    if not "eval_pool" in PARALLEL_STRUCTURES:
+        from multiprocessing import Pool
+        import multiprocessing
+        NCORES = multiprocessing.cpu_count()
+        eval_pool = Pool(processes=NCORES)
+        PARALLEL_STRUCTURES["eval_pool"] = eval_pool
+    eval_pool = PARALLEL_STRUCTURES["eval_pool"]
+    result = eval_pool.map(f, sequence)
     cleaned = [x for x in result if not x is None]
     return cleaned
+
+def easy_parallize(f, sequence):
+
+    import os
+
+    children = []
+    result = []
+    for i in range(len(sequence)):
+        pid = os.fork()
+        if pid:
+            children.append(pid)
+        else:
+            children.append(pid)
+            value = sequence.pop()
+            result += [eval(value)]
+            os._exit(0)
+
+    for i, child in enumerate(children):
+        os.waitpid(child, 0)
+
+    print(result)
+    # result = eval_pool.map(f, sequence)
+    # cleaned = [x for x in result if not x is None]
+    return []
 
 
 def chunks(l, n):
@@ -40,13 +69,6 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         config = get_config()
         self.redis_client = redis.StrictRedis(host=config.host(), port=config.port(), db=0)
         self.dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ], retry_count=10)
-
-        if eval_pool is None:
-            from multiprocessing import Pool
-            import multiprocessing
-
-            NCORES = multiprocessing.cpu_count()
-            eval_pool = Pool(processes=NCORES)
 
     def add_key(self, tablename, key):
         """"""
@@ -100,7 +122,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             # str_result = "[%s]" % (",".join(str_result))
             # result = eval(str_result, {"nan": None})
 
-            result = easy_parallize(eval, str_result, eval_pool)
+            result = easy_parallize(eval, str_result)
             result = filter(lambda x: x!= None, result)
         return result
 
