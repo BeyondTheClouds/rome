@@ -6,8 +6,6 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
 
-import multiprocessing
-
 from Queue import Queue
 
 PARALLEL_STRUCTURES = {}
@@ -25,11 +23,12 @@ def easy_parallelize_multiprocessing(f, sequence):
     return cleaned
 
 def easy_parallelize_nova_processutils(f, sequence):
+    import nova.openstack.common.processutils as processutils
     if not "eval_pool" in PARALLEL_STRUCTURES:
-        from multiprocessing import Pool
-        import multiprocessing
-        NCORES = multiprocessing.cpu_count()
-        eval_pool = Pool(processes=NCORES)
+        # from multiprocessing import Pool
+        # import multiprocessing
+        NCORES = processutils.multiprocessing.cpu_count()
+        eval_pool = processutils.multiprocessing.Pool(processes=NCORES)
         PARALLEL_STRUCTURES["eval_pool"] = eval_pool
     eval_pool = PARALLEL_STRUCTURES["eval_pool"]
     result = eval_pool.map(f, sequence)
@@ -67,7 +66,8 @@ def easy_parallelize_eventlet(f, sequence):
 
 def easy_parallize(f, sequence):
     # return easy_parallelize_multiprocessing(f, sequence)
-    return easy_parallelize_sequence(f, sequence)
+    # return easy_parallelize_sequence(f, sequence)
+    return easy_parallelize_nova_processutils(f, sequence)
     # return easy_parallize_gevent(f, sequence)
     # return easy_parallelize_eventlet(f, sequence)
 
