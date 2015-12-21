@@ -24,13 +24,16 @@ def easy_parallize_(f, sequence):
     return cleaned
 
 def easy_parallize(f, sequence):
+    if sequence is None:
+        return []
     return map(f, sequence)
 
-def easy_parallize(f, sequence):
+def easy_parallize__(f, sequence):
     import gevent
-    threads = [gevent.spawn(f, i) for i in sequence]
-    result = gevent.joinall(threads)
-    return result
+    jobs = [gevent.spawn(f, e) for e in sequence]
+    gevent.joinall(jobs, timeout=2)
+    result = [job.value for job in jobs]
+    return list(flatten(result))
 
 
 def chunks(l, n):
