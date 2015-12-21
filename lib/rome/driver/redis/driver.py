@@ -24,25 +24,25 @@ def easy_parallize_(f, sequence):
     return cleaned
 
 def easy_parallize(f, sequence):
-
-    import os
-
-    children = []
-    result = []
-    for i in range(len(sequence)):
-        pid = os.fork()
-        if pid:
-            children.append(pid)
-        else:
-            children.append(pid)
-            value = sequence.pop()
-            result += [eval(value)]
-            os._exit(0)
-
-    for i, child in enumerate(children):
-        os.waitpid(child, 0)
-
-    print(result)
+    return map(f, sequence)
+    # import os
+    #
+    # children = []
+    # result = []
+    # for i in range(len(sequence)):
+    #     pid = os.fork()
+    #     if pid:
+    #         children.append(pid)
+    #     else:
+    #         children.append(pid)
+    #         value = sequence.pop()
+    #         result += [eval(value)]
+    #         os._exit(0)
+    #
+    # for i, child in enumerate(children):
+    #     os.waitpid(child, 0)
+    #
+    # print(result)
     # result = eval_pool.map(f, sequence)
     # cleaned = [x for x in result if not x is None]
     return []
