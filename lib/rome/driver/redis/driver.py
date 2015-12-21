@@ -54,8 +54,8 @@ def easy_parallelize_eventlet(f, sequence):
 
 def easy_parallize(f, sequence):
     # return easy_parallelize_multiprocessing(f, sequence)
-    # return easy_parallelize_sequence(f, sequence)
-    return easy_parallize_gevent(f, sequence)
+    return easy_parallelize_sequence(f, sequence)
+    # return easy_parallize_gevent(f, sequence)
     # return easy_parallelize_eventlet(f, sequence)
 
 
@@ -150,11 +150,6 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
         keys = list(set(keys))
-        # keys_parted = chunks(keys, 100)
-        # jobs = [gevent.spawn(self._resolve_keys, tablename, keys) for keys in keys_parted]
-        # gevent.joinall(jobs, timeout=2)
-        # result = [job.value for job in jobs]
-        # return list(flatten(result))
         return self._resolve_keys(tablename, keys)
 
 
