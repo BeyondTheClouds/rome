@@ -6,6 +6,9 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
 
+
+from gevent.monkey import patch_all; patch_all()
+from multiprocessing import Process, current_process, cpu_count
 # import gevent
 # from gevent import monkey; monkey.patch_socket()
 
@@ -23,17 +26,20 @@ def easy_parallize_(f, sequence):
     cleaned = [x for x in result if not x is None]
     return cleaned
 
-def easy_parallize(f, sequence):
+def easy_parallize__(f, sequence):
     if sequence is None:
         return []
     return map(f, sequence)
 
-def easy_parallize__(f, sequence):
-    import gevent
-    jobs = [gevent.spawn(f, e) for e in sequence]
-    gevent.joinall(jobs, timeout=2)
-    result = [job.value for job in jobs]
-    return list(flatten(result))
+def easy_parallize(f, sequence):
+    if not "gevent_pool" in PARALLEL_STRUCTURES:
+        from gevent.threadpool import ThreadPool
+        import gevent
+        pool = ThreadPool(500)
+        PARALLEL_STRUCTURES["gevent_pool"] = pool
+    pool = PARALLEL_STRUCTURES["gevent_pool"]
+    # pool.map(f, sequence)
+    return []
 
 
 def chunks(l, n):
