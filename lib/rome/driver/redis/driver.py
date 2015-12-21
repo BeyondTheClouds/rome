@@ -26,26 +26,11 @@ def easy_parallize_(f, sequence):
 def easy_parallize(f, sequence):
     return map(f, sequence)
 
-def easy_parallize__(f, sequence):
-    from threading import Thread
-    from Queue import Queue
-    def worker():
-        while True:
-            item = q.pop()
-            f(item)
-            q.task_done()
-
-    q = Queue()
-    for i in range(4):
-         t = Thread(target=worker)
-         t.daemon = True
-         t.start()
-
-    for item in sequence:
-        q.put(item)
-
-    q.join()
-    return []
+def easy_parallize(f, sequence):
+    import gevent
+    threads = [gevent.spawn(f, i) for i in sequence]
+    result = gevent.joinall(threads)
+    return result
 
 
 def chunks(l, n):
@@ -112,6 +97,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
         return result
 
     def _resolve_keys(self, tablename, keys):
+        result = []
         if len(keys) > 0:
             keys = filter(lambda x: x != "None" and x != None, keys)
             str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
