@@ -7,14 +7,11 @@ from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
 
 
-from gevent.monkey import patch_all; patch_all()
-from multiprocessing import Process, current_process, cpu_count
-# import gevent
-# from gevent import monkey; monkey.patch_socket()
+from Queue import Queue
 
 PARALLEL_STRUCTURES = {}
 
-def easy_parallize_(f, sequence):
+def easy_parallelize_multiprocessing(f, sequence):
     if not "eval_pool" in PARALLEL_STRUCTURES:
         from multiprocessing import Pool
         import multiprocessing
@@ -26,20 +23,40 @@ def easy_parallize_(f, sequence):
     cleaned = [x for x in result if not x is None]
     return cleaned
 
-def easy_parallize__(f, sequence):
+def easy_parallelize_sequence(f, sequence):
     if sequence is None:
         return []
     return map(f, sequence)
 
-def easy_parallize(f, sequence):
+def easy_parallize_gevent(f, sequence):
     if not "gevent_pool" in PARALLEL_STRUCTURES:
         from gevent.threadpool import ThreadPool
-        import gevent
-        pool = ThreadPool(500)
+        pool = ThreadPool(30000)
         PARALLEL_STRUCTURES["gevent_pool"] = pool
     pool = PARALLEL_STRUCTURES["gevent_pool"]
-    # pool.map(f, sequence)
-    return []
+    result = pool.map(f, sequence)
+    return result
+
+def easy_parallelize_eventlet(f, sequence):
+    import eventlet
+    green_pool_size = len(sequence) + 1
+    pool = eventlet.GreenPool(size=green_pool_size)
+    q = Queue()
+    def wrapp_f(f, e, q):
+        # q.put(f(e))
+        f(e)
+    result = []
+    for e in sequence:
+        pool.spawn_n(f, e)
+    pool.waitall()
+    return result
+
+
+def easy_parallize(f, sequence):
+    # return easy_parallelize_multiprocessing(f, sequence)
+    # return easy_parallelize_sequence(f, sequence)
+    return easy_parallize_gevent(f, sequence)
+    # return easy_parallelize_eventlet(f, sequence)
 
 
 def chunks(l, n):
@@ -133,7 +150,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
         keys = list(set(keys))
-        keys_parted = chunks(keys, 300)
+        # keys_parted = chunks(keys, 100)
         # jobs = [gevent.spawn(self._resolve_keys, tablename, keys) for keys in keys_parted]
         # gevent.joinall(jobs, timeout=2)
         # result = [job.value for job in jobs]
