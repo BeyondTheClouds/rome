@@ -8,6 +8,9 @@ from redlock import Redlock as Redlock
 
 from Queue import Queue
 
+import pickle
+import os
+
 PARALLEL_STRUCTURES = {}
 
 def easy_parallelize_multiprocessing(f, sequence):
@@ -22,25 +25,14 @@ def easy_parallelize_multiprocessing(f, sequence):
     cleaned = [x for x in result if not x is None]
     return cleaned
 
-def easy_parallelize_nova_processutils(f, sequence):
-    import nova.openstack.common.processutils as processutils
-    if not "eval_pool" in PARALLEL_STRUCTURES:
-        # from multiprocessing import Pool
-        # import multiprocessing
-        NCORES = processutils.multiprocessing.cpu_count()
-        eval_pool = processutils.multiprocessing.Pool(processes=NCORES)
-        PARALLEL_STRUCTURES["eval_pool"] = eval_pool
-    eval_pool = PARALLEL_STRUCTURES["eval_pool"]
-    result = eval_pool.map(f, sequence)
-    cleaned = [x for x in result if not x is None]
-    return cleaned
 
 def easy_parallelize_sequence(f, sequence):
     if sequence is None:
         return []
     return map(f, sequence)
 
-def easy_parallize_gevent(f, sequence):
+
+def easy_parallelize_gevent(f, sequence):
     if not "gevent_pool" in PARALLEL_STRUCTURES:
         from gevent.threadpool import ThreadPool
         pool = ThreadPool(30000)
@@ -48,6 +40,7 @@ def easy_parallize_gevent(f, sequence):
     pool = PARALLEL_STRUCTURES["gevent_pool"]
     result = pool.map(f, sequence)
     return result
+
 
 def easy_parallelize_eventlet(f, sequence):
     import eventlet
@@ -65,10 +58,13 @@ def easy_parallelize_eventlet(f, sequence):
 
 
 def easy_parallize(f, sequence):
-    # return easy_parallelize_multiprocessing(f, sequence)
-    # return easy_parallelize_sequence(f, sequence)
-    return easy_parallelize_nova_processutils(f, sequence)
-    # return easy_parallize_gevent(f, sequence)
+    try:
+        result = easy_parallelize_multiprocessing(f, sequence)
+        print("using multiprocessing")
+        return result
+    except:
+        return easy_parallelize_sequence(f, sequence)
+    # return easy_parallelize_gevent(f, sequence)
     # return easy_parallelize_eventlet(f, sequence)
 
 
