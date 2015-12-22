@@ -8,7 +8,12 @@ from redlock import Redlock as Redlock
 
 from Queue import Queue
 
-import pickle
+
+# import eventlet
+# eventlet.monkey_patch(thread=True)
+import multiprocessing
+# import thread
+# reload(thread)
 import os
 
 PARALLEL_STRUCTURES = {}
@@ -57,13 +62,14 @@ def easy_parallelize_eventlet(f, sequence):
     return result
 
 
-def easy_parallize(f, sequence):
-    try:
-        result = easy_parallelize_multiprocessing(f, sequence)
-        print("using multiprocessing")
-        return result
-    except:
-        return easy_parallelize_sequence(f, sequence)
+def easy_parallelize(f, sequence):
+    # try:
+    #     result = easy_parallelize_multiprocessing(f, sequence)
+    #     # easy_parallelize_eventlet(f, sequence)
+    #     print("using multiprocessing")
+    #     return result
+    # except:
+    return easy_parallelize_sequence(f, sequence)
     # return easy_parallelize_gevent(f, sequence)
     # return easy_parallelize_eventlet(f, sequence)
 
@@ -143,7 +149,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             # str_result = "[%s]" % (",".join(str_result))
             # result = eval(str_result, {"nan": None})
 
-            result = easy_parallize(eval, str_result)
+            result = easy_parallelize(eval, str_result)
             result = filter(lambda x: x!= None, result)
         return result
 
