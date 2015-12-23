@@ -189,7 +189,7 @@ def default_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     return rows
 
 
-def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
+def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metadata={}):
 
     """ Build tuples (join operator in relational algebra). """
 
@@ -272,7 +272,7 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     if where_criterions_clause != "":
         where_clause += " and %s" % (where_criterions_clause)
     sql_query = "SELECT %s FROM %s WHERE %s" % (attribute_clause, from_clause, where_clause)
-    # print(sql_query)
+    print(sql_query)
 
     """ Querying the objects. """
     """ Construct the resulting rows. """
