@@ -208,7 +208,11 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     """ Building tuples """
     building_tuples = join_building_tuples if len(labels) > 1 else simple_building_tuples
-    tuples = building_tuples(list_results, labels, criterions, hints)
+    try:
+        tuples = building_tuples(list_results, labels, criterions, hints)
+    except:
+        building_tuples = simple_building_tuples
+        tuples = building_tuples(list_results, labels, criterions, hints)
     part4_starttime = current_milli_time()
 
     """ Filtering tuples (cartesian product) """
