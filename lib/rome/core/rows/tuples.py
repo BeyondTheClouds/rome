@@ -2,6 +2,7 @@ import re
 from lib.rome.core.models import get_model_classname_from_tablename
 import pandas as pd
 import math
+import traceback
 
 def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
@@ -316,14 +317,22 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
             old_pattern = "%s.%s" % (table, attribute)
             new_pattern = "%s__%s" % (table, attribute)
             new_where_clause = new_where_clause.replace(old_pattern, new_pattern)
+
+    """ Filter data according to where clause. """
     result = result.fillna(value=0)
     filtered_result = result.query(new_where_clause)
 
     """ Transform pandas data into dict. """
     final_columns = list(set(map(lambda l: "%s__id" % (l), labels)))
+    final_tables = map(lambda x: x.split("__")[0], final_columns)
     filtered_result = filtered_result[final_columns]
     rows = []
     for each in filtered_result.itertuples():
-        row = map(lambda (x, y): table_id_index[x][y], zip(labels, reversed(each)))
-        rows += [row]
+        try:
+            row = []
+            for (x, y) in zip(reversed(final_tables), reversed(each)):
+                    row += [table_id_index[x][int(y)]]
+        except Exception as e:
+            # traceback.print_exc()
+            pass
     return rows

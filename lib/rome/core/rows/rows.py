@@ -3,6 +3,7 @@ __author__ = 'jonathan'
 import logging
 import time
 import uuid
+import traceback
 
 from sqlalchemy.sql.expression import BinaryExpression
 from sqlalchemy.util._collections import KeyedTuple
@@ -176,6 +177,7 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
             try:
                 selected_attributes = selectable._model._sa_class_manager
             except:
+                traceback.print_exc()
                 selected_attributes = selectable._model.class_._sa_class_manager
                 pass
         else:
@@ -207,7 +209,8 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
     """ Building tuples """
     try:
         tuples = building_tuples(list_results, labels, criterions, hints)
-    except:
+    except Exception as e:
+        traceback.print_exc()
         tuples = simple_building_tuples(list_results, labels, criterions, hints)
     part4_starttime = current_milli_time()
 
