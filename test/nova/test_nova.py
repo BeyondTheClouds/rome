@@ -8,15 +8,8 @@ import logging
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
-    instance_uuid = "2c4dcaf1-640f-4db4-89da-8e4976e4bd57"
-    # instance_uuid = "e66568f4-228d-4836-9436-374201fc9d61"
-
-    result = Query(models.InstanceSystemMetadata).\
-                    filter(models.InstanceSystemMetadata.instance_uuid==instance_uuid).\
-                    all()
-
-    for system_metadata in result:
-        print("%s => %s" % (system_metadata.key, system_metadata.value))
+    instance_uuid = "5a73a745-01ab-4ae2-a95c-ce47e17d9f21"
+    result = Query(models.InstanceExtra).filter_by(instance_uuid=instance_uuid).all()
 
     print(len(result))
 

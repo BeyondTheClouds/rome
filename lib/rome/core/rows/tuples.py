@@ -329,11 +329,10 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     filtered_result = result.query(new_where_clause) if new_where_clause != "1==1 " else result
 
     """ Transform pandas data into dict. """
-    final_columns = list(set(map(lambda l: "%s__id" % (l), labels)))
+    final_columns = list(set(map(lambda l: "%s__id" % (l), labels)).intersection(filtered_result))
     final_tables = map(lambda x: x.split("__")[0], final_columns)
     filtered_result = filtered_result[final_columns]
     rows = []
-
     for each in filtered_result.itertuples():
         try:
             row = []
