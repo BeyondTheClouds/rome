@@ -6,6 +6,7 @@ import rediscluster
 from lib.rome.conf.Configuration import get_config
 from redlock import Redlock as Redlock
 
+import ujson
 from Queue import Queue
 
 
@@ -62,17 +63,20 @@ def easy_parallelize_eventlet(f, sequence):
     return result
 
 
-def easy_parallelize(f, sequence):
-    # try:
-    #     result = easy_parallelize_multiprocessing(f, sequence)
-    #     # easy_parallelize_eventlet(f, sequence)
-    #     print("using multiprocessing")
-    #     return result
-    # except:
-    return easy_parallelize_sequence(f, sequence)
-    # return easy_parallelize_gevent(f, sequence)
-    # return easy_parallelize_eventlet(f, sequence)
+# def easy_parallelize(f, sequence):
+#     # try:
+#     #     result = easy_parallelize_multiprocessing(f, sequence)
+#     #     # easy_parallelize_eventlet(f, sequence)
+#     #     print("using multiprocessing")
+#     #     return result
+#     # except:
+#     return easy_parallelize_sequence(f, sequence)
+#     # return easy_parallelize_gevent(f, sequence)
+#     # return easy_parallelize_eventlet(f, sequence)
 
+
+easy_parallelize = easy_parallelize_sequence
+# easy_parallelize = lambda x, y: []
 
 def chunks(l, n):
     for i in xrange(0, len(l), n):
@@ -119,7 +123,9 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        json_value = value
+
+        """ Dump python object to JSON field. """
+        json_value = ujson.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
             secondary_value = value[secondary_index]
@@ -134,7 +140,9 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             redis_keys = self.redis_client.smembers("sec_index:%s:%s:%s" % (tablename, hint[0], hint[1]))
             redis_key = redis_keys[0]
         fetched = self.redis_client.hget(tablename, redis_key)
-        result = eval(fetched) if fetched is not None else None
+
+        """ Parse result from JSON to python dict. """
+        result = ujson.loads(fetched) if fetched is not None else None
         return result
 
     def _resolve_keys(self, tablename, keys):
@@ -146,7 +154,11 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
             str_result = filter(lambda x: x is not None, str_result)
 
-            result = easy_parallelize(eval, str_result)
+            """ Transform the list of JSON string into a single string (boost performances). """
+            str_result = "[%s]" % (",".join(str_result))
+
+            """ Parse result from JSON to python dict. """
+            result = ujson.loads(str_result)
             result = filter(lambda x: x!= None, result)
         return result
 
