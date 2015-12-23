@@ -309,6 +309,12 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
             processed_tables += [tablename_1, tablename_2]
             processed_tables = list(set(processed_tables))
 
+    """ Fixing none result. """
+    if result is None:
+        if len(labels) == 0:
+            return []
+        result = env[labels[0]]
+
     """ Update where clause. """
     new_where_clause = where_clause
     new_where_clause = new_where_clause.replace("1==1  and", "")
