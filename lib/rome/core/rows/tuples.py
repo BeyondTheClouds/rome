@@ -327,6 +327,7 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     final_tables = map(lambda x: x.split("__")[0], final_columns)
     filtered_result = filtered_result[final_columns]
     rows = []
+
     for each in filtered_result.itertuples():
         try:
             row = []
@@ -335,4 +336,5 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[]):
         except Exception as e:
             # traceback.print_exc()
             pass
+        rows += [row]
     return rows
