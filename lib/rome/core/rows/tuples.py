@@ -272,7 +272,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     if where_criterions_clause != "":
         where_clause += " and %s" % (where_criterions_clause)
     sql_query = "SELECT %s FROM %s WHERE %s" % (attribute_clause, from_clause, where_clause)
-    print(sql_query)
+    # print(sql_query)
+    metadata["sql"] = sql_query
 
     """ Querying the objects. """
     """ Construct the resulting rows. """

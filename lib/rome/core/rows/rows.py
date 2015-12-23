@@ -157,6 +157,7 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     current_milli_time = lambda: int(round(time.time() * 1000))
 
+    metadata = {}
     part1_starttime = current_milli_time()
 
     if request_uuid is None:
@@ -208,7 +209,7 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     """ Building tuples """
     building_tuples = join_building_tuples #if len(labels) > 0 else simple_building_tuples
-    tuples = building_tuples(list_results, labels, criterions, hints)
+    tuples = building_tuples(list_results, labels, criterions, hints, metadata=metadata)
     # try:
     #     tuples = building_tuples(list_results, labels, criterions, hints)
     # except:
@@ -285,7 +286,7 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
         part5_starttime - part4_starttime,
         part6_starttime - part5_starttime,
         part7_starttime - part6_starttime,
-        """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (models, criterions),
+        metadata["sql"] if "sql" in metadata else """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (models, criterions),
         current_milli_time()
     )
 
