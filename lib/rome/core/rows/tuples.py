@@ -331,7 +331,7 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
 
     """ Filter data according to where clause. """
     result = result.fillna(value=0)
-    filtered_result = result.query(new_where_clause) if new_where_clause != "1==1 " else result
+    filtered_result = result.query(new_where_clause) if new_where_clause != "1==1" else result
 
     """ Transform pandas data into dict. """
     final_columns = list(set(map(lambda l: "%s__id" % (l), labels)).intersection(filtered_result))
