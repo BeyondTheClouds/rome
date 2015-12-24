@@ -287,10 +287,13 @@ if __name__ == '__main__':
     host = "jonathan-VirtualBox"
     # host = "edel-17"
 
-    filters = {'deleted': True,
-                   'soft_deleted': False,
-                   'host': host,
-                   'cleaned': False}
+    # filters = {'deleted': True,
+    #                'soft_deleted': False,
+    #                'host': host,
+    #                'cleaned': False}
+
+    filters = {'deleted': False, 'project_id': u'6bcb3e3fcf2e4d238e22be73215dc394'}
+
     sort_key='created_at'
     sort_dir='desc'
 
