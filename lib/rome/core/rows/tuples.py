@@ -318,9 +318,11 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
 
     """ Update where clause. """
     new_where_clause = where_clause
-    new_where_clause = new_where_clause.replace("1==1  and", "")
-    new_where_clause = new_where_clause.replace("is  None", "== 0")
-    new_where_clause = new_where_clause.replace("is  not None", "!= 0")
+    new_where_clause = " ".join(new_where_clause.split())
+    new_where_clause = new_where_clause.replace("1==1 and", "")
+    new_where_clause = new_where_clause.replace("is None", "== 0")
+    new_where_clause = new_where_clause.replace("is not None", "!= 0")
+
     for table in needed_columns:
         for attribute in needed_columns[table]:
             old_pattern = "%s.%s" % (table, attribute)
