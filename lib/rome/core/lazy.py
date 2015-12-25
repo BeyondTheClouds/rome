@@ -13,6 +13,7 @@ import models
 import lib.rome.driver.database_driver as database_driver
 import traceback
 
+from lib.rome.core.dataformat import get_decoder
 
 def now_in_ms():
     return int(round(time.time() * 1000))
@@ -101,8 +102,7 @@ class LazyValue:
     (models entities). In a few words LazyValue(dict).id <-> JsonDeconverter(dict).id ."""
 
     def __init__(self, wrapped_dict, request_uuid):
-        from lib.rome.core.dataformat import get_decoder
-        self.deconverter = get_decoder(request_uuid=request_uuid)
+        self.deconverter = None
         self.wrapped_dict = wrapped_dict
         self.wrapped_value = None
         self.request_uuid = request_uuid
@@ -131,6 +131,8 @@ class LazyValue:
         return result
 
     def transform(self, x):
+        if self.deconverter is None:
+            self.deconverter = get_decoder(request_uuid=self.request_uuid)
         return self.deconverter.desimplify(x)
 
     def get_relationships(self, foreignkey_mode=False):
@@ -179,6 +181,8 @@ class LazyValue:
 
     def lazy_load(self):
         if self.wrapped_value is None:
+            if self.deconverter is None:
+                self.deconverter = get_decoder(request_uuid=self.request_uuid)
             self.wrapped_value = self.deconverter.desimplify(self.wrapped_dict)
             self.load_relationships()
 
@@ -186,10 +190,9 @@ class LazyValue:
         if attr in self.wrapped_dict:
             value = self.wrapped_dict[attr]
             if type(value) is dict and "timezone" in value:
-                from lib.rome.core.dataformat import get_decoder
-                deconverter = get_decoder()
-                # print(value)
-                return deconverter.desimplify(value)
+                if self.deconverter is None:
+                    self.deconverter = get_decoder(request_uuid=self.request_uuid)
+                return self.deconverter.desimplify(value)
             return value
         self.lazy_load()
         # if "_nova_classname" in self.wrapped_dict and "aggregate" in self.wrapped_dict["_nova_classname"]:

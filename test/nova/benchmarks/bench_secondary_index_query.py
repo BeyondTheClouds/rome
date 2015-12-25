@@ -17,23 +17,22 @@ class SelectorThread(Thread):
         self.instance_uuid = instance_uuid
 
     def run(self):
-        result = Query(models.InstanceInfoCache).\
-                         filter_by(instance_uuid=instance_uuid).\
-                         first()
-        print(result)
+        query = Query(models.InstanceInfoCache).filter_by(instance_uuid=instance_uuid)
+        query.first()
 
 if __name__ == '__main__':
 
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
 
-    n = 1
+    n = 100000
 
     one_info_cache = Query(models.InstanceInfoCache).first()
 
     for i in range(0, n):
         thread_1 = SelectorThread(one_info_cache.instance_uuid)
         thread_1.start()
-        thread_1.join()
+        # thread_1.join()
 
+    time.sleep(10)
 

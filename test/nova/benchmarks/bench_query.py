@@ -10,35 +10,21 @@ from threading import Thread
 import time
 
 class SelectorThread(Thread):
-    def __init__(self, lettre):
+    def __init__(self):
         Thread.__init__(self)
-        self.lettre = lettre
 
     def run(self):
-        # print("ping")
-        # query = Query(models.FixedIp)
         query = Query(models.FixedIp).join(models.Network, models.Network.id==models.FixedIp.network_id)
-
-        # query = Query(models.Instance)
-        # query = Query(models.FixedIp).join(models.Network, models.Network.id==models.FixedIp.network_id).filter(or_(models.FixedIp.address=="172.9.0.15", models.FixedIp.address=="172.9.0.16", models.FixedIp.address=="172.9.0.17", models.FixedIp.address=="172.9.0.18", models.FixedIp.address=="172.9.0.19"))
-        print(len(query.all()))
-        # print("pong")
+        query.all()
 
 if __name__ == '__main__':
 
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
 
-    n = 10
+    n = 100
 
     for i in range(0, n):
-        thread_1 = SelectorThread("canard")
-        # thread_2 = SelectorThread("TORTUE")
-
+        thread_1 = SelectorThread()
         thread_1.start()
-        # thread_2.start()
-
         thread_1.join()
-        # thread_2.join()
-
-

@@ -76,7 +76,7 @@ def extract_models(l):
             result += [selectable]
     return result
 
-def extract_sub_row(row, selectables):
+def extract_sub_row(row, selectables, labels):
     """Adapt a row result to the expectation of sqlalchemy.
     :param row: a list of python objects
     :param selectables: a list entity class
@@ -84,9 +84,6 @@ def extract_sub_row(row, selectables):
     the other case, a KeyTuple where each sub object is associated with it's entity name
     """
     if len(selectables) > 1:
-        labels = []
-        for selectable in selectables:
-            labels += [find_table_name(selectable._model)]
         product = []
         for label in labels:
             product = product + [get_attribute(row, label)]
@@ -140,7 +137,7 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
         return value
     elif type(value) is dict and "timezone" in value:
-        decoder = get_decoder()
+        decoder = get_decoder(request_uuid=request_uuid)
         return decoder.desimplify(value)
     else:
         return LazyValue(value, request_uuid)
@@ -199,8 +196,6 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
     for selectable in model_set:
         tablename = find_table_name(selectable._model)
         authorized_secondary_indexes = get_attribute(selectable._model, "_secondary_indexes", [])
-        # tablename = selectable._model.__tablename__
-        # authorized_secondary_indexes = SECONDARY_INDEXES[tablename] if tablename in SECONDARY_INDEXES else []
         selected_hints = filter(lambda x: x.table_name == tablename and (x.attribute == "id" or x.attribute in authorized_secondary_indexes), hints)
         reduced_hints = map(lambda x:(x.attribute, x.value), selected_hints)
         objects = get_objects(tablename, request_uuid=request_uuid, skip_loading=False, hints=reduced_hints)
@@ -208,34 +203,15 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
     part3_starttime = current_milli_time()
 
     """ Building tuples """
-    building_tuples = join_building_tuples #if len(labels) > 0 else simple_building_tuples
+    building_tuples = join_building_tuples
     tuples = building_tuples(list_results, labels, criterions, hints, metadata=metadata)
-    # try:
-    #     tuples = building_tuples(list_results, labels, criterions, hints)
-    # except:
-    #     building_tuples = simple_building_tuples
-    #     tuples = building_tuples(list_results, labels, criterions, hints)
     part4_starttime = current_milli_time()
 
     """ Filtering tuples (cartesian product) """
-    indexed_rows = {}
     for product in tuples:
         if len(product) > 0:
             row = KeyedTuple(product, labels=labels)
-            row_index_key = "%s" % (str(row))
-
-            if row_index_key in indexed_rows:
-                continue
-
-            all_criterions_satisfied = True
-
-            # for criterion in criterions:
-            #     if not criterion.is_joining_expression and not criterion.evaluate(row):
-            #         all_criterions_satisfied = False
-            #         break
-            if all_criterions_satisfied:
-                indexed_rows[row_index_key] = True
-                rows += [extract_sub_row(row, model_set)]
+            rows += [extract_sub_row(row, model_set, labels)]
     part5_starttime = current_milli_time()
     deconverter = get_decoder(request_uuid=request_uuid)
 
@@ -272,7 +248,6 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
                         else:
                             final_row += [value]
             final_row = map(lambda x: wrap_with_lazy_value(x, request_uuid=request_uuid), final_row)
-
             if len(showable_selection) == 1:
                 final_rows += final_row
             else:
