@@ -208,7 +208,9 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
     def put(self, tablename, key, value, secondary_indexes=[]):
         """"""
-        json_value = value
+
+        """ Dump python object to JSON field. """
+        json_value = ujson.dumps(value)
         fetched = self.redis_client.hset(tablename, "%s:id:%s" % (tablename, key), json_value)
         for secondary_index in secondary_indexes:
             secondary_value = value[secondary_index]
@@ -223,7 +225,26 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             redis_keys = self.redis_client.smembers("sec_index:%s:%s:%s" % (tablename, hint[0], hint[1]))
             redis_key = redis_keys[0]
         fetched = self.redis_client.hget(tablename, redis_key)
-        result = eval(fetched) if fetched is not None else None
+
+        """ Parse result from JSON to python dict. """
+        result = ujson.loads(fetched) if fetched is not None else None
+        return result
+
+    def _resolve_keys(self, tablename, keys):
+        result = []
+        if len(keys) > 0:
+            keys = filter(lambda x: x != "None" and x != None, keys)
+            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
+
+            """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
+            str_result = filter(lambda x: x is not None, str_result)
+
+            """ Transform the list of JSON string into a single string (boost performances). """
+            str_result = "[%s]" % (",".join(str_result))
+
+            """ Parse result from JSON to python dict. """
+            result = ujson.loads(str_result)
+            result = filter(lambda x: x!= None, result)
         return result
 
     def getall(self, tablename, hints=[]):
@@ -237,14 +258,5 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             keys = map(lambda x: "%s:id:%s" % (tablename, x[1]), id_hints)
             for sec_key in sec_keys:
                 keys += self.redis_client.smembers(sec_key)
-        result = []
         keys = list(set(keys))
-        if len(keys) > 0:
-            keys = filter(lambda x: x != "None" and x != None, keys)
-            str_result = self.redis_client.hmget(tablename, sorted(keys, key=lambda x: x.split(":")[-1]))
-            """ When looking-up for a deleted object, redis's driver return None, which should be filtered."""
-            str_result = filter(lambda x: x is not None, str_result)
-            str_result = "[%s]" % (",".join(str_result))
-            result = eval(str_result)
-            result = filter(lambda x: x!= None, result)
-        return result
+        return self._resolve_keys(tablename, keys)
