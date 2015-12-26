@@ -35,7 +35,7 @@ def build_driver():
 
     if config.backend() == "redis":
         import lib.rome.driver.redis.driver
-        if True or config.redis_cluster_enabled():
+        if config.redis_cluster_enabled():
             return lib.rome.driver.redis.driver.RedisClusterDriver()
         else:
             return lib.rome.driver.redis.driver.RedisDriver()
