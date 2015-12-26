@@ -249,18 +249,6 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             if attribute not in needed_columns[table]:
                 needed_columns[table] += [attribute]
 
-    """ Preparing Dataframes. """
-    env = {}
-    for (label, list_results) in zip(labels, lists_results):
-        dataframe = pd.DataFrame(data=list_results)
-        try:
-            dataframe = dataframe[needed_columns[label]]
-        except Exception as e:
-            traceback.print_exc(e)
-            return []
-        dataframe.columns = map(lambda c: "%s__%s" % (label, c), needed_columns[label])
-        env[label] = dataframe
-
     """ Preparing the query for pandasql. """
     attribute_clause = ",".join(map(lambda x: "%s.id" % (x), labels))
     from_clause = " join ".join(labels)
@@ -276,7 +264,18 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     # print(sql_query)
     metadata["sql"] = sql_query
 
-    """ Querying the objects. """
+    """ Preparing Dataframes. """
+    env = {}
+    for (label, list_results) in zip(labels, lists_results):
+        dataframe = pd.DataFrame(data=list_results)
+        try:
+            dataframe = dataframe[needed_columns[label]]
+        except Exception as e:
+            # traceback.print_exc(e)
+            return []
+        dataframe.columns = map(lambda c: "%s__%s" % (label, c), needed_columns[label])
+        env[label] = dataframe
+
     """ Construct the resulting rows. """
     if len(labels) > 1 and len(filter(lambda x: len(x) == 0, lists_results)) > 0:
         return []
