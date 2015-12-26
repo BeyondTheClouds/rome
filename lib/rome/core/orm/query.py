@@ -134,7 +134,7 @@ class Query:
 
     def _extract_hint(self, criterion):
         if hasattr(criterion, "extract_hint"):
-            self._hints = criterion.extract_hint()
+            self._hints += criterion.extract_hint()
         elif type(criterion).__name__ == "BinaryExpression":
             exp = BooleanExpression("or", *[criterion])
             self._extract_hint(exp)
