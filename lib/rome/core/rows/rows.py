@@ -32,11 +32,13 @@ except:
 def all_selectable_are_functions(models):
     return all(x._is_function for x in [y for y in models if not y.is_hidden])
 
+
 def has_attribute(obj, key):
     if type(obj) is dict:
         return key in obj
     else:
         return hasattr(obj, key)
+
 
 def set_attribute(obj, key, value):
     if type(obj) is dict:
@@ -44,11 +46,13 @@ def set_attribute(obj, key, value):
     else:
         return setattr(obj, key, value)
 
+
 def get_attribute(obj, key, default=None):
     if type(obj) is dict:
         return obj[key] if key in obj else default
     else:
         return getattr(obj, key, default)
+
 
 def find_table_name(model):
     """This function return the name of the given model as a String. If the
@@ -67,6 +71,7 @@ def find_table_name(model):
             return find_table_name(clause)
     return "none"
 
+
 def extract_models(l):
     already_processed = set()
     result = []
@@ -75,6 +80,7 @@ def extract_models(l):
             already_processed.add(selectable._model)
             result += [selectable]
     return result
+
 
 def extract_sub_row(row, selectables, labels):
     """Adapt a row result to the expectation of sqlalchemy.
@@ -96,6 +102,7 @@ def extract_sub_row(row, selectables, labels):
 def intersect(b1, b2):
     return [val for val in b1 if val in b2]
 
+
 def flatten(lis):
     """Given a list, possibly nested to any level, return it flattened."""
     new_lis = []
@@ -106,8 +113,6 @@ def flatten(lis):
             new_lis.append(item)
     return new_lis
 
-# def flatten(l):
-#     return [item for sublist in l for item in sublist]
 
 def extract_table_data(term):
     term_value = str(term)
@@ -115,6 +120,7 @@ def extract_table_data(term):
         return {"table": term_value.split(".")[0], "column": term_value.split(".")[1]}
     else:
         return None
+
 
 def extract_joining_criterion(exp):
     from lib.rome.core.expression.expression import BooleanExpression
@@ -124,6 +130,7 @@ def extract_joining_criterion(exp):
         return [[extract_table_data(exp.left)] + [extract_table_data(exp.right)]]
     else:
         return []
+
 
 def extract_joining_criterion_from_relationship(rel, local_table):
     local_tabledata = {"table": local_table, "column": rel.local_fk_field}
@@ -142,9 +149,6 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
     else:
         return LazyValue(value, request_uuid)
 
-
-# def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
-#     return LazyValue(value, request_uuid)
 
 def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 

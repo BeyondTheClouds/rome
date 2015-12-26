@@ -255,7 +255,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         dataframe = pd.DataFrame(data=list_results)
         try:
             dataframe = dataframe[needed_columns[label]]
-        except:
+        except Exception as e:
+            traceback.print_exc(e)
             return []
         dataframe.columns = map(lambda c: "%s__%s" % (label, c), needed_columns[label])
         env[label] = dataframe

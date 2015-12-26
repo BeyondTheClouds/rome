@@ -141,15 +141,21 @@ class Query:
 
     def _extract_models(self, criterion):
         tables = []
-        """ Extract tables names from the criterion. """
-        expressions = [criterion.expression.left, criterion.expression.right] if hasattr(criterion, "expression") else []
-        for expression in expressions:
-            if str(expression) == "NULL":
-                return
-            if hasattr(expression, "foreign_keys"):
-                for foreign_key in getattr(expression, "foreign_keys"):
-                    if hasattr(foreign_key, "column"):
-                        tables += [foreign_key.column.table]
+
+        """ This means that the current criterion is involving a constant value: there
+            is not information that could be collected about a join between tables. """
+        if ":" in str(criterion):
+            return
+        else:
+            """ Extract tables names from the criterion. """
+            expressions = [criterion.expression.left, criterion.expression.right] if hasattr(criterion, "expression") else []
+            for expression in expressions:
+                if str(expression) == "NULL":
+                    return
+                if hasattr(expression, "foreign_keys"):
+                    for foreign_key in getattr(expression, "foreign_keys"):
+                        if hasattr(foreign_key, "column"):
+                            tables += [foreign_key.column.table]
         tables_objects = getattr(criterion, "_from_objects", [])
         tables_names = map(lambda x: str(x), tables_objects)
         tables += tables_names
@@ -167,28 +173,6 @@ class Query:
         """ Add the missing entity models to the models of the current query. """
         missing_models_to_selections = map(lambda x: Selection(x, "id", is_hidden=True), missing_entities_objects)
         self._models += missing_models_to_selections
-
-    # def filter_by(self, **kwargs):
-    #     _func = self._funcs[:]
-    #     _criterions = self._criterions[:]
-    #     for a in kwargs:
-    #         for selectable in self._models:
-    #             try:
-    #                 column = getattr(selectable._model, a)
-    #                 criterion = column.__eq__(kwargs[a])
-    #                 self._extract_hint(criterion)
-    #                 _criterions += [criterion]
-    #                 break
-    #             except Exception as e:
-    #                 # create a binary expression
-    #                 # traceback.print_exc()
-    #                 pass
-    #     _hints = self._hints[:]
-    #     args = self._models + _func + _criterions + _hints + self._initial_models
-    #     kwargs = {}
-    #     if self._session is not None:
-    #         kwargs["session"] = self._session
-    #     return Query(*args, **kwargs)
 
     def filter_by(self, **kwargs):
         criterions = []

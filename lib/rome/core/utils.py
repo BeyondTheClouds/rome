@@ -107,23 +107,13 @@ def transform(data, deconverter, skip_loading):
 DB_CACHES = {}
 cache_time_limit = 100
 
+
 def current_milli_time():
     return int(round(time.time() * 200))
 
-def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
-    # if len(hints) > 0:
-    return database_driver.get_driver().getall(tablename, hints=hints)
-    # now = current_milli_time()
-    # if tablename in DB_CACHES:
-    #     print("db_cache_key: %s" % (tablename))
-    #     if tablename in DB_CACHES:
-    #         if now - DB_CACHES[tablename]["time"] < cache_time_limit:
-    #             return DB_CACHES[tablename]["data"]
-    # data = database_driver.get_driver().getall(tablename)
-    # # if request_uuid is not None:
-    # DB_CACHES[tablename] = {"data": data, "time": current_milli_time()}
-    # return data
 
+def get_objects(tablename, desimplify=True, request_uuid=None, skip_loading=False, hints=[]):
+    return database_driver.get_driver().getall(tablename, hints=hints)
 
 
 def get_models_satisfying(tablename, field, value, request_uuid=None, hints=[]):
