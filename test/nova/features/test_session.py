@@ -6,7 +6,7 @@ import time
 import functools
 
 from lib.rome.core.orm.query import Query
-from _fixtures import *
+from test._fixtures import *
 
 BASE = declarative_base()
 

@@ -15,11 +15,11 @@ class Selection:
 
 
 def and_(*exps):
-    return BooleanExpression("AND", *exps)
+    return BooleanExpression("and", *exps)
 
 
 def or_(*exps):
-    return BooleanExpression("OR", *exps)
+    return BooleanExpression("or", *exps)
 
 
 class Function:
@@ -41,12 +41,15 @@ class Function:
             fieldname = field.split(".")[-1]
         filtered_rows = []
         for row in rows:
-            if not type(row) is list:
-                row = [row]
-            for subrow in row:
-                table = get_attribute(subrow, "__tablename__", get_attribute(subrow, "nova_classname", None))
-                if table == fieldtable:
-                    filtered_rows += [subrow]
+            if hasattr(row, fieldtable):
+                filtered_rows += [getattr(row, fieldtable)]
+            else:
+                if not type(row) is list:
+                    row = [row]
+                for subrow in row:
+                    table = get_attribute(subrow, "__tablename__", get_attribute(subrow, "_nova_classname", None))
+                    if table == fieldtable:
+                        filtered_rows += [subrow]
         result = [get_attribute(row, fieldname) for row in filtered_rows]
         return result
 

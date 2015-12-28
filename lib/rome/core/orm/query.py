@@ -8,11 +8,14 @@ import traceback
 import inspect
 import re
 import logging
+import uuid
 
 from lib.rome.core.terms.terms import *
-from sqlalchemy.sql.expression import BinaryExpression
+from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
 import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
+
+from lib.rome.core.models import get_model_class_from_name, get_model_classname_from_tablename, get_model_tablename_from_classname, get_tablename_from_name
 
 try:
     from lib.rome.core.dataformat import get_decoder
@@ -60,6 +63,10 @@ class Query:
             elif isinstance(arg, Function):
                 self._models += [Selection(None, None, True, arg)]
                 self._funcs += [arg]
+            elif isinstance(arg, BooleanClauseList) or type(arg) == list:
+                for clause in arg:
+                    if type(clause) == BinaryExpression:
+                        self._criterions += [BooleanExpression("NORMAL", clause)]
             elif isinstance(arg, BinaryExpression):
                 self._criterions += [BooleanExpression("NORMAL", arg)]
             elif hasattr(arg, "is_boolean_expression"):
@@ -70,8 +77,8 @@ class Query:
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
-    def all(self):
-        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session)
+    def all(self, request_uuid=None):
+        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session, request_uuid=request_uuid)
         result = []
         for r in result_list:
             ok = True
@@ -93,6 +100,19 @@ class Query:
         return len(self.all())
 
     def soft_delete(self, synchronize_session=False):
+        for e in self.all():
+            try:
+                e.soft_delete()
+            except:
+                pass
+        return self
+
+    def delete(self, synchronize_session=False):
+        for e in self.all():
+            try:
+                e.delete()
+            except:
+                pass
         return self
 
     def update(self, values, synchronize_session='evaluate'):
@@ -113,36 +133,62 @@ class Query:
     ####################################################################################################################
 
     def _extract_hint(self, criterion):
-        try:
-            if hasattr(criterion.expression.right, "value"):
-                table_name = str(criterion.expression.left.table)
-                attribute_name = str(criterion.expression.left.key)
-                value = "%s" % (criterion.expression.right.value)
-                self._hints += [Hint(table_name, attribute_name, value)]
-        except:
-            pass
+        if hasattr(criterion, "extract_hint"):
+            self._hints += criterion.extract_hint()
+        elif type(criterion).__name__ == "BinaryExpression":
+            exp = BooleanExpression("or", *[criterion])
+            self._extract_hint(exp)
+
+    def _extract_models(self, criterion):
+        tables = []
+
+        """ This means that the current criterion is involving a constant value: there
+            is not information that could be collected about a join between tables. """
+        if ":" in str(criterion):
+            return
+        else:
+            """ Extract tables names from the criterion. """
+            expressions = [criterion.expression.left, criterion.expression.right] if hasattr(criterion, "expression") else []
+            for expression in expressions:
+                if str(expression) == "NULL":
+                    return
+                if hasattr(expression, "foreign_keys"):
+                    for foreign_key in getattr(expression, "foreign_keys"):
+                        if hasattr(foreign_key, "column"):
+                            tables += [foreign_key.column.table]
+        tables_objects = getattr(criterion, "_from_objects", [])
+        tables_names = map(lambda x: str(x), tables_objects)
+        tables += tables_names
+        tables = list(set(tables)) # remove duplicate names
+
+        """ Extract the missing entity models from tablenames. """
+        current_entities = map(lambda x: x._model, self._models)
+        current_entities = filter(lambda x: x is not None, current_entities)
+        current_entities_tablenames = map(lambda x: x.__tablename__, current_entities)
+        missing_tables = filter(lambda x: x not in current_entities_tablenames, tables)
+        missing_tables_names = map(lambda x: str(x), missing_tables)
+        missing_entities_names = map(lambda x: get_model_classname_from_tablename(x), missing_tables_names)
+        missing_entities_objects = map(lambda x: get_model_class_from_name(x), missing_entities_names)
+
+        """ Add the missing entity models to the models of the current query. """
+        missing_models_to_selections = map(lambda x: Selection(x, "id", is_hidden=True), missing_entities_objects)
+        self._models += missing_models_to_selections
 
     def filter_by(self, **kwargs):
-        _func = self._funcs[:]
-        _criterions = self._criterions[:]
+        criterions = []
         for a in kwargs:
             for selectable in self._models:
                 try:
                     column = getattr(selectable._model, a)
                     criterion = column.__eq__(kwargs[a])
                     self._extract_hint(criterion)
-                    _criterions += [criterion]
+                    criterions += [criterion]
                     break
                 except Exception as e:
                     # create a binary expression
                     # traceback.print_exc()
                     pass
-        _hints = self._hints[:]
-        args = self._models + _func + _criterions + _hints + self._initial_models
-        kwargs = {}
-        if self._session is not None:
-            kwargs["session"] = self._session
-        return Query(*args, **kwargs)
+        return self.filter(*criterions)
 
     def filter_dict(self, filters):
         return self.filter_by(**filters)
@@ -153,6 +199,7 @@ class Query:
         _criterions = self._criterions[:]
         for criterion in criterions:
             self._extract_hint(criterion)
+            self._extract_models(criterion)
             _criterions += [criterion]
         _hints = self._hints[:]
         args = self._models + _func + _criterions + _hints + self._initial_models
@@ -183,6 +230,30 @@ class Query:
                 )
                 if is_class:
                     _models = _models + [Selection(item, "*")]
+                    if len(tuples) == 1:
+                        # Must find an expression that would specify how to join the tables.
+                        from lib.rome.core.utils import get_relationships_from_class
+
+                        tablename = item.__tablename__
+                        current_tablenames = map(lambda x: x._model.__tablename__, _models)
+                        models_classes = map(lambda x: x._model, _models)
+                        relationships = map(lambda x: get_relationships_from_class(x), models_classes)
+                        # relationships = get_relationships_from_class(item)
+                        flatten_relationships = [item for sublist in relationships for item in sublist]
+                        for relationship in flatten_relationships:
+                            tablesnames = [relationship.local_tablename, relationship.remote_object_tablename]
+                            if tablename in tablesnames:
+                                other_tablename = filter(lambda x: x!= tablename, tablesnames)[0]
+                                if other_tablename in current_tablenames:
+                                    type_expression = type(relationship.initial_expression).__name__
+                                    new_criterions = []
+                                    if type_expression == "BooleanClauseList":
+                                        for exp in relationship.initial_expression:
+                                            new_criterions += [JoiningBooleanExpression("NORMAL", *[exp])]
+                                    elif type_expression == "BinaryExpression":
+                                        new_criterions = [JoiningBooleanExpression("NORMAL", *[relationship.initial_expression])]
+                                    _criterions += new_criterions
+                                    break
                 elif is_expression:
                     _criterions += [item]
                 else:

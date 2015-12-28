@@ -1,5 +1,7 @@
 from lib.rome.utils.MemoizationDecorator import memoization_decorator
 from lib.rome.conf.Configuration import get_config
+from lib.rome.utils.MemoizationDecorator import MemoizationDecorator
+
 
 class DatabaseDriverInterface(object):
 
@@ -27,6 +29,7 @@ class DatabaseDriverInterface(object):
 
 driver = None
 
+
 def build_driver():
     config = get_config()
 
@@ -42,6 +45,7 @@ def build_driver():
     else:
         import lib.rome.driver.riak.driver
         return lib.rome.driver.riak.driver.MapReduceRiakDriver()
+
 
 def get_driver():
     global driver

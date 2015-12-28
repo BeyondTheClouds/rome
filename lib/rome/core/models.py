@@ -15,8 +15,6 @@ import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
 
-
-
 def starts_with_uppercase(name):
     if name is None or len(name) == 0:
         return False
@@ -103,18 +101,104 @@ class IterableModel(object):
         for field in self._sa_class_manager:
             yield field
 
+entity_relationship_field = {}
+
 class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
         self._session = None
-        self.rome_version_number = -1
+        self._rome_version_number = -1
+
+    def __setitem__(self, key, value):
+        """ This function overrides the default __setitem_ provided by sqlalchemy model class, in order to prevent
+        triggering of events that loads relationships, when a relationship field is set. Instead, the relationship
+        is handle by this method.
+
+        :param key: a string value representing the key
+        :param value: an object
+        :return: nothing
+        """
+        self.__dict__[key] = value
+        if self.is_relationship_field(key):
+            self.handle_relationship_change_event(key, value)
+
+    def __setattr__(self, key, value):
+        """ This function overrides the default __setattr_ provided by sqlalchemy model class, in order to prevent
+        triggering of events that loads relationships, when a relationship field is set. Instead, the relationship
+        is handle by this method.
+
+        :param key: a string value representing the key
+        :param value: an object
+        :return: nothing
+        """
+        self.__dict__[key] = value
+        if self.is_relationship_field(key):
+            self.handle_relationship_change_event(key, value)
+
+    def is_relationship_field(self, key):
+        tablename = self.__tablename__
+        if not tablename in entity_relationship_field:
+            fields = self.get_relationship_fields(with_indirect_field=True)
+            entity_relationship_field[tablename] = fields
+        return key in entity_relationship_field[tablename]
+
+    def handle_relationship_change_event(self, key, value):
+        relationships = filter(lambda x: key in [x.local_object_field, x.local_fk_field], self.get_relationships())
+        for r in relationships:
+            if key == r.local_fk_field:
+                if r.direction in ["MANYTOONE"]:
+                    self.load_relationships(filter_keys=[r.local_object_field])
+                elif r.direction in ["ONETOMANY"]:
+                    existing_value = getattr(self, r.local_object_field)
+                    candidates = existing_value if r.is_list else [existing_value]
+                    for c in candidates:
+                        if c is not None:
+                            existing_fk_value = getattr(c, r.remote_object_field, None)
+                            if existing_fk_value is None:
+                                setattr(c, r.remote_object_field, value)
+                else:
+                    try:
+                        v = getattr(getattr(self, r.local_object_field), r.remote_object_field)
+                        self.__dict__[key] = v
+                    except:
+                        pass
+                    self.load_relationships(filter_keys=[r.local_object_field])
+            else:
+                if r.direction in ["MANYTOONE"]:
+                    if key == r.local_object_field and not r.is_list:
+                        self.__dict__[r.local_fk_field] = getattr(value, r.remote_object_field, None)
+                        if hasattr(value, "get_relationships"):
+                            for r2 in value.get_relationships():
+                                if r2.remote_object_tablename == self.__tablename__:
+                                    if r2.direction in ["ONETOMANY"]:
+                                        existing_value = getattr(value, r2.local_object_field, None)
+                                        if existing_value is None or hasattr(existing_value, "is_list"):
+                                            setattr(value, r2.local_object_field, self)
+                            if hasattr(value, "register_associated_object"):
+                                value.register_associated_object(self)
+                if r.direction in ["ONETOMANY"]:
+                    candidates = value if r.is_list else [value]
+                    filtered_candidates = filter(lambda x: hasattr(x, "get_relationships"), candidates)
+                    for c in filtered_candidates:
+                        for r2 in c.get_relationships():
+                            if r2.direction in ["MANYTOONE"]:
+                                setattr(c, r2.local_fk_field, getattr(self, r2.remote_object_field))
+                                setattr(c, r2.local_object_field, self)
 
     def already_in_database(self):
         return hasattr(self, "id") and (self.id is not None)
 
+    def delete(self, session=None):
+        # <HARD DELETE IMPLEMENTATION>
+        if session is not None:
+            session.delete(self)
+            return
+        database_driver.get_driver().remove_key(self.__tablename__, self.id)
+        # </HARD DELETE IMPLEMENTATION>
+
     def soft_delete(self, session=None):
         # <SOFT DELETE IMPLEMENTATION>
-        self.deleted = True
+        self.deleted = 1
         object_converter_datetime = get_encoder()
         self.deleted_at = object_converter_datetime.simplify(datetime.datetime.utcnow())
         if session is not None:
@@ -122,14 +206,6 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             return
         else:
             self.save()
-        # </SOFT DELETE IMPLEMENTATION>
-
-        # # <HARD DELETE IMPLEMENTATION>
-        # if session is not None:
-        #     session.delete(self)
-        #     return
-        # database_driver.get_driver().remove_key(self.__tablename__, self.id)
-        # # </HARD DELETE IMPLEMENTATION>
 
     def update(self, values, synchronize_session='evaluate', request_uuid=uuid.uuid1(), do_save=True, skip_session=False):
         """Set default values"""
@@ -156,25 +232,40 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             except Exception as e:
                 logging.error(e)
                 pass
-        self.update_foreign_keys()
+        # self.update_foreign_keys()
         # self.load_relationships()
         return self
 
-    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True):
+    def register_associated_object(self, obj):
+        if not hasattr(self, "_associated_objects"):
+            setattr(self, "_associated_objects", [])
+        associated_objects = getattr(self, "_associated_objects")
+        associated_objects = [obj] + associated_objects
+        setattr(self, "_associated_objects", associated_objects)
 
-        # if getattr(self, "_session", session) is not None:
-        #     if not force:
-        #         return
+    def get_associated_objects(self):
+        return getattr(self, "_associated_objects", [])
+
+    def reset_associated_objects(self):
+        return setattr(self, "_associated_objects", [])
+
+    def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True, session_saving=None):
 
         if session is not None:
+            session.add(self)
             return
 
-        self.update_foreign_keys()
+        object_key = "%s:%s" % (self.__tablename__, self.id)
+
+        if session_saving and self.id and object_key in session_saving.already_saved:
+            return
+
+        # self.update_foreign_keys()
 
         target = self
         table_name = self.__tablename__
 
-        """Check if the current object has an value associated with the "id" 
+        """Check if the current object has an value associated with the "id"
         field. If this is not the case, following code will generate an unique
         value, and store it in the "id" field."""
         if not self.already_in_database():
@@ -225,11 +316,17 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             current_object = object_converter.complex_cache[key]
 
-            current_object["nova_classname"] = table_name
+            current_object["_nova_classname"] = table_name
 
             if not "id" in current_object or current_object["id"] is None:
                 current_object["id"] = self.next_key(table_name)
             else:
+
+                current_object_key = "%s:%s" % (table_name, current_object["id"])
+
+                if session_saving and current_object_key in session_saving.already_saved:
+                    continue
+
                 model_class = get_model_class_from_name(classname)
                 existing_object = database_driver.get_driver().get(table_name, current_object["id"])
 
@@ -240,7 +337,8 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             if current_object["id"] == -1:
                 logging.debug("skipping the storage of object %s" % (current_object["id"]))
-                continue
+                # continue
+                break
 
             object_converter_datetime = get_encoder(request_uuid)
 
@@ -254,16 +352,16 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
             try:
                 local_object_converter = get_encoder(request_uuid)
                 corrected_object = local_object_converter.simplify(current_object)
-                if target.__tablename__ == corrected_object["nova_classname"] and target.id == corrected_object["id"]:
-                    corrected_object["session"] = getattr(target, "session", None)
+                if target.__tablename__ == corrected_object["_nova_classname"] and target.id == corrected_object["id"]:
+                    corrected_object["_session"] = getattr(target, "_session", None)
                 if increase_version:
-                    if "rome_version_number" in corrected_object:
-                        self.rome_version_number = corrected_object["rome_version_number"]
-                    if hasattr(self, "rome_version_number"):
-                        self.rome_version_number += 1
+                    if "_rome_version_number" in corrected_object:
+                        self._rome_version_number = corrected_object["_rome_version_number"]
+                    if hasattr(self, "_rome_version_number"):
+                        self._rome_version_number += 1
                     else:
-                        self.rome_version_number = 0
-                corrected_object["rome_version_number"] = self.rome_version_number
+                        self._rome_version_number = 0
+                corrected_object["_rome_version_number"] = self._rome_version_number
                 database_driver.get_driver().put(table_name, current_object["id"], corrected_object, secondary_indexes=getattr(model_class, "_secondary_indexes", []))
                 database_driver.get_driver().add_key(table_name, current_object["id"])
             except Exception as e:
@@ -273,5 +371,26 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 current_object, e, corrected_object))
                 pass
             logging.debug("finished the storage of %s" % (current_object))
+
+            if session_saving:
+                session_saving.already_saved += [current_object_key]
         # self.load_relationships()
+
+        candidates = []
+        # Handle associated objects: they may be saved!
+        for associated_object in self.get_associated_objects():
+            candidates += [associated_object]
+
+        # As every associated_object are going to be saved, associated_objects may be reset
+        self.reset_associated_objects()
+
+        for c in candidates:
+            try:
+                # object_converter.simplify(c)
+                c.save(request_uuid=request_uuid, force=force, no_nested_save=no_nested_save, increase_version=increase_version, session_saving=session_saving)
+            except:
+                import traceback
+                traceback.print_exc()
+                pass
+
         return self

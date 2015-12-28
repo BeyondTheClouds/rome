@@ -49,11 +49,18 @@ class LazyDictionnary:
 
     def __init__(self, **entries):
         self.entries = entries
+        self._cache = {}
         self.deconverter = get_decoder()
 
+    def keys(self):
+        return self.entries.keys()
+
     def __getattr__(self, item):
-        deconverted_value = self.deconverter.desimplify(self.entries[item])
-        return deconverted_value
+        if item not in self._cache:
+            raw_value = self.entries[item] if item in self.entries else None
+            deconverted_value = self.deconverter.desimplify(raw_value)
+            self._cache[item] = deconverted_value
+        return self._cache[item]
 
 boolean_expression_str_memory = {}
 
@@ -69,13 +76,62 @@ class BooleanExpression(object):
         self.deconverter = get_decoder()
         self.compiled_expression = ""
         self.uuid = str(uuid.uuid1()).replace("-", "")
-        # prepare the expression
+        self.is_joining_expression = True
+        self.tables_involved = []
+        """ Prepare the expression. """
         self.variable_substitution_dict = {}
         self.default_value_dict = {}
         self.prepare_expression()
 
     def is_boolean_expression(self):
         return True
+
+    def extract_hint(self):
+        from lib.rome.core.terms.terms import Hint
+        result = []
+        for expression in self.exps:
+            if hasattr(expression, "extract_hint"):
+               result += expression.extract_hint()
+            elif hasattr(expression, "right") and hasattr(expression.right, "value"):
+                table_name = str(expression.left.table)
+                attribute_name = str(expression.left.key)
+                # value = "%s" % (criterion.expression.right.value)
+                value = expression.right.value
+                if type(expression.left.type).__name__ == "Integer":
+                    value = int(value)
+                if type(expression.left.type).__name__ == "Float":
+                    value = float(value)
+                result += [Hint(table_name, attribute_name, value)]
+        return result
+
+    def extract_joining_pairs(self):
+        if self.operator == "NORMAL":
+            word_pattern = "[_a-zA-Z0-9]+"
+            joining_criterion_pattern = "%s\.%s == %s\.%s" % (word_pattern, word_pattern, word_pattern, word_pattern)
+            m = re.search(joining_criterion_pattern, self.raw_expression)
+            if m is not None:
+                joining_pair = self.raw_expression[1:-1].split("==")
+                joining_pair = map(lambda x: x.strip(), joining_pair)
+                joining_pair = sorted(joining_pair)
+                return [joining_pair]
+            else:
+                return []
+        result = []
+        for exp in self.exps:
+            if type(exp).__name__ == "BooleanExpression":
+                result += exp.extract_joining_pairs()
+        return result
+
+    def extract_nonjoining_criterions(self):
+        if self.operator == "NORMAL":
+            word_pattern = "[_a-zA-Z0-9]+"
+            joining_criterion_pattern = "%s\.%s == %s\.%s" % (word_pattern, word_pattern, word_pattern, word_pattern)
+            m = re.search(joining_criterion_pattern, self.raw_expression)
+            if m is None:
+                return [self]
+            else:
+                return []
+        return [self]
 
     def prepare_expression(self):
 
@@ -90,9 +146,9 @@ class BooleanExpression(object):
         compiled_expressions = map(lambda x: "(%s)" % (collect_expressions(x)), self.exps)
 
         joined_compiled_expressions = []
-        if self.operator == "AND":
+        if self.operator == "and":
             joined_compiled_expressions = " and ".join(compiled_expressions)
-        elif self.operator == "OR":
+        elif self.operator == "or":
             joined_compiled_expressions = " or ".join(compiled_expressions)
         elif self.operator == "NORMAL":
             joined_compiled_expressions = " or ".join(compiled_expressions)
@@ -102,21 +158,44 @@ class BooleanExpression(object):
         for criterion_str in compiled_expressions:
             for expression in self.exps:
                 if type(expression) is BinaryExpression:
-                    if ":" in str(expression.right):
-                        # handle right part of the expression
-                        if " in " in criterion_str:
-                            count = 1
-                            for i in expression.right.element:
-                                corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
-                                key = ":%s_%i" % (i._orig_key, count)
-                                self.variable_substitution_dict[key] = corrected_label
-                                self.default_value_dict[corrected_label] = i.value
-                                count += 1
-                        elif not "." in str(expression.right):
-                            original_label = str(expression.right)
-                            corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
-                            self.variable_substitution_dict[original_label] = corrected_label
-                            self.default_value_dict[corrected_label] = expression.right.value
+                    expression_parts = [expression.right, expression.left]
+                    other_part = expression.left
+                    for expression_part in expression_parts:
+                        # other_parts = filter(lambda x: x != expression_part,expression_parts)
+                        if hasattr(expression_part, "default") and expression_part.bind is None and expression_part.default is not None:
+                            expression_part.bind = expression_part.default.arg
+                        if ":" in str(expression_part):
+                            """ Handle right part of the expression. """
+                            if " in " in criterion_str:
+                                count = 1
+                                parts = getattr(expression_part, "element", [])
+                                like_operator_used = False
+                                if len(parts) == 0:
+                                    """ This case happens when the LIKE operator is used. """
+                                    like_operator_used = True
+                                    parts = [expression_part] if "BindParameter" in str(type(expression_part)) else []
+                                for i in parts:
+                                    corrected_label = ("%s_%s_%i" % (i._orig_key, self.uuid, count))
+                                    key = ":%s_%i" % (i._orig_key, count)
+                                    self.variable_substitution_dict[key] = corrected_label
+                                    self.default_value_dict[corrected_label] = i.value
+                                    if like_operator_used:
+                                        """ Must remove the '%' used as the wildcard symbol in the LIKE synthax"""
+                                        self.default_value_dict[corrected_label] = self.default_value_dict[corrected_label].replace("%", "")
+                                    count += 1
+                            elif not "." in str(expression_part):
+                                original_label = str(expression_part)
+                                corrected_label = ("%s_%s" % (original_label, self.uuid)).replace(":", "")
+                                self.variable_substitution_dict[original_label] = corrected_label
+                                value = expression_part.value
+                                # if len(other_parts) > 0:
+                                #     other_part = other_parts[0]
+                                if type(other_part.expression.type).__name__ == "Integer":
+                                    value = int(value)
+                                if type(other_part.expression.type).__name__ == "Float":
+                                    value = float(value)
+                                self.default_value_dict[corrected_label] = value
+                        other_part = expression.right
 
         for sub in self.variable_substitution_dict:
             joined_compiled_expressions = joined_compiled_expressions.replace(sub, self.variable_substitution_dict[sub])
@@ -128,6 +207,14 @@ class BooleanExpression(object):
                     self.default_value_dict[default_value_key] = exp.default_value_dict[default_value_key]
 
         self.compiled_expression = joined_compiled_expressions
+        self.raw_expression = "%s" % (self.compiled_expression)
+        for key in self.default_value_dict:
+            value = self.default_value_dict[key]
+            if type(value).__name__ in ["int", "float"]:
+                self.raw_expression = self.raw_expression.replace(key, "%s" % (self.default_value_dict[key]))
+            else:
+                self.raw_expression = self.raw_expression.replace(key, "\"%s\"" % (self.default_value_dict[key]))
+
         return self.compiled_expression
 
     def prepare_criterion(self, criterion):
@@ -162,12 +249,18 @@ class BooleanExpression(object):
                 b = tab[1]
                 criterion_str = ("""__import__('re').search(%s, %s) is not None\n""" % (b, a))
 
+            if "LIKE" in criterion_str:
+                left = criterion_str.split("LIKE")[0]
+                right = criterion_str.split("LIKE")[1]
+                criterion_str = "(%s in %s) or (%s in %s)" % (left, right, right, left)
+
             boolean_expression_str_memory[prev_criterion_str] = criterion_str
 
         return criterion_str
 
-    def evaluate(self, value):
+    def evaluate(self, value, additional_parameters={}):
 
+        orig_value = value
         # construct a dict with the values involved in the expression
         values_dict = {}
         if type(value) is not dict:
@@ -175,16 +268,16 @@ class BooleanExpression(object):
                 try:
                     s = LazyDictionnary(**value[value.keys().index(key)])
                     values_dict[key] = s
-                except:
+                except Exception as e:
                     print("[BUG] evaluation failed: %s -> %s" % (key, value))
-                    return False
+                    # return False
         else:
             values_dict = value
 
         for key in self.default_value_dict:
             values_dict[key] = self.default_value_dict[key]
         final_values_dict = {}
-        for key in values_dict:
+        for key in values_dict.keys():
             value = values_dict[key]
             if key.startswith("id_"):
                 value = int(value)
@@ -195,21 +288,51 @@ class BooleanExpression(object):
                 if key.startswith("id_"):
                     value = int(value)
                 final_values_dict[self.variable_substitution_dict[key]] = value
+        for expression in self.exps:
+            if type(expression) is BinaryExpression:
+                expression_parts = [expression.right, expression.left]
+                for expression_part in expression_parts:
+                    if hasattr(expression_part, "default") and expression_part.default is not None:
+                        key = str(expression_part).split(".")[0]
+                        attr = str(expression_part).split(".")[1]
+                        if getattr(final_values_dict[key], attr, None) is None:
+                            value = expression_part.default.arg
+                            setattr(final_values_dict[key], attr, value)
+        second_final_values_dict = {}
+        for key in additional_parameters:
+            value = LazyDictionnary(**additional_parameters[key])
+            second_final_values_dict[key] = value
+        for key in final_values_dict:
+            second_final_values_dict[key] = final_values_dict[key]
         try:
-            result = eval(self.compiled_expression, final_values_dict)
+            result = eval(self.compiled_expression, second_final_values_dict)
         except:
+            import traceback
+            traceback.print_exc()
             if self.operator == "NORMAL":
                 return False
             for exp in self.exps:
-                if exp.evaluate(value):
-                    if self.operator in ["OR"]:
+                if exp.evaluate(orig_value):
+                    if self.operator in ["or"]:
                         return True
                 else:
-                    if self.operator in ["AND"]:
+                    if self.operator in ["and"]:
                         return False
-            if self.operator in ["NORMAL", "OR"]:
+            if self.operator in ["NORMAL", "or"]:
                 return False
             else:
                 return True
             pass
         return result
+
+    def __repr__(self):
+        if self.operator == "NORMAL":
+            return str(self.raw_expression)
+        else:
+            op = " %s ".lower() % (self.operator)
+            return "(%s)" % (op.join(map(lambda x: str(x), self.exps)))
+
+class JoiningBooleanExpression(BooleanExpression):
+    def __init__(self, operator, *exps):
+        BooleanExpression.__init__(self, operator, *exps)
+        self.is_joining_expression = True

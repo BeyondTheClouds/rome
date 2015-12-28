@@ -1,10 +1,9 @@
 __author__ = 'jonathan'
 
-import _fixtures as models
-from lib.rome.core.orm.query import Query
-import collections
 import logging
 import time
+
+import test.nova._fixtures as models
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -33,9 +32,7 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
     pass
 
 
-
 if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
-    create_mock_data(5, 50)
-    
+    create_mock_data(40, 40)

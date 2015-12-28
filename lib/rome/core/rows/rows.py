@@ -1,21 +1,20 @@
 __author__ = 'jonathan'
 
-import itertools
 import logging
-import traceback
 import time
+import uuid
+import traceback
 
+from sqlalchemy.sql.expression import BinaryExpression
 from sqlalchemy.util._collections import KeyedTuple
 
-import uuid
+from lib.rome.core.dataformat import get_decoder
+from lib.rome.core.lazy import LazyValue
 from lib.rome.core.utils import get_objects, is_novabase
 
-from lib.rome.core.models import get_model_classname_from_tablename, get_model_class_from_name
-from lib.rome.core.rows.rows_experimental import building_tuples as building_tuples_experimental
+from tuples import default_panda_building_tuples as simple_building_tuples
+from tuples import sql_panda_building_tuples as join_building_tuples
 
-from lib.rome.core.lazy import LazyValue
-
-from lib.rome.core.dataformat import get_decoder
 
 file_logger_enabled = False
 try:
@@ -33,11 +32,13 @@ except:
 def all_selectable_are_functions(models):
     return all(x._is_function for x in [y for y in models if not y.is_hidden])
 
+
 def has_attribute(obj, key):
     if type(obj) is dict:
         return key in obj
     else:
         return hasattr(obj, key)
+
 
 def set_attribute(obj, key, value):
     if type(obj) is dict:
@@ -45,11 +46,13 @@ def set_attribute(obj, key, value):
     else:
         return setattr(obj, key, value)
 
+
 def get_attribute(obj, key, default=None):
     if type(obj) is dict:
         return obj[key] if key in obj else default
     else:
         return getattr(obj, key, default)
+
 
 def find_table_name(model):
     """This function return the name of the given model as a String. If the
@@ -66,8 +69,8 @@ def find_table_name(model):
     if has_attribute(model, "clauses"):
         for clause in model.clauses:
             return find_table_name(clause)
-
     return "none"
+
 
 def extract_models(l):
     already_processed = set()
@@ -78,7 +81,8 @@ def extract_models(l):
             result += [selectable]
     return result
 
-def extract_sub_row(row, selectables):
+
+def extract_sub_row(row, selectables, labels):
     """Adapt a row result to the expectation of sqlalchemy.
     :param row: a list of python objects
     :param selectables: a list entity class
@@ -86,9 +90,6 @@ def extract_sub_row(row, selectables):
     the other case, a KeyTuple where each sub object is associated with it's entity name
     """
     if len(selectables) > 1:
-        labels = []
-        for selectable in selectables:
-            labels += [find_table_name(selectable._model)]
         product = []
         for label in labels:
             product = product + [get_attribute(row, label)]
@@ -97,86 +98,59 @@ def extract_sub_row(row, selectables):
         model_name = find_table_name(selectables[0]._model)
         return get_attribute(row, model_name)
 
-def building_tuples(list_results, labels, criterions, hints=[]):
-    mode = "not_cartesian_product"
-    if mode is "cartesian_product":
-        cartesian_product = []
-        for element in itertools.product(*list_results):
-            cartesian_product += [element]
-        return cartesian_product
-    else:
-        # construct dicts that will keep a ref on objects according to their "id" and "uuid" fields.
-        indexed_results = {}
-        for i in zip(list_results, labels):
-            (results, label) = i
-            dict_result = {"id": {}, "uuid": {}}
-            for j in results:
-                if has_attribute(j, "id"):
-                    dict_result["id"][get_attribute(j, "id")] = j
-                if has_attribute(j, "uuid"):
-                    dict_result["uuid"][get_attribute(j, "uuid")] = j
-            indexed_results[label] = dict_result
-        # find iteratively pairs that matches according to relationship modelisation
-        tuples = []
-        tuples_labels = []
-        # initialise tuples
-        count = 0
-        for i in zip(list_results, labels):
-            (results, label) = i
-            tuples_labels += [label]
-            for j in results:
-                current_tuple = {label: j}
-                tuples += [current_tuple]
-            break
-        # increase model of exisintg tuples
-        count == 0
-        for i in zip(list_results, labels):
-            if count == 0:
-                count += 1
-                continue
-            (results, label) = i
-            tuples_labels += [label]
-            # iterate on tuples
-            for t in tuples:
-                # iterate on existing elements of the current rows
-                keys = t.keys()
-                for e in keys:
-                    model_classname = get_model_classname_from_tablename(e)
-                    fake_instance = get_model_class_from_name(model_classname)()
-                    relationships = fake_instance.get_relationships()
-                    for r in relationships:
-                        if r.local_fk_field in ["id", "uuid"]:
-                            continue
-                        remote_label_name = r.remote_object_tablename
-                        if remote_label_name in indexed_results:
-                            local_value = get_attribute(t[e], r.local_fk_field)
-                            if local_value is not None:
-                                try:
-                                    remote_candidate = indexed_results[remote_label_name][r.remote_object_field][local_value]
-                                    t[remote_label_name] = remote_candidate
-                                except Exception as e:
-                                    logging.error(e)
-                                    traceback.print_exc()
-            tuple_groupby_size = {}
-            for t in tuples:
-                tuple_size = len(t)
-                if not tuple_size in tuple_groupby_size:
-                    tuple_groupby_size[tuple_size] = []
-                tuple_groupby_size[tuple_size] += [t]
-            if len(tuple_groupby_size.keys()) > 0:
-                max_size = max(tuple_groupby_size.keys())
-                tuples = tuple_groupby_size[max_size]
-            else:
-                tuples = []
-        # reordering tuples
-        results = []
-        for t in tuples:
-            if len(t) == len(labels):
-                ordered_t = [t[i] for i in labels]
-                results += [tuple(ordered_t)]
-        return results
 
-def construct_rows(models, criterions, hints, session=None):
+def intersect(b1, b2):
+    return [val for val in b1 if val in b2]
+
+
+def flatten(lis):
+    """Given a list, possibly nested to any level, return it flattened."""
+    new_lis = []
+    for item in lis:
+        if type(item) == type([]):
+            new_lis.extend(flatten(item))
+        else:
+            new_lis.append(item)
+    return new_lis
+
+
+def extract_table_data(term):
+    term_value = str(term)
+    if "." in term_value:
+        return {"table": term_value.split(".")[0], "column": term_value.split(".")[1]}
+    else:
+        return None
+
+
+def extract_joining_criterion(exp):
+    from lib.rome.core.expression.expression import BooleanExpression
+    if type(exp) is BooleanExpression:
+        return map(lambda x:extract_joining_criterion(x), exp.exps)
+    elif type(exp) is BinaryExpression:
+        return [[extract_table_data(exp.left)] + [extract_table_data(exp.right)]]
+    else:
+        return []
+
+
+def extract_joining_criterion_from_relationship(rel, local_table):
+    local_tabledata = {"table": local_table, "column": rel.local_fk_field}
+    remote_tabledata = {"table": rel.remote_object_tablename, "column": rel.remote_object_field}
+    return [local_tabledata, remote_tabledata]
+
+
+def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
+    if value is None:
+        return None
+    if only_if_necessary and type(value).__name__ in ["int", "str", "float", "unicode"]:
+        return value
+    elif type(value) is dict and "timezone" in value:
+        decoder = get_decoder(request_uuid=request_uuid)
+        return decoder.desimplify(value)
+    else:
+        return LazyValue(value, request_uuid)
+
+
+def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     """This function constructs the rows that corresponds to the current orm.
     :return: a list of row, according to sqlalchemy expectation
@@ -184,9 +158,13 @@ def construct_rows(models, criterions, hints, session=None):
 
     current_milli_time = lambda: int(round(time.time() * 1000))
 
+    metadata = {}
     part1_starttime = current_milli_time()
 
-    request_uuid = uuid.uuid1()
+    if request_uuid is None:
+        request_uuid = uuid.uuid1()
+    else:
+        request_uuid = request_uuid
 
     labels = []
     columns = set([])
@@ -194,13 +172,14 @@ def construct_rows(models, criterions, hints, session=None):
 
     model_set = extract_models(models)
 
-    # get the fields of the join result
+    """ Get the fields of the join result """
     for selectable in model_set:
         labels += [find_table_name(selectable._model)]
         if selectable._attributes == "*":
             try:
                 selected_attributes = selectable._model._sa_class_manager
             except:
+                traceback.print_exc()
                 selected_attributes = selectable._model.class_._sa_class_manager
                 pass
         else:
@@ -216,7 +195,7 @@ def construct_rows(models, criterions, hints, session=None):
                 columns.add(attribute)
     part2_starttime = current_milli_time()
 
-    # loading objects (from database)
+    """ Loading objects (from database) """
     list_results = []
     for selectable in model_set:
         tablename = find_table_name(selectable._model)
@@ -227,43 +206,25 @@ def construct_rows(models, criterions, hints, session=None):
         list_results += [objects]
     part3_starttime = current_milli_time()
 
-    # construct the cartesian product
-    # tuples = building_tuples(list_results, labels, criterions)
-    tuples = building_tuples_experimental(list_results, labels, criterions, hints)
+    """ Building tuples """
+    building_tuples = join_building_tuples
+    tuples = building_tuples(list_results, labels, criterions, hints, metadata=metadata)
     part4_starttime = current_milli_time()
 
-    # # filtering tuples (cartesian product)
-    #
-    # # aggregated_filters = {}
-    # # for criterion in criterions:
-    # #     for each in
-    # #     criterion
-    # #     pass
-    #
-    indexed_rows = {}
+    """ Filtering tuples (cartesian product) """
     for product in tuples:
         if len(product) > 0:
             row = KeyedTuple(product, labels=labels)
-            row_index_key = "%s" % (str(row))
-
-            if row_index_key in indexed_rows:
-                continue
-
-            all_criterions_satisfied = True
-
-            for criterion in criterions:
-                if not criterion.evaluate(row):
-                    all_criterions_satisfied = False
-            if all_criterions_satisfied:
-                indexed_rows[row_index_key] = True
-                rows += [extract_sub_row(row, model_set)]
+            rows += [extract_sub_row(row, model_set, labels)]
     part5_starttime = current_milli_time()
     deconverter = get_decoder(request_uuid=request_uuid)
-    # reordering tuples (+ selecting attributes)
+
+    """ Reordering tuples (+ selecting attributes) """
     final_rows = []
     showable_selection = [x for x in models if (not x.is_hidden) or x._is_function]
     part6_starttime = current_milli_time()
-    # selecting attributes
+
+    """ Selecting attributes """
     if all_selectable_are_functions(models):
         final_row = []
         for selection in showable_selection:
@@ -290,10 +251,7 @@ def construct_rows(models, criterions, hints, session=None):
                             final_row += [get_attribute(value, selection._attributes)]
                         else:
                             final_row += [value]
-
-            # final_row = map(lambda x: deconverter.desimplify(x), final_row)
-            final_row = map(lambda x: LazyValue(x, request_uuid), final_row)
-
+            final_row = map(lambda x: wrap_with_lazy_value(x, request_uuid=request_uuid), final_row)
             if len(showable_selection) == 1:
                 final_rows += final_row
             else:
@@ -307,7 +265,7 @@ def construct_rows(models, criterions, hints, session=None):
         part5_starttime - part4_starttime,
         part6_starttime - part5_starttime,
         part7_starttime - part6_starttime,
-        """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (models, criterions),
+        metadata["sql"] if "sql" in metadata else """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\"}""" % (models, criterions),
         current_milli_time()
     )
 
