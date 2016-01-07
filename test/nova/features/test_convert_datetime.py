@@ -99,7 +99,6 @@ if __name__ == '__main__':
     date_str = "2015-10-25T21:15:16.000000"
     result = None
     timezone = "UTC"
-    # result = datetime.datetime.strptime(date_str, '%b %d %Y %H:%M:%S')
     result = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
     result.strftime('%Y-%m-%dT%H:%M:%S.%f')
     if timezone == "UTC":

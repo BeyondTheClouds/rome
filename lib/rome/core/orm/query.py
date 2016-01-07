@@ -215,6 +215,26 @@ class Query:
         _hints = self._hints[:]
         for arg in args:
 
+            """ The following block has been written to handle the following kind of call to 'join':
+
+                    query.join("_metadata")
+
+                where the joining class is not specified but rather a relationship name.
+            """
+            # if type(arg) is str and len(args) == 1:
+            #     if len(self._models) == 0:
+            #         continue
+            #     candidate_model = self._models[0]._model
+            #     if not hasattr(candidate_model, arg):
+            #         continue
+            #     candidate_attribute = getattr(candidate_model, arg)
+            #     if not hasattr(candidate_attribute, "property"):
+            #         continue
+            #     if not type(candidate_attribute.property).__name__ == "RelationshipProperty":
+            #         continue
+            #     remote_model = candidate_attribute.property.argument
+            #     return self.join(remote_model)
+
             if not isinstance(arg, list) and not isinstance(arg, tuple):
                 tuples = [arg]
             else:
