@@ -342,9 +342,10 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         try:
             row = []
             for (x, y) in zip(reversed(final_tables), reversed(each)):
-                    row += [table_id_index[x][int(y)]]
+                    # row += [table_id_index[x][int(y)]]
+                    row += [table_id_index[x][y]]
         except Exception as e:
-            # traceback.print_exc()
+            traceback.print_exc()
             pass
         rows += [row]
     return rows
