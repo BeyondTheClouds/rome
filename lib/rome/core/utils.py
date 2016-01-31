@@ -16,6 +16,8 @@ import lib.rome.driver.database_driver as database_driver
 import time
 import math
 
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 def merge_dicts(dict1, dict2):

@@ -3,6 +3,9 @@ from lib.rome.core.models import get_model_classname_from_tablename
 import pandas as pd
 import math
 import traceback
+import datetime
+
+from lib.rome.core.utils import DATE_FORMAT
 
 def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
@@ -322,8 +325,27 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     new_where_clause = new_where_clause.replace("1==1 and", "")
     new_where_clause = new_where_clause.replace("is None", "== 0")
     new_where_clause = new_where_clause.replace("is not None", "!= 0")
-    # Quick fix for dates
-    new_where_clause = new_where_clause.replace("_at ", "_at.value ")
+
+    # <Quick fix for dates>
+    fix_date = False
+    for non_joining_criterion in non_joining_criterions:
+        if "_at " in str(non_joining_criterion):
+            fix_date = True
+    if fix_date:
+        for col in result:
+            if col.endswith("_at"):
+                def extract_value(x):
+                    date_value = None
+                    if isinstance(x, dict) and u"value" in x:
+                        date_value = str(x[u"value"])
+                    if isinstance(x, dict) and "value" in x:
+                        date_value = x["value"]
+                    if date_value is not None:
+                        date_object = datetime.datetime.strptime(date_value, DATE_FORMAT)
+                        return (date_object-datetime.datetime(1970, 1, 1)).total_seconds()
+                    return x
+                result[col] = result[col].apply(lambda x: extract_value(x))
+    # </Quick fix for dates>
 
     for table in needed_columns:
         for attribute in needed_columns[table]:

@@ -21,8 +21,7 @@ SIMPLE_CACHES = LimitedSizeDictionnary(size_limit=20)
 COMPLEX_CACHES = LimitedSizeDictionnary(size_limit=20)
 TARGET_CACHES = LimitedSizeDictionnary(size_limit=20)
 
-# DATE_FORMAT = "%b %d %Y %H:%M:%S"
-DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+from lib.rome.core.utils import DATE_FORMAT
 
 def extract_adress(obj):
     """Extract an indentifier for the given object: if the object contains an
