@@ -15,6 +15,12 @@ from sqlalchemy import DateTime
 import lib.rome.driver.database_driver as database_driver
 import time
 import math
+import time
+
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+def datetime_to_int(x):
+    return int(x.strftime('%s'))
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 

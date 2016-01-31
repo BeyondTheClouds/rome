@@ -27,11 +27,11 @@ def create_mock_data(network_count=3, fixed_ip_count=200):
         for j in range(1, fixed_ip_count):
             fixed_ip = models.FixedIp()
             fixed_ip.id = i * fixed_ip_count + j
+            fixed_ip.id = "id_%s" % (fixed_ip.id)
             fixed_ip.network_id = i
             fixed_ip.address = compute_ip(i, j)
             fixed_ip.save()
     pass
-
 
 
 if __name__ == '__main__':

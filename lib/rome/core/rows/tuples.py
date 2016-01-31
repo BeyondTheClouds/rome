@@ -3,6 +3,9 @@ from lib.rome.core.models import get_model_classname_from_tablename
 import pandas as pd
 import math
 import traceback
+import datetime
+
+from lib.rome.core.utils import DATE_FORMAT, datetime_to_int
 
 def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
@@ -323,6 +326,27 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     new_where_clause = new_where_clause.replace("is None", "== 0")
     new_where_clause = new_where_clause.replace("is not None", "!= 0")
 
+    # <Quick fix for dates>
+    fix_date = False
+    for non_joining_criterion in non_joining_criterions:
+        if "_at " in str(non_joining_criterion):
+            fix_date = True
+    if fix_date:
+        for col in result:
+            if col.endswith("_at"):
+                def extract_value(x):
+                    date_value = None
+                    if isinstance(x, dict) and u"value" in x:
+                        date_value = str(x[u"value"])
+                    if isinstance(x, dict) and "value" in x:
+                        date_value = x["value"]
+                    if date_value is not None:
+                        date_object = datetime.datetime.strptime(date_value, DATE_FORMAT)
+                        return datetime_to_int(date_object)
+                    return x
+                result[col] = result[col].apply(lambda x: extract_value(x))
+    # </Quick fix for dates>
+
     for table in needed_columns:
         for attribute in needed_columns[table]:
             old_pattern = "%s.%s" % (table, attribute)
@@ -342,9 +366,10 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         try:
             row = []
             for (x, y) in zip(reversed(final_tables), reversed(each)):
-                    row += [table_id_index[x][int(y)]]
+                    # row += [table_id_index[x][int(y)]]
+                    row += [table_id_index[x][y]]
         except Exception as e:
-            # traceback.print_exc()
+            traceback.print_exc()
             pass
         rows += [row]
     return rows

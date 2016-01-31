@@ -15,6 +15,9 @@ import lib.rome.driver.database_driver as database_driver
 from oslo.db.sqlalchemy import models
 import utils
 
+from sqlalchemy.ext.declarative import declarative_base
+Base = declarative_base()
+
 def starts_with_uppercase(name):
     if name is None or len(name) == 0:
         return False
@@ -289,7 +292,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         for key in [key for key in saving_candidates if "x" in key]:
 
-            classname = "_".join(key.split("_")[0:-1])
+            candidate = saving_candidates[key]
+            default_classname = "_".join(key.split("_")[0:-1])
+            classname = candidate.get("_metadata_novabase_classname", default_classname)
             table_name = get_model_tablename_from_classname(classname)
 
             simplified_object = object_converter.simple_cache[key]
@@ -311,7 +316,9 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         for key in saving_candidates:
 
-            classname = "_".join(key.split("_")[0:-1])
+            candidate = saving_candidates[key]
+            default_classname = "_".join(key.split("_")[0:-1])
+            classname = candidate.get("_metadata_novabase_classname", default_classname)
             table_name = get_model_tablename_from_classname(classname)
 
             current_object = object_converter.complex_cache[key]

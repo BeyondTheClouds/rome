@@ -21,6 +21,7 @@ SIMPLE_CACHES = LimitedSizeDictionnary(size_limit=20)
 COMPLEX_CACHES = LimitedSizeDictionnary(size_limit=20)
 TARGET_CACHES = LimitedSizeDictionnary(size_limit=20)
 
+from lib.rome.core.utils import DATE_FORMAT
 
 def extract_adress(obj):
     """Extract an indentifier for the given object: if the object contains an
@@ -85,7 +86,7 @@ class Encoder(object):
 
         return {
             "simplify_strategy": "datetime",
-            "value": datetime_ref.strftime('%b %d %Y %H:%M:%S'),
+            "value": datetime_ref.strftime(DATE_FORMAT),
             "timezone": str(datetime_ref.tzinfo)
         }
 
@@ -349,7 +350,7 @@ class Decoder(object):
 
     def datetime_desimplify(self, value):
         """Desimplify a datetime object."""
-        result = datetime.datetime.strptime(value["value"], '%b %d %Y %H:%M:%S')
+        result = datetime.datetime.strptime(value["value"], DATE_FORMAT)
         if value["timezone"] == "UTC":
             result = pytz.utc.localize(result)
         return result
