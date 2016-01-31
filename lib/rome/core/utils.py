@@ -20,7 +20,7 @@ import time
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def datetime_to_int(x):
-    time.mktime(x.timetuple())
+    return int(x.strftime('%s'))
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
