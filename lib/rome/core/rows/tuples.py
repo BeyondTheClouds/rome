@@ -5,7 +5,7 @@ import math
 import traceback
 import datetime
 
-from lib.rome.core.utils import DATE_FORMAT
+from lib.rome.core.utils import DATE_FORMAT, datetime_to_int
 
 def correct_boolean_int(expression_str):
     expression_str = expression_str.replace("___deleted == 0", "___deleted != 1")
@@ -342,7 +342,7 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
                         date_value = x["value"]
                     if date_value is not None:
                         date_object = datetime.datetime.strptime(date_value, DATE_FORMAT)
-                        return (date_object-datetime.datetime(1970, 1, 1)).total_seconds()
+                        return datetime_to_int(date_object)
                     return x
                 result[col] = result[col].apply(lambda x: extract_value(x))
     # </Quick fix for dates>

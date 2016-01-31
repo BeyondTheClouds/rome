@@ -8,7 +8,7 @@ import uuid
 from sqlalchemy.sql.expression import BinaryExpression
 
 from lib.rome.core.rows.rows import get_attribute, has_attribute
-from lib.rome.core.utils import DATE_FORMAT
+from lib.rome.core.utils import DATE_FORMAT, datetime_to_int
 
 def uncapitalize(s):
     return s[:1].lower() + s[1:] if s else ''
@@ -196,7 +196,7 @@ class BooleanExpression(object):
                                 if type(other_part.expression.type).__name__ == "Float":
                                     value = float(value)
                                 if isinstance(value, datetime.datetime):
-                                    value = (value - datetime.datetime(1970,1,1)).total_seconds()
+                                    value = datetime_to_int(value)
                                 self.default_value_dict[corrected_label] = value
                         other_part = expression.right
 
