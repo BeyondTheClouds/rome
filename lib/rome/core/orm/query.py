@@ -122,8 +122,11 @@ class Query:
                 each.update(values)
                 if self._session is not None:
                     self._session.add(each)
+                else:
+                    each.save()
             except:
                 pass
+        result = self.all()
         return len(result)
 
     def distinct(self):
