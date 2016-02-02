@@ -249,6 +249,12 @@ class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def get_associated_objects(self):
         return getattr(self, "_associated_objects", [])
 
+    def to_dict(self):
+        result = {}
+        for key in self.__dict__:
+            result[key] = self.__dict__[key]
+        return result
+
     def reset_associated_objects(self):
         return setattr(self, "_associated_objects", [])
 
