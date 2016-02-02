@@ -868,3 +868,10 @@ if __name__ == "__main__":
     result = image_get_all(context)
     print(result)
 
+    query1 = Query(models.Image)
+    query2 = Query(models.Image)
+    query3 = Query(models.Image)
+
+    query = query1.union(query2).union(query3)
+    print(len(query.all()))
+

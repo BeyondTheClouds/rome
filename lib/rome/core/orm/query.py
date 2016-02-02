@@ -330,8 +330,23 @@ class Query:
             kwargs["session"] = self._session
         return Query(*args, **kwargs).all()
 
+    def union(self, *queries):
+        return QueryUnion(self, *queries)
+
     def __iter__(self):
         return iter(self.all())
 
     def __repr__(self):
         return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\", \\"hints\\": \\"%s\\"}""" % (self._models, self._criterions, self._hints)
+
+
+class QueryUnion(Query):
+    def __init__(self, main_query, *queries):
+        self.main_query = main_query
+        self.queries = list(queries)
+
+    def all(self, request_uuid=None):
+        result = self.main_query.all()
+        for query in self.queries:
+            result += query.all()
+        return result
