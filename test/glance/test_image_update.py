@@ -880,3 +880,5 @@ if __name__ == "__main__":
     query = query1.union(query2, query3)
     print(len(query.all()))
 
+    print(query)
+
