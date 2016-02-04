@@ -17,6 +17,12 @@ import time
 import math
 import time
 
+# from oslo.utils import timeutils
+try:
+    from oslo.utils import timeutils
+except:
+    from oslo_utils import timeutils
+
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def datetime_to_int(x):

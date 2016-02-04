@@ -23,7 +23,8 @@ import uuid
 
 from oslo.config import cfg
 from oslo.db.sqlalchemy import models
-from oslo.utils import timeutils
+# from oslo.utils import timeutils
+from lib.rome.core.utils import timeutils
 from sqlalchemy import Column, Index, Integer, BigInteger, Enum, String, schema
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base

@@ -16,7 +16,8 @@ from sqlalchemy.orm import joinedload_all
 
 import logging
 import uuid
-from oslo.utils import timeutils
+# from oslo.utils import timeutils
+from lib.rome.core.utils import timeutils
 from sqlalchemy.sql.expression import asc
 from sqlalchemy.sql.expression import desc
 from lib.rome.core.orm.query import or_

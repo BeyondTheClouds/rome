@@ -6,7 +6,8 @@ from lib.rome.core.orm.query import Query
 from lib.rome.core.orm.query import Query as RomeQuery
 from lib.rome.core.session.session import Session as RomeSession
 import six
-from oslo.utils import timeutils
+# from oslo.utils import timeutils
+from lib.rome.core.utils import timeutils
 from test.nova.methods.test_ensure_default_secgroup import _security_group_ensure_default, _security_group_get_query
 
 import logging
