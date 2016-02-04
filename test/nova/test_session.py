@@ -14,7 +14,8 @@ from lib.rome.core.models import Entity
 from lib.rome.core.models import global_scope
 # from lib.rome.core.session.session import OldSession as Session
 from lib.rome.core.session.session import Session as Session
-from oslo.db.exception import DBDeadlock
+# from oslo.db.exception import DBDeadlock
+from lib.rome.core.utils import DBDeadlock
 
 import random
 
