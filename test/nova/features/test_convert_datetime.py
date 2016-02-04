@@ -5,7 +5,8 @@ from lib.rome.core.orm.query import Query
 from lib.rome.core.orm.query import Query as RomeQuery
 from lib.rome.core.session.session import Session as RomeSession
 
-from oslo.utils import timeutils
+# from oslo.utils import timeutils
+from lib.rome.core.utils import timeutils
 import logging
 import six
 import datetime

@@ -23,6 +23,7 @@ import uuid
 # from oslo_db.sqlalchemy import models
 # from oslo_serialization import jsonutils
 # from oslo_utils import timeutils
+from lib.rome.core.utils import timeutils
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
 from sqlalchemy import Column

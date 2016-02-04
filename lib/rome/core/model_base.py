@@ -19,7 +19,8 @@
 
 import six
 
-from oslo.utils import timeutils
+# from oslo.utils import timeutils
+from lib.rome.core.utils import timeutils
 from sqlalchemy import Column, Integer
 from sqlalchemy import DateTime
 from sqlalchemy.orm import object_mapper
