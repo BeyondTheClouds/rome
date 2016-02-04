@@ -12,7 +12,8 @@ import logging
 
 from lib.rome.core.dataformat import get_decoder, get_encoder
 import lib.rome.driver.database_driver as database_driver
-from oslo.db.sqlalchemy import models
+# from oslo.db.sqlalchemy import models
+from lib.rome.core.model_base import ModelBase
 import utils
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -106,7 +107,7 @@ class IterableModel(object):
 
 entity_relationship_field = {}
 
-class Entity(models.ModelBase, IterableModel, utils.ReloadableRelationMixin):
+class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def __init__(self):
         self._session = None
