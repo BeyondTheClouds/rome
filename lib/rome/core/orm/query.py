@@ -339,11 +339,19 @@ class Query:
     def __repr__(self):
         return """{\\"models\\": \\"%s\\", \\"criterions\\": \\"%s\\", \\"hints\\": \\"%s\\"}""" % (self._models, self._criterions, self._hints)
 
+import itertools
 
 class QueryUnion(Query):
     def __init__(self, main_query, *queries):
         self.main_query = main_query
         self.queries = list(queries)
+        # Quick fix to enable compatibility with Glance
+        self._models = list(itertools.chain(map(lambda x: x._models, self.queries)))
+        self._initial_models = list(itertools.chain(map(lambda x: x._initial_models, self.queries)))
+        self._criterions = list(itertools.chain(map(lambda x: x._criterions, self.queries)))
+        self._funcs = list(itertools.chain(map(lambda x: x._funcs, self.queries)))
+        self._hints = list(itertools.chain(map(lambda x: x._hints, self.queries)))
+        self._session = None
 
     def all(self, request_uuid=None):
         result = self.main_query.all()
