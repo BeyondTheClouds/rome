@@ -862,21 +862,105 @@ if __name__ == "__main__":
 
     context = Context("project1", "user1", True, True)
 
+    image_id = "7f777fd4-48d9-4491-be0b-b1e2bb1b2771"
     if Query(models.Image).count() == 0:
         import uuid
-        values = {"size": 256, "status": "active", "id": str(uuid.uuid1())}
-        image_create(context, values)
+        values = {
+            "container_format": "ami",
+            "min_ram": 0,
+            "_rid": "8b639fa8-cb5c-11e5-9557-080027d079db",
+            "updated_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:09"
+            },
+            "owner": "47ab894478b542c3bcd03693ce3e979e",
+            "_metadata_novabase_classname": "Image",
+            "deleted_at": None,
+            "id": image_id,
+            "size": None,
+            "disk_format": "ami",
+            "_rome_version_number": 0,
+            "status": "queued",
+            "deleted": False,
+            "_session": None,
+            "min_disk": 0,
+            "is_public": True,
+            "virtual_size": None,
+            "name": "cirros-0.3.4-x86_64-uec",
+            "checksum": None,
+            "_pid": "0xb3ac40ac",
+            "_nova_classname": "images",
+            "protected": False,
+            "created_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:09"
+            }
+        }
+        image = models.Image()
+        image.update(values)
+        image.save()
 
-    result = image_get_all(context)
+        values = {
+            "name": "kernel_id",
+            "_session": None,
+            "deleted": False,
+            "created_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:09"
+            },
+            "_rid": "8b639fa8-cb5c-11e5-9557-080027d079db",
+            "updated_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:09"
+            },
+            "value": "c3707adb-6e7d-4e0b-ae5c-1ff9aff7ee2c",
+            "id": 1,
+            "image_id": image_id,
+            "_rome_version_number": 0,
+            "_nova_classname": "image_properties",
+            "_metadata_novabase_classname": "ImageProperty",
+            "deleted_at": None,
+            "_pid": "0xb3ab9ccc"
+        }
+        image_property = models.ImageProperty()
+        image_property.update(values)
+        image_property.save()
+
+        values = {
+            "status": "active",
+            "_rome_version_number": 0,
+            "_session": None,
+            "deleted": False,
+            "_pid": "0xb3ae190c",
+            "_rid": "8b639fa8-cb5c-11e5-9557-080027d079db",
+            "updated_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:07"
+            },
+            "value": "file:///opt/stack/data/glance/images/c3707adb-6e7d-4e0b-ae5c-1ff9aff7ee2c",
+            "id": 1,
+            "image_id": image_id,
+            "meta_data": {},
+            "_nova_classname": "image_locations",
+            "_metadata_novabase_classname": "ImageLocation",
+            "deleted_at": None,
+            "created_at": {
+                "timezone": "None",
+                "simplify_strategy": "datetime",
+                "value": "2016-02-04 16:30:07"
+            }
+        }
+        image_location = models.ImageLocation()
+        image_location.update(values)
+        image_location.save()
+
+
+
+
+    result = image_get_all(context, marker=image_id)
     print(result)
-
-    query1 = Query(models.Image)
-    query2 = Query(models.Image)
-    query3 = Query(models.Image)
-
-    query = query1.union(query2).union(query3)
-    print(len(query.all()))
-
-    query = query1.union(query2, query3)
-    print(len(query.all()))
-

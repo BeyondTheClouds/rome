@@ -91,18 +91,22 @@ class BooleanExpression(object):
         from lib.rome.core.terms.terms import Hint
         result = []
         for expression in self.exps:
-            if hasattr(expression, "extract_hint"):
-               result += expression.extract_hint()
-            elif hasattr(expression, "right") and hasattr(expression.right, "value"):
-                table_name = str(expression.left.table)
-                attribute_name = str(expression.left.key)
-                # value = "%s" % (criterion.expression.right.value)
-                value = expression.right.value
-                if type(expression.left.type).__name__ == "Integer":
-                    value = int(value)
-                if type(expression.left.type).__name__ == "Float":
-                    value = float(value)
-                result += [Hint(table_name, attribute_name, value)]
+            try:
+                if hasattr(expression, "extract_hint"):
+                   result += expression.extract_hint()
+                elif hasattr(expression, "right") and hasattr(expression.right, "value"):
+                    table_name = str(expression.left.table)
+                    attribute_name = str(expression.left.key)
+                    # value = "%s" % (criterion.expression.right.value)
+                    value = expression.right.value
+                    if type(expression.left.type).__name__ == "Integer":
+                        value = int(value)
+                    if type(expression.left.type).__name__ == "Float":
+                        value = float(value)
+                    result += [Hint(table_name, attribute_name, value)]
+            except:
+                # TODO: this catch errors that occur when there are "CASE WHEN" expression (this is caused by _paginate_query in glance.db.api)
+                pass
         return result
 
     def extract_joining_pairs(self):
