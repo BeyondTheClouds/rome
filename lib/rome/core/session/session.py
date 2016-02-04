@@ -6,7 +6,8 @@ import uuid
 from lib.rome.core.utils import merge_dicts
 from lib.rome.core.utils import current_milli_time
 from lib.rome.driver.redis.lock import ClusterLock
-from oslo.db.exception import DBDeadlock
+# from oslo.db.exception import DBDeadlock
+from lib.rome.core.utils import DBDeadlock
 from lib.rome.core.lazy import LazyReference
 
 class SessionDeadlock(Exception):

@@ -23,6 +23,12 @@ try:
 except:
     from oslo_utils import timeutils
 
+# from oslo.db.exception import DBDeadlock
+try:
+    from oslo.db.exception import DBDeadlock
+except:
+    from oslo_db.exception import DBDeadlock
+
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def datetime_to_int(x):
