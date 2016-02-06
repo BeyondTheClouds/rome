@@ -1,23 +1,15 @@
+import logging
 
-import test.glance.models as models
-from lib.rome.core.orm.query import Query
-
-from lib.rome.core.orm.query import Query as RomeQuery
-from lib.rome.core.session.session import Session as RomeSession
-
-from test.nova.methods.test_ensure_default_secgroup import _security_group_ensure_default, _security_group_get_query
-from lib.rome.core.orm.query import or_
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import joinedload_all
+import six
 import sqlalchemy.orm as sa_orm
 import sqlalchemy.sql as sa_sql
 
-import six
-import logging
-import uuid
+import test.glance.models as models
+from lib.rome.core.orm.query import Query
+from lib.rome.core.orm.query import Query as RomeQuery
+from lib.rome.core.session.session import Session as RomeSession
 # from oslo.utils import timeutils
 from lib.rome.core.utils import timeutils
-from sqlalchemy.sql.expression import asc
 from sqlalchemy.sql.expression import desc
 from lib.rome.core.orm.query import or_
 from lib.rome.core.orm.query import and_
@@ -755,6 +747,7 @@ def image_get_all(context, filters=None, marker=None, limit=None,
                   admin_as_user=False, return_tag=False):
     """
     Get all images that match zero or more filters.
+
     :param filters: dict of filter keys and values. If a 'properties'
                     key is present, it is treated as a dict of key/value
                     filters on the image properties attribute
@@ -839,8 +832,15 @@ def image_get_all(context, filters=None, marker=None, limit=None,
 
     images = []
     for image in query.all():
-        img = image[0] if type(image) is list else image
-        image_dict = img.to_dict()
+        if type(image) is list:
+            print("""[DEBUG_GLANCE] image_get_all(context=%s, filters=%s, marker=%s, limit=%s,
+                  sort_key=%s,                        sort_dir=%s,
+                  member_status=%s,            is_public=%s,
+                  admin_as_user=%s, return_tag=%s)""" % (context, filters, marker, limit,
+                  sort_key,                        sort_dir,
+                  member_status,            is_public,
+                  admin_as_user, return_tag))
+        image_dict = image.to_dict()
         image_dict = _normalize_locations(context, image_dict,
                                           force_show_deleted=showing_deleted)
         if return_tag:
@@ -865,7 +865,6 @@ image_id = "7f777fd4-48d9-4491-be0b-b1e2bb1b2771"
 
 def create_mock_data():
     image_id = "7f777fd4-48d9-4491-be0b-b1e2bb1b2771"
-    import uuid
     values = {
         "container_format": "ami",
         "min_ram": 0,
@@ -968,6 +967,14 @@ def test_marker():
     result = image_get_all(context, )
     print(result)
 
+def test_image_get_all_devstack(context):
+    from test.glance.api import image_get_all as image_get_all_api
+    result = image_get_all_api(context, filters={'deleted': False}, marker=None, limit=25,
+                  sort_key=['created_at', 'id'], sort_dir=['desc', 'desc'],
+                  member_status="accepted", is_public=None,
+                  admin_as_user=False, return_tag=True)
+    print(result)
+
 if __name__ == "__main__":
 
     context = Context("project1", "user1", True, True)
@@ -975,7 +982,8 @@ if __name__ == "__main__":
     if Query(models.Image).count() == 0:
         create_mock_data()
 
-    result = Query(models.Image.id, models.ImageMember.id, models.Image).join(models.ImageMember).all()
-    print(result)
+    # result = Query(models.Image.id, models.ImageMember.id, models.Image).join(models.ImageMember).all()
+    # print(result)
 
-    test_marker()
+    # test_marker()
+    test_image_get_all_devstack(context)
