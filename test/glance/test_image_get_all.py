@@ -975,6 +975,16 @@ def test_image_get_all_devstack(context):
                   admin_as_user=False, return_tag=True)
     print(result)
 
+
+def test_image_get_all_devstack2(context):
+    # from test.glance.api import image_get_all as image_get_all_api
+    from glance.db.discovery.api import image_get_all as image_get_all_api
+    result = image_get_all_api(context=context, filters={'deleted': False}, marker="c184db4b-08f2-405d-9d90-cb3a132b4d29", limit=25,
+                  sort_key=['created_at'],                        sort_dir=['desc'],
+                  member_status="accepted",            is_public=None,
+                  admin_as_user=False, return_tag=True)
+    print(result)
+
 if __name__ == "__main__":
 
     context = Context("project1", "user1", True, True)
@@ -987,3 +997,4 @@ if __name__ == "__main__":
 
     # test_marker()
     test_image_get_all_devstack(context)
+    test_image_get_all_devstack2(context)
