@@ -121,10 +121,11 @@ class Query:
             try:
                 each.update(values)
                 if self._session is not None:
-                    self._session.add(each)
+                    self._session.update(each)
                 else:
                     each.save()
             except:
+                traceback.print_exc()
                 pass
         result = self.all()
         return len(result)

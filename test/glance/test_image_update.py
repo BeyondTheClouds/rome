@@ -490,9 +490,9 @@ def _image_get(context, image_id, session=None, force_show_deleted=False):
 
     try:
         query = session.query(models.Image).options(
-            sa_orm.joinedload(models.Image.properties)).options(
+            sa_orm.joinedload(models.ImageProperty)).options(
                 sa_orm.joinedload(
-                    models.Image.locations)).filter_by(id=image_id)
+                    models.ImageLocation)).filter(models.Image.id==image_id)
 
         # filter out deleted images if context disallows it
         if not force_show_deleted and not context.can_see_deleted:
@@ -860,25 +860,18 @@ class Context(object):
 
 if __name__ == "__main__":
 
+    logging.getLogger().setLevel(logging.DEBUG)
+
     context = Context("project1", "user1", True, True)
 
     if Query(models.Image).count() == 0:
         import uuid
-        values = {"size": 256, "status": "active", "id": str(uuid.uuid1())}
+        values = {"size": 256, "status": "queued", "id": str(uuid.uuid1())}
         image_create(context, values)
 
-    result = image_get_all(context)
-    print(result)
+    image_id = Query(models.Image).first().id
 
-    query1 = Query(models.Image)
-    query2 = Query(models.Image)
-    query3 = Query(models.Image)
-
-    query = query1.union(query2).union(query3)
-    print(len(query.all()))
-
-    query = query1.union(query2, query3)
-    print(len(query.all()))
-
-    print(query)
+    values = {"size": 256, "status": "active"}
+    _image_update(context, values, image_id)
+    print(Query(models.Image).first().status)
 

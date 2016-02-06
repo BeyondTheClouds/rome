@@ -667,6 +667,8 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
     :return: The query with sorting/pagination added.
     """
 
+    return query
+
     if 'id' not in sort_keys:
         # TODO(justinsb): If this ever gives a false-positive, check
         # the actual primary key, rather than assuming its id
@@ -962,11 +964,18 @@ def test_marker():
     result = image_get_all(context, marker=image_id)
     print(result)
 
+def test_marker():
+    result = image_get_all(context, )
+    print(result)
+
 if __name__ == "__main__":
 
     context = Context("project1", "user1", True, True)
 
     if Query(models.Image).count() == 0:
         create_mock_data()
+
+    result = Query(models.Image.id, models.ImageMember.id, models.Image).join(models.ImageMember).all()
+    print(result)
 
     test_marker()
