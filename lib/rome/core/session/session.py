@@ -59,6 +59,13 @@ class Session(object):
             if not self.already_in(obj, self.session_objects_add):
                 self.session_objects_add += [obj]
 
+    def update(self, obj):
+        if self.already_in(obj, self.session_objects_add):
+            filtered = filter(lambda x: ("%s" % (x)) != "%s" % (obj), self.session_objects_add)
+            self.session_objects_add = filtered
+        if not self.already_in(obj, self.session_objects_add):
+            self.session_objects_add += [obj]
+
     def delete(self, *objs):
         for obj in objs:
             if hasattr(obj, "is_loaded"):

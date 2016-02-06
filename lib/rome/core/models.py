@@ -109,6 +109,29 @@ entity_relationship_field = {}
 
 class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
+    __table_args__ = {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
+    __table_initialized__ = False
+    __protected_attributes__ = set([
+        "created_at", "updated_at", "deleted_at", "deleted"])
+
+    def keys(self):
+        return self.__dict__.keys()
+
+    def values(self):
+        return self.__dict__.values()
+
+    def items(self):
+        return self.__dict__.items()
+
+    def to_dict(self):
+        d = self.__dict__.copy()
+        # NOTE(flaper87): Remove
+        # private state instance
+        # It is not serializable
+        # and causes CircularReference
+        d.pop("_sa_instance_state")
+        return d
+
     def __init__(self):
         self._session = None
         self._rome_version_number = -1
