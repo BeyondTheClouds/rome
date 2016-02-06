@@ -230,6 +230,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             if not _joining_pairs_str in _joining_pairs_str_index:
                 _joining_pairs_str_index[_joining_pairs_str] = 1
                 joining_pairs += _joining_pairs
+        if "CASE WHEN" in _nonjoining_criterions_str:
+            continue
         if not _nonjoining_criterions_str in _nonjoining_criterions_str_index:
             _nonjoining_criterions_str_index[_nonjoining_criterions_str] = 1
             non_joining_criterions += _nonjoining_criterions
