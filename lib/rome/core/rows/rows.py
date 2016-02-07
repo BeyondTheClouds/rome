@@ -150,7 +150,7 @@ def wrap_with_lazy_value(value, only_if_necessary=True, request_uuid=None):
         return LazyValue(value, request_uuid)
 
 
-def construct_rows(models, criterions, hints, session=None, request_uuid=None):
+def construct_rows(models, criterions, hints, session=None, request_uuid=None, order_by=None):
 
     """This function constructs the rows that corresponds to the current orm.
     :return: a list of row, according to sqlalchemy expectation
@@ -208,7 +208,7 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None):
 
     """ Building tuples """
     building_tuples = join_building_tuples
-    tuples = building_tuples(list_results, labels, criterions, hints, metadata=metadata)
+    tuples = building_tuples(list_results, labels, criterions, hints, metadata=metadata, order_by=order_by)
     part4_starttime = current_milli_time()
 
     """ Filtering tuples (cartesian product) """

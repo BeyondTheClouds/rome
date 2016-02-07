@@ -591,6 +591,7 @@ def image_get_all(context, filters=None, marker=None, limit=None,
                                  admin_as_user,
                                  member_status,
                                  visibility)
+    print("query: %s" % (query.all()))
 
     if visibility is not None:
         if visibility == 'public':
