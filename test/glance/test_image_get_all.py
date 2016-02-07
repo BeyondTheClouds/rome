@@ -659,7 +659,7 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
     :return: The query with sorting/pagination added.
     """
 
-    return query
+    # return query
 
     if 'id' not in sort_keys:
         # TODO(justinsb): If this ever gives a false-positive, check
@@ -979,15 +979,26 @@ def test_image_get_all_devstack(context):
 def test_image_get_all_devstack2(context):
     # from test.glance.api import image_get_all as image_get_all_api
     from glance.db.discovery.api import image_get_all as image_get_all_api
-    result = image_get_all_api(context=context, filters={'deleted': False}, marker="c184db4b-08f2-405d-9d90-cb3a132b4d29", limit=25,
+    result = image_get_all_api(context=context, filters={'deleted': False}, marker=None, limit=25,
                   sort_key=['created_at'],                        sort_dir=['desc'],
                   member_status="accepted",            is_public=None,
                   admin_as_user=False, return_tag=True)
     print(result)
 
+def test(context):
+    from glance.db.discovery.api import _select_images_query as foo
+    query = foo(context,
+                         [],
+                         False,
+                         "accepted",
+                         None)
+    print(query.all())
+
 if __name__ == "__main__":
 
-    context = Context("project1", "user1", True, True)
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    context = Context("admin", "admin", True, True)
 
     if Query(models.Image).count() == 0:
         create_mock_data()
@@ -995,6 +1006,16 @@ if __name__ == "__main__":
     # result = Query(models.Image.id, models.ImageMember.id, models.Image).join(models.ImageMember).all()
     # print(result)
 
+    print(models.Image.name.desc())
+    v = models.Image.name.desc()
+    query = Query(models.Image).order_by(models.Image.name.asc())
+    result = query.all()
+
+    for r in result:
+        print(r.id)
+
+    print(result)
     # test_marker()
-    test_image_get_all_devstack(context)
-    test_image_get_all_devstack2(context)
+    # test_image_get_all_devstack(context)
+    # test_image_get_all_devstack2(context)
+    # test(context)

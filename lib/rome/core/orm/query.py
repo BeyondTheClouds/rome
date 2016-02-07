@@ -14,6 +14,7 @@ from lib.rome.core.terms.terms import *
 from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
 import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
+from sqlalchemy.sql.elements import UnaryExpression
 
 from lib.rome.core.models import get_model_class_from_name, get_model_classname_from_tablename, get_model_tablename_from_classname, get_tablename_from_name
 
@@ -32,6 +33,7 @@ class Query:
         self._criterions = []
         self._funcs = []
         self._hints = []
+        self._orders = []
         self._session = None
         base_model = None
         if "base_model" in kwargs:
@@ -56,6 +58,13 @@ class Query:
                 else:
                     self._models += [Selection(arg, "*")]
                     pass
+            elif isinstance(arg, UnaryExpression):
+                parts = str(arg).split(" ")
+                if len(parts) > 1:
+                    fieldname = parts[0]
+                    order = parts[1]
+                    if order in ["ASC", "DESC"]:
+                        self._orders += [arg]
             elif isinstance(arg, Selection):
                 self._models += [arg]
             elif isinstance(arg, Hint):
@@ -78,13 +87,16 @@ class Query:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
 
     def all(self, request_uuid=None):
-        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session, request_uuid=request_uuid)
+        result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session, request_uuid=request_uuid, order_by=self._orders)
         result = []
         for r in result_list:
             ok = True
             if ok:
                 result += [r]
         return result
+
+
+
 
     def first(self):
         rows = self.all()
@@ -204,13 +216,14 @@ class Query:
     # criterions can be a function
     def filter(self, *criterions):
         _func = self._funcs[:]
+        _orders = self._orders[:]
         _criterions = self._criterions[:]
         for criterion in criterions:
             self._extract_hint(criterion)
             self._extract_models(criterion)
             _criterions += [criterion]
         _hints = self._hints[:]
-        args = self._models + _func + _criterions + _hints + self._initial_models
+        args = self._models + _func + _criterions + _hints + self._initial_models + _orders
         kwargs = {}
         if self._session is not None:
             kwargs["session"] = self._session
@@ -219,6 +232,7 @@ class Query:
     def join(self, *args, **kwargs):
         _func = self._funcs[:]
         _models = self._models[:]
+        _orders = self._orders[:]
         _criterions = self._criterions[:]
         _hints = self._hints[:]
         for arg in args:
@@ -286,7 +300,7 @@ class Query:
                     _criterions += [item]
                 else:
                     pass
-        args = _models + _func + _criterions + _hints + self._initial_models
+        args = _models + _func + _criterions + _hints + self._initial_models + _orders
         kwargs = {}
         if self._session is not None:
             kwargs["session"] = self._session
@@ -298,10 +312,11 @@ class Query:
     def options(self, *args):
         _func = self._funcs[:]
         _models = self._models[:]
+        _orders = self._orders[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
-        args = _models + _func + _criterions + _hints + _initial_models
+        args = _models + _func + _criterions + _hints + _initial_models + _orders
         kwargs = {}
         if self._session is not None:
             kwargs["session"] = self._session
@@ -310,10 +325,11 @@ class Query:
     def order_by(self, *criterion):
         _func = self._funcs[:]
         _models = self._models[:]
+        _orders = self._orders[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
-        args = _models + _func + _criterions + _hints + _initial_models
+        args = _models + _func + _criterions + _hints + _initial_models + _orders + list(criterion)
         kwargs = {}
         if self._session is not None:
             kwargs["session"] = self._session
@@ -325,10 +341,11 @@ class Query:
     def subquery(self):
         _func = self._funcs[:]
         _models = self._models[:]
+        _orders = self._orders[:]
         _criterions = self._criterions[:]
         _initial_models = self._initial_models[:]
         _hints = self._hints[:]
-        args = _models + _func + _criterions + _hints + _initial_models
+        args = _models + _func + _criterions + _hints + _initial_models + _orders
         kwargs = {}
         if self._session is not None:
             kwargs["session"] = self._session

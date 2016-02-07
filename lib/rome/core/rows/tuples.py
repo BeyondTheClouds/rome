@@ -192,7 +192,7 @@ def default_panda_building_tuples(lists_results, labels, criterions, hints=[]):
     return rows
 
 
-def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metadata={}):
+def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metadata={}, order_by=None):
 
     """ Build tuples (join operator in relational algebra). """
 
@@ -253,6 +253,14 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             attribute = each.split(".")[1]
             if attribute not in needed_columns[table]:
                 needed_columns[table] += [attribute]
+    if order_by:
+        for clause in order_by:
+            parts = str(clause).split(" ")
+            table = parts[0].split(".")[0]
+            attribute = parts[0].split(".")[1]
+            if attribute not in needed_columns[table]:
+                needed_columns[table] += [attribute]
+
 
     """ Preparing the query for pandasql. """
     attribute_clause = ",".join(map(lambda x: "%s.id" % (x), labels))
@@ -279,6 +287,16 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             # traceback.print_exc(e)
             return []
         dataframe.columns = map(lambda c: "%s__%s" % (label, c), needed_columns[label])
+
+        """ Order data according to order_by parameter. """
+        if order_by:
+            order_by_current_table = filter(lambda x: (label+".") in str(x),order_by)
+            fields = map(lambda x: str(x).split(" ")[0], order_by_current_table)
+            fields_columns = map(lambda x: x.replace(".", "__"), fields)
+            orders = map(lambda x: str(x).split(" ")[1], order_by_current_table)
+            orders_boolean = map(lambda x: x=="ASC", orders)
+            dataframe = dataframe.sort_values(by=fields_columns, ascending=orders_boolean)
+
         env[label] = dataframe
 
     """ Construct the resulting rows. """
@@ -314,6 +332,7 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             """ Update the history of processed tables. """
             processed_tables += [tablename_1, tablename_2]
             processed_tables = list(set(processed_tables))
+
 
     """ Fixing none result. """
     if result is None:
