@@ -1008,7 +1008,9 @@ if __name__ == "__main__":
 
     print(models.Image.name.desc())
     v = models.Image.name.desc()
-    query = Query(models.Image).order_by(models.Image.name.asc())
+    # query = Query(models.Image).order_by(models.Image.created_at.desc(), models.Image.id.desc())
+    query = Query(models.Image).order_by(models.Image.created_at.desc(), models.Image.id.desc())
+    # query = Query(models.Image).order_by(models.Image.created_at.desc())
     result = query.all()
 
     for r in result:
