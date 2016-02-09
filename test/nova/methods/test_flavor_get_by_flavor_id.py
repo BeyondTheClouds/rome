@@ -89,4 +89,5 @@ if __name__ == '__main__':
 
     context = Context("admin", "admin")
 
+    # print(flavor_get_by_flavor_id(context, '42', 'no'))
     print(flavor_get_by_flavor_id(context, '42', 'no'))
