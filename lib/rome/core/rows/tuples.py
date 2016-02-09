@@ -256,6 +256,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     if order_by:
         for clause in order_by:
             parts = str(clause).split(" ")
+            if len(parts[0].split(".")) < 2:
+                parts[0] = labels[0] + "." + parts[0]
             table = parts[0].split(".")[0]
             try:
                 attribute = parts[0].split(".")[1]
