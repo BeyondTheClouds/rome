@@ -694,7 +694,7 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
     default = ''  # Default to an empty string if NULL
 
     # Add pagination
-    if marker is not None and False:
+    if marker is not None:
         marker_values = []
         for sort_key in sort_keys:
             v = getattr(marker, sort_key)
@@ -969,7 +969,13 @@ def test_marker():
 
 def test_image_get_all_devstack(context):
     from test.glance.api import image_get_all as image_get_all_api
+    images = Query(models.Image).all()
     result = image_get_all_api(context, filters={'deleted': False}, marker=None, limit=25,
+                  sort_key=['created_at', 'id'], sort_dir=['desc', 'desc'],
+                  member_status="accepted", is_public=None,
+                  admin_as_user=False, return_tag=True)
+    print(result)
+    result = image_get_all_api(context, filters={'deleted': False}, marker=images[2].id, limit=25,
                   sort_key=['created_at', 'id'], sort_dir=['desc', 'desc'],
                   member_status="accepted", is_public=None,
                   admin_as_user=False, return_tag=True)
@@ -1005,19 +1011,22 @@ if __name__ == "__main__":
 
     # result = Query(models.Image.id, models.ImageMember.id, models.Image).join(models.ImageMember).all()
     # print(result)
-
-    print(models.Image.name.desc())
-    v = models.Image.name.desc()
+    #
+    # print(models.Image.name.desc())
+    # v = models.Image.name.desc()
+    # # query = Query(models.Image).order_by(models.Image.created_at.desc(), models.Image.id.desc())
     # query = Query(models.Image).order_by(models.Image.created_at.desc(), models.Image.id.desc())
-    query = Query(models.Image).order_by(models.Image.created_at.desc(), models.Image.id.desc())
-    # query = Query(models.Image).order_by(models.Image.created_at.desc())
-    result = query.all()
+    # # query = Query(models.Image).order_by(models.Image.created_at.desc())
+    # result = query.all()
+    #
+    # for r in result:
+    #     print(r.id)
 
-    for r in result:
-        print(r.id)
-
-    print(result)
+    # print(result)
     # test_marker()
-    # test_image_get_all_devstack(context)
+    test_image_get_all_devstack(context)
     # test_image_get_all_devstack2(context)
+
+
+
     # test(context)

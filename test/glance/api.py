@@ -334,7 +334,6 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
     :rtype: sqlalchemy.orm.query.Query
     :return: The query with sorting/pagination added.
     """
-    return query
 
     if 'id' not in sort_keys:
         # TODO(justinsb): If this ever gives a false-positive, check
@@ -386,17 +385,19 @@ def _paginate_query(query, model, limit, sort_keys, marker=None,
                 default = None if isinstance(
                     model_attr.property.columns[0].type,
                     sqlalchemy.DateTime) else ''
-                attr = sa_sql.expression.case([(model_attr != None,
-                                              model_attr), ],
-                                              else_=default)
+                # attr = sa_sql.expression.case([(model_attr != None,
+                #                               model_attr), ],
+                #                               else_=default)
+                attr = model_attr
                 crit_attrs.append((attr == marker_values[j]))
 
             model_attr = getattr(model, sort_keys[i])
             default = None if isinstance(model_attr.property.columns[0].type,
                                          sqlalchemy.DateTime) else ''
-            attr = sa_sql.expression.case([(model_attr != None,
-                                          model_attr), ],
-                                          else_=default)
+            # attr = sa_sql.expression.case([(model_attr != None,
+            #                               model_attr), ],
+            #                               else_=default)
+            attr = model_attr
             if sort_dirs[i] == 'desc':
                 crit_attrs.append((attr < marker_values[i]))
             elif sort_dirs[i] == 'asc':

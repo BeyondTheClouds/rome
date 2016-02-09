@@ -257,9 +257,12 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         for clause in order_by:
             parts = str(clause).split(" ")
             table = parts[0].split(".")[0]
-            attribute = parts[0].split(".")[1]
-            if attribute not in needed_columns[table]:
-                needed_columns[table] += [attribute]
+            try:
+                attribute = parts[0].split(".")[1]
+                if attribute not in needed_columns[table]:
+                    needed_columns[table] += [attribute]
+            except:
+                print("""[ERROR tuple_order_by] parts="%s" clause="%s" """ % (parts, clause))
 
 
     """ Preparing the query for pandasql. """
