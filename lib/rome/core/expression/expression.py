@@ -215,7 +215,9 @@ class BooleanExpression(object):
 
         self.compiled_expression = joined_compiled_expressions
         self.raw_expression = "%s" % (self.compiled_expression)
-        for key in self.default_value_dict:
+        keys = self.default_value_dict.keys()
+        keys = sorted(keys, reverse=True, key=lambda x: len(x))
+        for key in keys:
             value = self.default_value_dict[key]
             if type(value).__name__ in ["int", "float"]:
                 self.raw_expression = self.raw_expression.replace(key, "%s" % (self.default_value_dict[key]))

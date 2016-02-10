@@ -15,6 +15,8 @@ import uuid
 from lib.rome.core.orm.query import or_
 from lib.rome.core.orm.query import and_
 from sqlalchemy.sql import null
+from sqlalchemy.sql.expression import asc
+from sqlalchemy.sql.expression import desc
 
 LOG = logging.getLogger()
 
@@ -45,7 +47,7 @@ from nova.openstack.common import uuidutils
 
 def fixed_ip_get_by_instance(context, instance_uuid):
     if not uuidutils.is_uuid_like(instance_uuid):
-        raise Exception("invalid UUID")
+        raise Exception("""exception.InvalidUUID(uuid=instance_uuid)""")
 
     vif_and = and_(models.VirtualInterface.id ==
                    models.FixedIp.virtual_interface_id,
@@ -53,12 +55,15 @@ def fixed_ip_get_by_instance(context, instance_uuid):
     result = model_query(context, models.FixedIp, read_deleted="no").\
                  filter(models.FixedIp.instance_uuid==instance_uuid).\
                  outerjoin(models.VirtualInterface, vif_and).\
+                 order_by(asc(models.VirtualInterface.created_at),
+                          asc(models.VirtualInterface.id)).\
                  all()
 
     if not result:
-        raise Exception("FixedIpNotFoundForInstance(instance_uuid=%s)" % (instance_uuid))
+        raise Exception("""FixedIpNotFoundForInstance(instance_uuid=instance_uuid)""")
     # TODO(Jonathan): quick fix
     return [x[0] for x in result]
+    # return result
 
 
 
@@ -73,5 +78,5 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
 
     context = Context("admin", "admin")
-    instance_uuid = "ad86ce1e-c20f-40fa-a687-0f6dbbb0398f"
+    instance_uuid = "5cce7785-002f-44c4-8e92-4a5bd7ef2f9b"
     print(fixed_ip_get_by_instance(context, instance_uuid))
