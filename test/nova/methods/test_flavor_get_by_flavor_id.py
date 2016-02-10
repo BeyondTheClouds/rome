@@ -9,6 +9,7 @@ import six
 # from oslo.utils import timeutils
 from lib.rome.core.utils import timeutils
 from test.nova.methods.test_ensure_default_secgroup import _security_group_ensure_default, _security_group_get_query
+from sqlalchemy.sql.expression import asc
 
 import logging
 import uuid
@@ -70,6 +71,7 @@ def flavor_get_by_flavor_id(context, flavor_id, read_deleted):
     """Returns a dict describing specific flavor_id."""
     result = _flavor_get_query(context, read_deleted=read_deleted).\
                         filter_by(flavorid=flavor_id).\
+                        order_by(asc("deleted"), asc("id")).\
                         first()
     if not result:
         raise Exception("plop")
@@ -90,4 +92,4 @@ if __name__ == '__main__':
     context = Context("admin", "admin")
 
     # print(flavor_get_by_flavor_id(context, '42', 'no'))
-    print(flavor_get_by_flavor_id(context, '42', 'no'))
+    print(flavor_get_by_flavor_id(context, u'42', 'no'))
