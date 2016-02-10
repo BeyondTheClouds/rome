@@ -288,14 +288,14 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         if order_by:
             # <v2>
             order_by_current_table = filter(lambda x: (label+".") in str(x), order_by_clauses)
-
-            fields = map(lambda x: str(x).split(" ")[0], order_by_current_table)
-            # fields_columns = map(lambda x: x.replace(".", "__"), fields)
-            fields_columns = map(lambda x: x.split(".")[1], fields)
-            orders = map(lambda x: str(x).split(" ")[1], order_by_current_table)
-            orders_boolean = map(lambda x: x=="ASC", orders)
-            # dataframe = dataframe.sort_values(by=fields_columns, ascending=orders_boolean)
-            list_results = sorted(list_results, key=itemgetter(*fields_columns), reverse=orders_boolean[0])
+            if len(order_by_current_table) > 0:
+                fields = map(lambda x: str(x).split(" ")[0], order_by_current_table)
+                # fields_columns = map(lambda x: x.replace(".", "__"), fields)
+                fields_columns = map(lambda x: x.split(".")[1], fields)
+                orders = map(lambda x: str(x).split(" ")[1], order_by_current_table)
+                orders_boolean = map(lambda x: x=="ASC", orders)
+                # dataframe = dataframe.sort_values(by=fields_columns, ascending=orders_boolean)
+                list_results = sorted(list_results, key=itemgetter(*fields_columns), reverse=orders_boolean[0])
             # </v2>
 
         dataframe = pd.DataFrame(data=list_results)
