@@ -4,6 +4,7 @@ import pandas as pd
 import math
 import traceback
 import datetime
+from operator import itemgetter
 
 from lib.rome.core.utils import DATE_FORMAT, datetime_to_int
 
@@ -254,18 +255,17 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
             if attribute not in needed_columns[table]:
                 needed_columns[table] += [attribute]
     if order_by:
-        for clause in order_by:
+        order_by_clauses = map(lambda x: str(x), order_by)
+        order_by_clauses = map(lambda x: x if "." in x else labels[0]+"."+x, order_by_clauses)
+
+        for clause in order_by_clauses:
             parts = str(clause).split(" ")
             if len(parts[0].split(".")) < 2:
                 parts[0] = labels[0] + "." + parts[0]
             table = parts[0].split(".")[0]
-            try:
-                attribute = parts[0].split(".")[1]
-                if attribute not in needed_columns[table]:
-                    needed_columns[table] += [attribute]
-            except:
-                print("""[ERROR tuple_order_by] parts="%s" clause="%s" """ % (parts, clause))
-
+            attribute = parts[0].split(".")[1]
+            if attribute not in needed_columns[table]:
+                needed_columns[table] += [attribute]
 
     """ Preparing the query for pandasql. """
     attribute_clause = ",".join(map(lambda x: "%s.id" % (x), labels))
@@ -287,8 +287,8 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
     for (label, list_results) in zip(labels, lists_results):
         if order_by:
             # <v2>
-            from operator import itemgetter
-            order_by_current_table = filter(lambda x: (label+".") in str(x),order_by)
+            order_by_current_table = filter(lambda x: (label+".") in str(x), order_by_clauses)
+
             fields = map(lambda x: str(x).split(" ")[0], order_by_current_table)
             # fields_columns = map(lambda x: x.replace(".", "__"), fields)
             fields_columns = map(lambda x: x.split(".")[1], fields)
