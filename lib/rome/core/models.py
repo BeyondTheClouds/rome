@@ -115,7 +115,8 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
         "created_at", "updated_at", "deleted_at", "deleted"])
 
     def keys(self):
-        return self.__dict__.keys()
+        filtered_keys = ["_sa_instance_state"]
+        return filter(lambda x: x not in filtered_keys, self.__dict__.keys())
 
     def values(self):
         return self.__dict__.values()
