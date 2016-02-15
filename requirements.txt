@@ -1,0 +1,7 @@
+pandas==0.17.0
+pandasql==0.6.3
+redis==2.10.3
+redlock-py==1.0.5
+numexpr
+gevent
+ujson
