@@ -21,8 +21,8 @@ SQLAlchemy models for nova data.
 
 import uuid
 
-from oslo.config import cfg
-from oslo.db.sqlalchemy import models
+from oslo_config import cfg
+# from oslo.db.sqlalchemy import models
 # from oslo.utils import timeutils
 from lib.rome.core.utils import timeutils
 from sqlalchemy import Column, Index, Integer, BigInteger, Enum, String, schema
@@ -44,9 +44,11 @@ from sqlalchemy import orm
 from sqlalchemy import ForeignKey, DateTime, Boolean, Text, Float
 
 from lib.rome.utils.SecondaryIndexDecorator import secondary_index_decorator
+# from lib.rome.core.model_base import RomeDeclarativeMeta
+# from lib.rome.core.model_base import rome_declarative_base
 
 CONF = cfg.CONF
-BASE = declarative_base()
+BASE = declarative_base(constructor=NovaBase.__init__)
 
 def MediumText():
     return Text().with_variant(MEDIUMTEXT(), 'mysql')

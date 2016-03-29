@@ -9,7 +9,9 @@ import uuid
 import sys
 import datetime
 import logging
+import types
 
+from sqlalchemy import Column
 from lib.rome.core.dataformat import get_decoder, get_encoder
 import lib.rome.driver.database_driver as database_driver
 # from oslo.db.sqlalchemy import models
@@ -136,6 +138,17 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def __init__(self):
         self._session = None
         self._rome_version_number = -1
+
+    def _set_default_values(self, skip_non_none=True):
+        attributes = self.__class__.__dict__
+        for attr_name, attr_value in attributes.iteritems():
+            if hasattr(attr_value, "default") and getattr(attr_value, "default"):
+                default_value = attr_value.default.arg
+                if skip_non_none and getattr(self, attr_name, None):
+                    continue
+                if isinstance(default_value, types.FunctionType):
+                    default_value = attr_value.default.arg(self)
+                setattr(self, attr_name, default_value)
 
     def __setitem__(self, key, value):
         """ This function overrides the default __setitem_ provided by sqlalchemy model class, in order to prevent
@@ -298,6 +311,8 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         target = self
         table_name = self.__tablename__
+
+        self._set_default_values()
 
         """Check if the current object has an value associated with the "id"
         field. If this is not the case, following code will generate an unique

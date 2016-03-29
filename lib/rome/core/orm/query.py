@@ -277,8 +277,9 @@ class Query:
                         from lib.rome.core.utils import get_relationships_from_class
 
                         tablename = item.__tablename__
-                        current_tablenames = map(lambda x: x._model.__tablename__, _models)
-                        models_classes = map(lambda x: x._model, _models)
+                        non_function_models = filter(lambda x: x._model is not None,_models)
+                        current_tablenames = map(lambda x: x._model.__tablename__, non_function_models)
+                        models_classes = map(lambda x: x._model, non_function_models)
                         relationships = map(lambda x: get_relationships_from_class(x), models_classes)
                         # relationships = get_relationships_from_class(item)
                         flatten_relationships = [item for sublist in relationships for item in sublist]

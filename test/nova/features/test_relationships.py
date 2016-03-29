@@ -1,13 +1,11 @@
 __author__ = 'jonathan'
 
+import logging
+
 import test.nova._fixtures as models
 from lib.rome.core.orm.query import Query
-import collections
-import logging
-import sys
-import uuid
-
 from lib.rome.core.session.session import Session as Session
+
 
 def test_relationships_single_str(save_instance=True, save_info_cache=True, use_update=False, use_session=False):
     print("Ensure that foreign keys are working test_relationships_single_str(save_instance=%s, save_info_cache=%s, use_update=%s, use_session=%s)" % (save_instance, save_info_cache, use_update, use_session))
