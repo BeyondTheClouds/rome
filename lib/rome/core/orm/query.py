@@ -229,7 +229,7 @@ class Query:
             kwargs["session"] = self._session
         return Query(*args, **kwargs)
 
-    def join(self, *args, **kwargs):
+    def join(self, is_hidden=False, *args, **kwargs):
         _func = self._funcs[:]
         _models = self._models[:]
         _orders = self._orders[:]
@@ -271,7 +271,7 @@ class Query:
                     "BooleanExpression" in "%s" % (type(item))
                 )
                 if is_class:
-                    _models = _models + [Selection(item, "*")]
+                    _models = _models + [Selection(item, "*", is_hidden=is_hidden)]
                     if len(tuples) == 1:
                         # Must find an expression that would specify how to join the tables.
                         from lib.rome.core.utils import get_relationships_from_class
