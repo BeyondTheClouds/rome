@@ -290,7 +290,7 @@ class Query:
                                 if other_tablename in current_tablenames:
                                     type_expression = type(relationship.initial_expression).__name__
                                     new_criterions = []
-                                    if type_expression == "BooleanClauseList":
+                                    if type_expression in ["BooleanClauseList", "list"]:
                                         for exp in relationship.initial_expression:
                                             new_criterions += [JoiningBooleanExpression("NORMAL", *[exp])]
                                     elif type_expression == "BinaryExpression":
