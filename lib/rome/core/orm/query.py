@@ -300,7 +300,13 @@ class Query:
                 elif is_expression:
                     _criterions += [item]
                 else:
-                    pass
+                    # We should have a string refering to an attribute of the Class
+                    if len(self._models) > 0:
+                        relationship_field = getattr(self._models[0]._model, arg)
+                        joining_class = None
+                        if hasattr(relationship_field, "property"):
+                            joining_class = relationship_field.property.argument
+                        return self.join(joining_class)
         args = _models + _func + _criterions + _hints + self._initial_models + _orders
         kwargs = {}
         if self._session is not None:

@@ -246,13 +246,13 @@ def sql_panda_building_tuples(lists_results, labels, criterions, hints=[], metad
         for match in re.findall(property_pattern, str(criterion)):
             table = match.split(".")[0]
             attribute = match.split(".")[1]
-            if attribute not in needed_columns[table]:
+            if table in needed_columns and attribute not in needed_columns[table]:
                 needed_columns[table] += [attribute]
     for pair in joining_pairs:
         for each in pair:
             table = each.split(".")[0]
             attribute = each.split(".")[1]
-            if attribute not in needed_columns[table]:
+            if table in needed_columns and attribute not in needed_columns[table]:
                 needed_columns[table] += [attribute]
     if order_by:
         order_by_clauses = map(lambda x: str(x), order_by)

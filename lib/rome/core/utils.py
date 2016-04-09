@@ -219,7 +219,7 @@ class ModelBase(object):
     def get(self, key, default=None):
         pass
 
-    def save(self, session):
+    def save(self, session, force=True):
         pass
 
     def update(self, values):

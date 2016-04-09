@@ -298,7 +298,7 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True, session_saving=None):
 
-        if session is not None:
+        if session is not None and not force:
             session.add(self)
             return
 
