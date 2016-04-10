@@ -29,8 +29,12 @@ except:
     pass
 
 
-def all_selectable_are_functions(models):
+def all_selectables_are_functions(models):
     return all(x._is_function for x in [y for y in models if not y.is_hidden])
+
+
+def any_selectable_is_function(models):
+    return any(x._is_function for x in [y for y in models if not y.is_hidden])
 
 
 def has_attribute(obj, key):
@@ -225,11 +229,14 @@ def construct_rows(models, criterions, hints, session=None, request_uuid=None, o
     part6_starttime = current_milli_time()
 
     """ Selecting attributes """
-    if all_selectable_are_functions(models):
+    if any_selectable_is_function(models):
         final_row = []
         for selection in showable_selection:
-            value = selection._function._function(rows)
-            final_row += [value]
+            if selection._is_function:
+                value = selection._function._function(rows)
+                final_row += [value]
+            else:
+                final_row += [None]
         final_row = map(lambda x: deconverter.desimplify(x), final_row)
         return [final_row]
     else:

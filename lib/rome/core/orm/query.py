@@ -13,7 +13,7 @@ import uuid
 from lib.rome.core.terms.terms import *
 from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
 import lib.rome.driver.database_driver as database_driver
-from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectable_are_functions
+from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectables_are_functions
 from sqlalchemy.sql.elements import UnaryExpression
 
 from lib.rome.core.models import get_model_class_from_name, get_model_classname_from_tablename, get_model_tablename_from_classname, get_tablename_from_name
@@ -36,55 +36,67 @@ class Query:
         self._orders = []
         self._session = None
         base_model = None
+
+        # Process Query's arguments in a seperate function
+        self._extract_arguments(*args, **kwargs)
+
+    def _extract_arguments(self, *args, **kwargs):
         if "base_model" in kwargs:
             base_model = kwargs.get("base_model")
         if "session" in kwargs:
             self._session = kwargs.get("session")
         for arg in args:
-            if ("count" in str(arg) or "sum" in str(arg)) and "DeclarativeMeta" not in str(type(arg)):
-                function_name = re.sub("\(.*\)", "", str(arg))
-                field_id = re.sub("\)", "", re.sub(".*\(", "", str(arg)))
-                self._models += [Selection(None, None, is_function=True, function=Function(function_name, field_id))]
-            elif find_table_name(arg) != "none":
-                arg_as_text = "%s" % (arg)
-                attribute_name = "*"
-                if not hasattr(arg, "_sa_class_manager"):
-                    if (len(arg_as_text.split(".")) > 1):
-                        attribute_name = arg_as_text.split(".")[-1]
-                    if hasattr(arg, "_sa_class_manager"):
-                        self._models += [Selection(arg, attribute_name)]
-                    elif hasattr(arg, "class_"):
-                        self._models += [Selection(arg.class_, attribute_name)]
-                else:
-                    self._models += [Selection(arg, "*")]
-                    pass
-            elif isinstance(arg, UnaryExpression):
-                parts = str(arg).split(" ")
-                if len(parts) > 1:
-                    fieldname = parts[0]
-                    order = parts[1]
-                    if order in ["ASC", "DESC"]:
-                        self._orders += [arg]
-            elif isinstance(arg, Selection):
-                self._models += [arg]
-            elif isinstance(arg, Hint):
-                self._hints += [arg]
-            elif isinstance(arg, Function):
-                self._models += [Selection(None, None, True, arg)]
-                self._funcs += [arg]
-            elif isinstance(arg, BooleanClauseList) or type(arg) == list:
-                for clause in arg:
-                    if type(clause) == BinaryExpression:
-                        self._criterions += [BooleanExpression("NORMAL", clause)]
-            elif isinstance(arg, BinaryExpression):
-                self._criterions += [BooleanExpression("NORMAL", arg)]
-            elif hasattr(arg, "is_boolean_expression"):
-                self._criterions += [arg]
+            if type(arg) is tuple:
+                for arg2 in arg:
+                    self._extract_argument(arg2)
             else:
-                pass
-        if all_selectable_are_functions(self._models):
+                self._extract_argument(arg)
+        if all_selectables_are_functions(self._models):
             if base_model:
                 self._models += [Selection(base_model, "*", is_hidden=True)]
+
+    def _extract_argument(self, arg):
+        if ("count" in str(arg) or "sum" in str(arg)) and "DeclarativeMeta" not in str(type(arg)):
+            function_name = re.sub("\(.*\)", "", str(arg))
+            field_id = re.sub("\)", "", re.sub(".*\(", "", str(arg)))
+            self._models += [Selection(None, None, is_function=True, function=Function(function_name, field_id))]
+        elif find_table_name(arg) != "none":
+            arg_as_text = "%s" % (arg)
+            attribute_name = "*"
+            if not hasattr(arg, "_sa_class_manager"):
+                if (len(arg_as_text.split(".")) > 1):
+                    attribute_name = arg_as_text.split(".")[-1]
+                if hasattr(arg, "_sa_class_manager"):
+                    self._models += [Selection(arg, attribute_name)]
+                elif hasattr(arg, "class_"):
+                    self._models += [Selection(arg.class_, attribute_name)]
+            else:
+                self._models += [Selection(arg, "*")]
+                pass
+        elif isinstance(arg, UnaryExpression):
+            parts = str(arg).split(" ")
+            if len(parts) > 1:
+                fieldname = parts[0]
+                order = parts[1]
+                if order in ["ASC", "DESC"]:
+                    self._orders += [arg]
+        elif isinstance(arg, Selection):
+            self._models += [arg]
+        elif isinstance(arg, Hint):
+            self._hints += [arg]
+        elif isinstance(arg, Function):
+            self._models += [Selection(None, None, True, arg)]
+            self._funcs += [arg]
+        elif isinstance(arg, BooleanClauseList) or type(arg) == list:
+            for clause in arg:
+                if type(clause) == BinaryExpression:
+                    self._criterions += [BooleanExpression("NORMAL", clause)]
+        elif isinstance(arg, BinaryExpression):
+            self._criterions += [BooleanExpression("NORMAL", arg)]
+        elif hasattr(arg, "is_boolean_expression"):
+            self._criterions += [arg]
+        else:
+            pass
 
     def all(self, request_uuid=None):
         result_list = construct_rows(self._models, self._criterions, self._hints, session=self._session, request_uuid=request_uuid, order_by=self._orders)
@@ -94,9 +106,6 @@ class Query:
             if ok:
                 result += [r]
         return result
-
-
-
 
     def first(self):
         rows = self.all()
