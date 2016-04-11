@@ -300,6 +300,7 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
         if session is not None and not force:
             session.add(self)
+            session.flush()
             return
 
         object_key = "%s:%s" % (self.__tablename__, self.id)
