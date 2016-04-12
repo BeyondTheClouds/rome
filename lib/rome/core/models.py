@@ -400,6 +400,7 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 "created_at"] is None) or not current_object.has_key("created_at"):
                 current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
             current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
+            current_object["deleted_at"] = None
 
             logging.debug("starting the storage of %s" % (current_object))
 
