@@ -1,8 +1,8 @@
-pandas==0.17.0
-pandasql==0.6.3
-redis==2.10.3
-redlock-py==1.0.5
-redis-py-cluster==0.2.0
+pandas>=0.17.0
+pandasql>=0.6.3
+redis>=2.10.3
+redlock-py>=1.0.5
+redis-py-cluster>=0.2.0
 numexpr
 gevent
 ujson
