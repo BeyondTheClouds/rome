@@ -138,6 +138,7 @@ class Query:
 
     def update(self, values, synchronize_session='evaluate'):
         result = self.all()
+        count = 0
         for each in result:
             try:
                 each.update(values)
@@ -145,11 +146,11 @@ class Query:
                     self._session.update(each)
                 else:
                     each.save()
+                count = count + 1
             except:
                 traceback.print_exc()
                 pass
-        result = self.all()
-        return len(result)
+        return count
 
     def distinct(self):
         return list(set(self.all()))
