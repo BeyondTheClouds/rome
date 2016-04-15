@@ -1,4 +1,4 @@
 pytz
-oslo.utils
-oslo.db
-sqlalchemy
+oslo.utils>=1.0.0
+oslo.db>=1.0.0 
+SQLAlchemy>=0.9.7,<=0.9.99
