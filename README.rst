@@ -46,26 +46,17 @@ ROME needs some python dependencies, run the following commands in a
 shell:
 
 ::
+
+   pip install -r standalone-requirements.txt
+
    
-    pip install pytz
-    pip install oslo.utils
-    pip install oslo.db
-    pip install sqlalchemy
-
-Install Redis
-~~~~~~~~~~~~~
-
-You will need Redis to run a server :
-
-http://redis.io/topics/quickstart
+Check if you have the required modules :
 
 ::
 
-   wget http://download.redis.io/redis-stable.tar.gz
-   tar xvzf redis-stable.tar.gz
-   cd redis-stable
-   make
-   sudo make install
+   pip install -r requirements.txt
+
+
 
    
 Install Rome
@@ -94,13 +85,8 @@ Execute the following command in a shell:
 
 Launch tests
 ~~~~~~~~~~~~
-Check if you have the required modules :
 
-::
-
-   pip install -r requirements.txt
-
-Execute the following command in a shell to run the premade tests:
+With a Redis server running, execute the following command in a shell to run the premade tests:
 
 ::
 
@@ -361,7 +347,7 @@ try to join the two entity classes on these fields:
 .. parsed-literal::
 
    [[{u'name': u'Bobby', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:03'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 109, u'deleted_at': None, u'species': u'Griffon'}, {u'name': u'Griffon', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 79}], [{u'name': u'Snoopy', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 111, u'deleted_at': None, u'species': u'Beagle'}, {u'name': u'Beagle', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 81}]]
-   [[{u'name': u'Bobby', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:03'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 109, u'deleted_at': None, u'species': u'Griffon'}, {u'name': u'Griffon', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 79}], [{u'name': u'Snoopy', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 111, u'deleted_at': None, u'species': u'Beagle'}, {u'name': u'Beagle', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 81}]]
+[[{u'name': u'Bobby', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:03'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 109, u'deleted_at': None, u'species': u'Griffon'}, {u'name': u'Griffon', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 79}], [{u'name': u'Snoopy', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'id': 111, u'deleted_at': None, u'species': u'Beagle'}, {u'name': u'Beagle', u'deleted': 0, u'created_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'updated_at': {u'timezone': u'None', u'simplify_strategy': u'datetime', u'value': u'2016-04-15 08:21:04'}, u'deleted_at': None, u'id': 81}]]
 
 
 
