@@ -90,7 +90,7 @@ An example of configuration file follows :
    [Cluster]
    redis_cluster_enabled: False
 
-With a Redis server running, execute the following command in a shell to run the premade tests:
+**With a Redis server running**, execute the following command in a shell to run the premade tests:
 
 ::
 
