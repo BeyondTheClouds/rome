@@ -47,13 +47,6 @@ shell:
 
 ::
 
-   pip install -r standalone-requirements.txt
-
-   
-Check if you have the required modules :
-
-::
-
    pip install -r requirements.txt
 
 
