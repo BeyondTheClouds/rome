@@ -296,6 +296,20 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
     def reset_associated_objects(self):
         return setattr(self, "_associated_objects", [])
 
+    def _fill_none_field(self, db_object):
+        """
+        Fill self with None value.
+        A column with no default value and no value given will be persisted
+        in the DB with a null value, but the entity will not reflect this.
+        The purpose of this method is to force attributes in the entity to be set
+        to None before returning.
+        :param db_object: the object that has been persisted in the DB
+        :return:
+        """
+        for k, v in db_object.iteritems():
+            if v is None and hasattr(self, k):
+                setattr(self, k, None)
+
     def save(self, session=None, request_uuid=uuid.uuid1(), force=False, no_nested_save=False, increase_version=True, session_saving=None):
 
         if session is not None and not force:
@@ -396,11 +410,12 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
 
             object_converter_datetime = get_encoder(request_uuid)
 
+            current_time = datetime.datetime.utcnow()
             if (current_object.has_key("created_at") and current_object[
                 "created_at"] is None) or not current_object.has_key("created_at"):
-                current_object["created_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
-            current_object["updated_at"] = object_converter_datetime.simplify(datetime.datetime.utcnow())
-            current_object["deleted_at"] = None
+                current_object["created_at"] = object_converter_datetime.simplify(current_time)
+            current_object["updated_at"] = object_converter_datetime.simplify(current_time)
+            self.updated_at = current_time
 
             logging.debug("starting the storage of %s" % (current_object))
 
@@ -448,4 +463,7 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
                 traceback.print_exc()
                 pass
 
+        self._fill_none_field(current_object)
+
         return self
+
