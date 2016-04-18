@@ -91,6 +91,19 @@ def flatten(container):
         else:
             yield i
 
+def convert_unicode_dict_to_utf8(d):
+    if d is None:
+        return None
+    result = {}
+    for key in d:
+        v = d[key]
+        if type(v) is dict:
+            v = convert_unicode_dict_to_utf8(d[key])
+        if type(v) is unicode:
+            v = str(v)
+        result[str(key)] = v
+    return result
+
 
 class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
@@ -131,6 +144,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
             secondary_value = value[secondary_index]
             fetched = self.redis_client.sadd("sec_index:%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
+        result = convert_unicode_dict_to_utf8(result)
         return result
 
     def get(self, tablename, key, hint=None):
@@ -159,6 +173,7 @@ class RedisDriver(lib.rome.driver.database_driver.DatabaseDriverInterface):
 
             """ Parse result from JSON to python dict. """
             result = ujson.loads(str_result)
+            result = map(lambda x: convert_unicode_dict_to_utf8(x), result)
             result = filter(lambda x: x!= None, result)
         return result
 
@@ -216,6 +231,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
             secondary_value = value[secondary_index]
             fetched = self.redis_client.sadd("sec_index:%s:%s:%s" % (tablename, secondary_index, secondary_value), "%s:id:%s" % (tablename, key))
         result = value if fetched else None
+        result = convert_unicode_dict_to_utf8(result)
         return result
 
     def get(self, tablename, key, hint=None):
@@ -244,6 +260,7 @@ class RedisClusterDriver(lib.rome.driver.database_driver.DatabaseDriverInterface
 
             """ Parse result from JSON to python dict. """
             result = ujson.loads(str_result)
+            result = map(lambda x: convert_unicode_dict_to_utf8(x), result)
             result = filter(lambda x: x!= None, result)
         return result
 

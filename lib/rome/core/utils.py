@@ -193,6 +193,8 @@ class RelationshipModel(object):
             if type(value) is float and math.isnan(value):
                     value = 0
             if self.given_type_is_subtype(fk_typename, ["Integer"]):
+                if hasattr(value, self.remote_object_field):
+                    value = getattr(value, self.remote_object_field)
                 value = int(value)
                 value_changed = True
         if value_changed:
