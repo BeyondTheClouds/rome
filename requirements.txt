@@ -1,8 +1,12 @@
-pandas==0.17.0
-pandasql==0.6.3
-redis==2.10.3
-redlock-py==1.0.5
-redis-py-cluster==0.2.0
+pytz
+oslo.utils>=1.0.0
+oslo.db>=1.0.0 
+SQLAlchemy>=0.9.7,<=0.9.99
+pandas>=0.17.0,<1.0
+pandasql>=0.6.3,<1.0
+redis>=2.10.3,<3.0
+redlock-py>=1.0.5,<2.0
+redis-py-cluster>=0.2.0,<1.0
 numexpr
 gevent
 ujson
