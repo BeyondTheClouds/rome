@@ -100,7 +100,7 @@ def convert_unicode_dict_to_utf8(d):
         if type(v) is dict:
             v = convert_unicode_dict_to_utf8(d[key])
         if type(v) is unicode:
-            v = str(v)
+            v = v.encode('utf-8')
         result[str(key)] = v
     return result
 
