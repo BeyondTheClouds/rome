@@ -9,10 +9,10 @@ import inspect
 import re
 import logging
 import uuid
+import exc
 
 from lib.rome.core.terms.terms import *
 from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList
-import lib.rome.driver.database_driver as database_driver
 from lib.rome.core.rows.rows import construct_rows, find_table_name, all_selectables_are_functions
 from sqlalchemy.sql.elements import UnaryExpression
 
@@ -113,6 +113,26 @@ class Query:
             return rows[0]
         else:
             None
+
+    def one_or_none(self):
+        ret = self.all()
+
+        l = len(ret)
+        if l == 1:
+            return ret[0]
+        elif l == 0:
+            return None
+        else:
+            raise exc.MultipleResultsFound("Multiple rows were found for one_or_none()")
+
+    def one(self):
+        try:
+            ret = self.one_or_none()
+        except exc.MultipleResultsFound:
+            raise exc.MultipleResultsFound("Multiple results were found for one()")
+        else:
+            if ret is None:
+                raise exc.NoResultFound("No row was found for one()")
 
     def exists(self):
         return self.first() is not None
