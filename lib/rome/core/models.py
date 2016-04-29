@@ -288,10 +288,13 @@ class Entity(ModelBase, IterableModel, utils.ReloadableRelationMixin):
         return getattr(self, "_associated_objects", [])
 
     def to_dict(self):
-        result = {}
-        for key in self.__dict__:
-            result[key] = self.__dict__[key]
-        return result
+        d = self.__dict__.copy()
+        # NOTE(flaper87): Remove
+        # private state instance
+        # It is not serializable
+        # and causes CircularReference
+        d.pop('_sa_instance_state')
+        return d
 
     def reset_associated_objects(self):
         return setattr(self, "_associated_objects", [])
