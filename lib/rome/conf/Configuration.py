@@ -1,5 +1,6 @@
 __author__ = 'jonathan'
 
+import os
 import ConfigParser
 
 class Configuration(object):
@@ -31,7 +32,18 @@ class Configuration(object):
 config = None
 
 def build_config():
-    return Configuration()
+    search_path = [
+        os.path.join(os.getcwd(), 'rome.conf'),
+        os.path.join(os.path.expanduser('~'), '.rome.conf'),
+        '/etc/rome/rome.conf'
+    ]
+    config_path = None
+    for p in search_path:
+        if os.path.exists(p):
+            config_path = p
+            break
+
+    return Configuration(config_path)
 
 def get_config():
     global config
