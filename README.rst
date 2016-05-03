@@ -72,7 +72,7 @@ Launch tests
 ~~~~~~~~~~~~
 
 
-Configure Rome to be able to run with Redis, by editing the rome.conf sample as you want and copying it in ~/user/rome.conf.
+Configure Rome to be able to run with Redis, by editing the rome.conf sample as you want and copying it in ~/rome.conf.
 
 **With a Redis server running**, execute the following command in a shell to run the premade tests:
 
