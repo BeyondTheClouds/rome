@@ -71,17 +71,8 @@ Running tests (to check if the environment is ready)
 Launch tests
 ~~~~~~~~~~~~
 
-Configure Rome to be able to run with Redis, by creating a rome.conf file which you should put in /etc/rome/.
-An example of configuration file follows :
 
-::
-   
-   [Rome]
-   backend : redis
-   host    : localhost
-   port    : 6379
-   [Cluster]
-   redis_cluster_enabled: False
+Configure Rome to be able to run with Redis, by editing the rome.conf sample as you want and copying it in ~/rome.conf.
 
 **With a Redis server running**, execute the following command in a shell to run the premade tests:
 
