@@ -25,8 +25,8 @@ try:
     file_logger.addHandler(hdlr)
     file_logger.setLevel(logging.INFO)
     file_logger_enabled = True
-except:
-    pass
+except Exception as err:
+    print(str(err))
 
 
 def all_selectables_are_functions(models):
